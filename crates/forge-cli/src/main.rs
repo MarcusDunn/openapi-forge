@@ -5,16 +5,18 @@
 //! - **Project mode** — read `forge.toml` from the project directory.
 //!   Supports per-plugin config blocks and is the recommended layout
 //!   for repeatable runs.
-//! - **Config-less mode** — pass `--input`/`--ir`, `--transformer`,
+//! - **Config-less mode** — pass `--input`, `--transformer`,
 //!   `--generator`, and `--out` directly on the command line. Useful
 //!   for one-off runs and shell scripting; per-plugin config defaults
-//!   to `{}`. Triggered when `--input` or `--ir` is set.
+//!   to `{}`. Triggered when `--input` is set.
 //!
-//! Two input modes (orthogonal to the above):
+//! Two input forms (project mode supports both via `forge.toml`;
+//! config-less mode supports spec only):
 //!
 //! - spec — parse an OpenAPI 3.0 JSON document through `forge-parser`.
 //! - ir — load a canonical `forge_ir::Ir` directly (debugging escape
-//!   hatch; bypasses the parser).
+//!   hatch; bypasses the parser). Only reachable via
+//!   `[input] ir = "..."` in `forge.toml`.
 
 use std::path::{Path, PathBuf};
 
@@ -155,9 +157,9 @@ enum CliError {
     Output(#[from] forge_host::filesystem::OutputError),
     #[error("io: {0}")]
     Io(#[from] std::io::Error),
-    #[error("--generator is required in config-less mode (when --input or --ir is set)")]
+    #[error("--generator is required in config-less mode (when --input is set)")]
     MissingGenerator,
-    #[error("--out is required in config-less mode (when --input or --ir is set)")]
+    #[error("--out is required in config-less mode (when --input is set)")]
     MissingOut,
 }
 
@@ -179,12 +181,9 @@ fn main() {
             generator,
             out,
         } => match input {
-            Some(spec) => generate_from_args(
-                spec,
-                &transformer,
-                generator.as_deref(),
-                out.as_deref(),
-            ),
+            Some(spec) => {
+                generate_from_args(spec, &transformer, generator.as_deref(), out.as_deref())
+            }
             None => generate_from_project(&project, out.as_deref()),
         },
         Cmd::IrVersion => {
@@ -265,7 +264,11 @@ fn parse_plugin_arg(s: &str) -> PluginSource {
     }
 }
 
-fn run_generate(project: &Path, cfg: &Project, out_override: Option<&Path>) -> Result<(), CliError> {
+fn run_generate(
+    project: &Path,
+    cfg: &Project,
+    out_override: Option<&Path>,
+) -> Result<(), CliError> {
     let ir = load_ir(project, &cfg.input)?;
 
     let engine = Engine::new().map_err(|e| CliError::Engine(e.to_string()))?;
