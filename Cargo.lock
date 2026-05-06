@@ -1040,35 +1040,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d9c4f5dac5e15c24eb999c26181a6ca40b39fe946cbe4c263c7209467bc83af2"
 
 [[package]]
-name = "forge-cli"
-version = "0.1.0"
-dependencies = [
- "assert_cmd",
- "clap",
- "dirs 6.0.0",
- "figment",
- "forge-host",
- "forge-ir",
- "forge-parser",
- "forge-pipeline",
- "hex",
- "jsonschema",
- "miette",
- "oci-client",
- "predicates",
- "serde",
- "serde_json",
- "sha2",
- "tempfile",
- "thiserror 2.0.18",
- "tokio",
- "toml",
- "tracing",
- "tracing-subscriber",
- "wiremock",
-]
-
-[[package]]
 name = "forge-host"
 version = "0.1.0"
 dependencies = [
@@ -2295,6 +2266,35 @@ name = "once_cell_polyfill"
 version = "1.70.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
+
+[[package]]
+name = "openapi-forge-cli"
+version = "0.1.0"
+dependencies = [
+ "assert_cmd",
+ "clap",
+ "dirs 6.0.0",
+ "figment",
+ "forge-host",
+ "forge-ir",
+ "forge-parser",
+ "forge-pipeline",
+ "hex",
+ "jsonschema",
+ "miette",
+ "oci-client",
+ "predicates",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "thiserror 2.0.18",
+ "tokio",
+ "toml",
+ "tracing",
+ "tracing-subscriber",
+ "wiremock",
+]
 
 [[package]]
 name = "openssl-probe"

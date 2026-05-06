@@ -24,7 +24,7 @@ Crates:
 - `forge-host`
 - `forge-pipeline`
 - `forge-test-harness`
-- `forge-cli`
+- `openapi-forge-cli`
 - `forge-plugin-sdk`
 
 Trusted Publishing only authorizes crates that already exist on crates.io. If

@@ -1,5 +1,8 @@
 [package]
-name = "forge-cli"
+# `forge-cli` was already taken on crates.io (Aptos Move tooling), so the
+# crate ships as `openapi-forge-cli`. The installed binary is still `forge`
+# (see `[[bin]]` below).
+name = "openapi-forge-cli"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

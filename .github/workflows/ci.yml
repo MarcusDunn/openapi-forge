@@ -191,7 +191,7 @@ jobs:
       # Plugins must be built first so the bundled forge.toml in the
       # petstore fixture can resolve `..../generator_typescript_fetch.wasm`.
       - run: cargo build --release --target wasm32-wasip2 --manifest-path plugins/Cargo.toml
-      - run: cargo build --release -p forge-cli
+      - run: cargo build --release -p openapi-forge-cli
       - name: Generate twice and diff
         run: |
           rm -rf /tmp/forge-a /tmp/forge-b
