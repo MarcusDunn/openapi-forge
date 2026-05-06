@@ -255,10 +255,18 @@ jobs:
             desc: "Debug-dump generator: emits the IR as ir.txt (test fixture)."
     env:
       VERSION: ${{ needs.verify.outputs.version }}
-      IMAGE: ghcr.io/${{ github.repository_owner }}/${{ matrix.plugin }}
       MEDIA_TYPE: application/vnd.bytecodealliance.wasm.component.layer.v0+wasm
     steps:
       - uses: actions/checkout@v4
+
+      # OCI repository names must be lowercase, but ${{ github.repository_owner }}
+      # preserves the literal case (e.g. "MarcusDunn"), which oras rejects as
+      # an invalid reference. Compute the lowercase ref once here.
+      - name: Compute lowercase IMAGE
+        env:
+          OWNER: ${{ github.repository_owner }}
+          PLUGIN: ${{ matrix.plugin }}
+        run: echo "IMAGE=ghcr.io/${OWNER,,}/${PLUGIN}" >>"$GITHUB_ENV"
 
       - uses: dtolnay/rust-toolchain@stable
         with:
