@@ -457,8 +457,9 @@ fn body_multipart_builds_form_with_binary_part() {
         "{s}"
     );
     // Binary `file` field uses Part::bytes; spec sets contentType: image/png
-    // → mime_str("image/png").
-    assert!(s.contains("Part::bytes(value.into())"), "{s}");
+    // → mime_str("image/png"). Pass the value as-is — `.into()` would
+    // ambiguate against the many `From<Vec<u8>>` impls in scope.
+    assert!(s.contains("Part::bytes(value)"), "{s}");
     assert!(s.contains(".mime_str(\"image/png\")"), "{s}");
     // Optional `metadata` (string) uses Part::text via Display.
     assert!(s.contains("Part::text(value.to_string())"), "{s}");

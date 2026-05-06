@@ -232,7 +232,18 @@ export interface Callback {
   extensions: [string, Value][];
 }
 
-export type HttpMethod = 'get' | 'put' | 'post' | 'delete' | 'options' | 'head' | 'patch' | 'trace';
+// jco renders WIT variants as `{ tag, val? }`. The OAS 3.2 `other(string)`
+// case carries the verb verbatim; the eight standard verbs are payload-free.
+export type HttpMethod =
+  | { tag: 'get' }
+  | { tag: 'put' }
+  | { tag: 'post' }
+  | { tag: 'delete' }
+  | { tag: 'options' }
+  | { tag: 'head' }
+  | { tag: 'patch' }
+  | { tag: 'trace' }
+  | { tag: 'other'; val: string };
 export type ParameterStyle =
   | 'matrix'
   | 'label'

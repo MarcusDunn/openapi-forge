@@ -81,6 +81,12 @@ jobs:
   # via .github/workflows/fuzz.yml. See docs/fuzzing.md.
   fuzz-smoke:
     runs-on: ubuntu-latest
+    # cargo-fuzz ≥ 0.13 defaults to `x86_64-unknown-linux-musl`, which
+    # would need both `musl-gcc` and `musl-g++` (libfuzzer-sys's build
+    # script compiles C++) — Ubuntu only ships the C half via the
+    # `musl-tools` package. The gnu target works out-of-the-box for
+    # libFuzzer + AddressSanitizer here, so pin `--target` explicitly
+    # on every `cargo fuzz run` call below.
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@nightly
@@ -94,13 +100,13 @@ jobs:
         run: bash fuzz/seed-corpus.sh
       - name: Fuzz parse_str_bytes (60s)
         working-directory: fuzz
-        run: cargo fuzz run parse_str_bytes -- -runs=10000 -max_total_time=60
+        run: cargo fuzz run --target x86_64-unknown-linux-gnu parse_str_bytes -- -runs=10000 -max_total_time=60
       - name: Fuzz parse_str_structured (60s)
         working-directory: fuzz
-        run: cargo fuzz run parse_str_structured -- -runs=10000 -max_total_time=60
+        run: cargo fuzz run --target x86_64-unknown-linux-gnu parse_str_structured -- -runs=10000 -max_total_time=60
       - name: Fuzz transformer_output_ir (60s)
         working-directory: fuzz
-        run: cargo fuzz run transformer_output_ir -- -runs=10000 -max_total_time=60
+        run: cargo fuzz run --target x86_64-unknown-linux-gnu transformer_output_ir -- -runs=10000 -max_total_time=60
 
   # MVP-gate smoke tests. For each fixture under `fixtures/real-world/`,
   # parse the spec and run it through both generators, then assert the
@@ -135,7 +141,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - uses: taiki-e/install-action@nextest
+      # `tinygo build -target=wasip2` shells out to `wasm-tools component
+      # embed`, so it must be on PATH alongside cargo-nextest.
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest,wasm-tools
       - uses: actions/setup-go@v5
         with:
           go-version: "1.24"

@@ -158,8 +158,13 @@ fn render_multipart_body(
         let is_bytes = is_property_bytes(spec, &prop.r#type);
 
         let part_expr = if is_bytes {
-            // Owned `Vec<u8>` → `Part::bytes(value.into())`.
-            "reqwest::multipart::Part::bytes(value.into())".to_string()
+            // `Part::bytes` accepts `Into<Cow<'static, [u8]>>`, which
+            // `Vec<u8>` satisfies directly. An explicit `.into()` would
+            // ambiguate against the many other `From<Vec<u8>>` impls in
+            // scope (`Bytes`, `rustls`'s key types, ...) and fail to
+            // compile. Pass the value as-is and let inference do the
+            // single conversion that targets the parameter bound.
+            "reqwest::multipart::Part::bytes(value)".to_string()
         } else {
             "reqwest::multipart::Part::text(value.to_string())".to_string()
         };

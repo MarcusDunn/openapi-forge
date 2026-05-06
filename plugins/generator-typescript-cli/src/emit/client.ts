@@ -3,7 +3,7 @@
 // and returns the parsed first 2xx JSON body — or throws ApiError on
 // non-2xx, or returns the raw Response when a 2xx is non-JSON.
 
-import type { Ir, Operation, Parameter, NamedType, BodyContent } from '../types.js';
+import type { Ir, Operation, Parameter, NamedType, BodyContent, HttpMethod } from '../types.js';
 import { camelCase, pascalCase } from '../naming.js';
 import { primitiveTs } from './models.js';
 
@@ -144,7 +144,7 @@ function typeRefToTs(ctx: Ctx, ref: string): string {
   const named = ctx.byId.get(ref);
   if (!named) return 'unknown';
   if (named.definition.tag === 'primitive') {
-    return primitiveTs(named.definition.val.kind);
+    return primitiveTs(named.definition.val);
   }
   if (named.definition.tag === 'null') {
     return 'null';
@@ -239,37 +239,37 @@ function assembleHeaders(op: Operation): string {
 
 function assembleBody(op: Operation): string {
   if (!op.requestBody) {
-    return `    const init: RequestInit = { method: ${JSON.stringify(op.method.toUpperCase())}, headers, signal: reqOpts?.signal };\n`;
+    return `    const init: RequestInit = { method: ${JSON.stringify(httpMethodVerb(op.method))}, headers, signal: reqOpts?.signal };\n`;
   }
   const c = pickRequestContent(op.requestBody.content);
   if (!c) {
-    return `    const init: RequestInit = { method: ${JSON.stringify(op.method.toUpperCase())}, headers, signal: reqOpts?.signal };\n`;
+    return `    const init: RequestInit = { method: ${JSON.stringify(httpMethodVerb(op.method))}, headers, signal: reqOpts?.signal };\n`;
   }
   let out = '';
   if (isJsonMedia(c.mediaType)) {
     out += `    const init: RequestInit = {\n`;
-    out += `      method: ${JSON.stringify(op.method.toUpperCase())},\n`;
+    out += `      method: ${JSON.stringify(httpMethodVerb(op.method))},\n`;
     out += `      headers: { ...headers, "content-type": "application/json" },\n`;
     out += `      body: body !== undefined ? JSON.stringify(body) : undefined,\n`;
     out += `      signal: reqOpts?.signal,\n`;
     out += `    };\n`;
   } else if (c.mediaType.startsWith('text/')) {
     out += `    const init: RequestInit = {\n`;
-    out += `      method: ${JSON.stringify(op.method.toUpperCase())},\n`;
+    out += `      method: ${JSON.stringify(httpMethodVerb(op.method))},\n`;
     out += `      headers: { ...headers, "content-type": ${JSON.stringify(c.mediaType)} },\n`;
     out += `      body: body as string,\n`;
     out += `      signal: reqOpts?.signal,\n`;
     out += `    };\n`;
   } else if (c.mediaType === 'application/octet-stream') {
     out += `    const init: RequestInit = {\n`;
-    out += `      method: ${JSON.stringify(op.method.toUpperCase())},\n`;
+    out += `      method: ${JSON.stringify(httpMethodVerb(op.method))},\n`;
     out += `      headers: { ...headers, "content-type": "application/octet-stream" },\n`;
     out += `      body: body as Uint8Array | ArrayBuffer | Blob,\n`;
     out += `      signal: reqOpts?.signal,\n`;
     out += `    };\n`;
   } else {
     out += `    const init: RequestInit = {\n`;
-    out += `      method: ${JSON.stringify(op.method.toUpperCase())},\n`;
+    out += `      method: ${JSON.stringify(httpMethodVerb(op.method))},\n`;
     out += `      headers: { ...headers, "content-type": ${JSON.stringify(c.mediaType)} },\n`;
     out += `      body: body as never as RequestInit['body'],\n`;
     out += `      signal: reqOpts?.signal,\n`;
@@ -301,4 +301,11 @@ function jsDoc(text: string | undefined): string {
   if (lines.length === 1) return `/** ${lines[0]} */\n  `;
   const body = lines.map((l) => `   * ${l}`).join('\n');
   return `/**\n${body}\n   */\n  `;
+}
+
+// `HttpMethod` is a WIT variant rendered as `{ tag, val? }`; the eight
+// standard verbs are payload-free, and `other` carries the verbatim
+// 3.2 verb (e.g. `QUERY`).
+function httpMethodVerb(m: HttpMethod): string {
+  return m.tag === 'other' ? m.val.toUpperCase() : m.tag.toUpperCase();
 }
