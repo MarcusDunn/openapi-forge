@@ -189,8 +189,10 @@ jobs:
           cargo_token: ${{ steps.cargo_auth.outputs.token }}
 
       # forge-plugin-sdk lives in its own workspace and targets wasm32-wasip2
-      # exclusively (a `compile_error!` in lib.rs enforces the target). Package
-      # / publish must pass --target so the verify build succeeds.
+      # exclusively. lib.rs has a `compile_error!` that fires unless either
+      # the `transformer` or `generator` feature is set, so `--features
+      # transformer` picks one for the verify build. The published .crate is
+      # feature-agnostic — plugin authors still pick at consume time.
       - name: Package, attest, and publish forge-plugin-sdk
         uses: ./.github/actions/publish-crate
         with:
@@ -199,7 +201,7 @@ jobs:
           dry_run: ${{ env.DRY_RUN }}
           cargo_token: ${{ steps.cargo_auth.outputs.token }}
           manifest_path: crates/forge-plugin-sdk/Cargo.toml
-          extra_flags: --target wasm32-wasip2
+          extra_flags: --target wasm32-wasip2 --features transformer
 
       # ----- Attach .crate files to the GitHub release for archival -----
       - name: Upload .crate files to GitHub release

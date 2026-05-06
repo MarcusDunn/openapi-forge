@@ -10,7 +10,7 @@
 
 pub mod transformer {
     wasmtime::component::bindgen!({
-        path: "../../wit",
+        path: "wit",
         world: "ir-transformer",
         trappable_imports: true,
     });
@@ -18,7 +18,7 @@ pub mod transformer {
 
 pub mod generator {
     wasmtime::component::bindgen!({
-        path: "../../wit",
+        path: "wit",
         world: "code-generator",
         trappable_imports: true,
     });
