@@ -960,6 +960,13 @@ fn walk_component_schemas(ctx: &mut Ctx, root: &serde_json::Map<String, J>, ptr:
     let Some(J::Object(schemas)) = components.get("schemas") else {
         return;
     };
+    // Pre-register every `components.schemas.<X>: { $ref: ext.json#/Y }`
+    // mapping before walking. Without this step, a sibling component
+    // walked earlier whose body $ref's the same external schema would
+    // trigger that schema's walk under an `Inline` hint and pollute the
+    // dedup map with the prefixed id; the later `components.schemas.X`
+    // walk would then dedup-hit and inherit the wrong (prefixed) id.
+    pre_register_external_named_hints(ctx, schemas);
     let order = order_components_by_allof(schemas);
     ptr.with_token("components", |ptr| {
         ptr.with_token("schemas", |ptr| {
@@ -983,6 +990,39 @@ fn walk_component_schemas(ctx: &mut Ctx, root: &serde_json::Map<String, J>, ptr:
             }
         });
     });
+}
+
+/// Walk `components.schemas` and seed the external-ref dedup map for
+/// every entry whose body is a single `$ref` to a cross-document schema.
+/// The seeded id is the component's *Named* id (e.g. `Pet`), so any
+/// indirect resolution to the same target during sibling-schema walking
+/// returns `Pet` instead of synthesising a fresh `<docprefix>Pet`.
+///
+/// This only seeds *direct* `$ref`s — schemas with `allOf`/`oneOf`/etc.
+/// that internally use `$ref` get their dedup entry filled by the lazy
+/// walker as usual.
+fn pre_register_external_named_hints(ctx: &mut Ctx, schemas: &serde_json::Map<String, J>) {
+    let current_doc = ctx.current_doc.clone();
+    for (name, schema) in schemas {
+        let Some(map) = schema.as_object() else {
+            continue;
+        };
+        let Some(J::String(raw)) = map.get("$ref") else {
+            continue;
+        };
+        let (file_part, fragment) = crate::external::split_ref(raw);
+        if file_part.is_empty() || crate::external::is_url(file_part) {
+            continue;
+        }
+        let Ok(loaded) = ctx.resolver.load(raw, &current_doc) else {
+            continue;
+        };
+        let canonical = loaded.canonical_path.clone();
+        crate::schema::ensure_doc_registered(ctx, &canonical, &loaded.root);
+        ctx.external_ref_to_id
+            .entry((canonical, fragment.to_string()))
+            .or_insert_with(|| crate::sanitize::ident(name));
+    }
 }
 
 /// Order component schemas so any schema that uses `allOf: [{ $ref: X }]`

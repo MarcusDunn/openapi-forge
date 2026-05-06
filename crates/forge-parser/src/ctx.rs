@@ -54,6 +54,16 @@ pub(crate) struct Ctx<'a> {
     /// walker from infinitely recursing on cyclic refs. Re-entry into a
     /// pair already present returns the pre-registered id immediately.
     pub walking: HashSet<(PathBuf, String)>,
+    /// Map from `(canonical_path, json_pointer_fragment)` → final type id
+    /// for every schema that has been walked via an external `$ref`. The
+    /// same target schema can be reached more than once with different
+    /// `NameHint`s — `Named("Pet")` from `components.schemas.Pet` produces
+    /// id `Pet`, and a later `Inline { .. }` hint from a response-content
+    /// or array-items ref would otherwise produce a fresh `<docprefix>Pet`
+    /// id and re-walk the schema, duplicating it in the type pool.
+    /// Recording the mapping after the first walk lets subsequent
+    /// resolutions short-circuit to the existing id.
+    pub external_ref_to_id: HashMap<(PathBuf, String), String>,
     /// Names from the main spec's `components.pathItems` that have been
     /// `$ref`'d during paths/webhooks/callbacks walking. Used to surface
     /// unused-declaration warnings at the end of parse.
@@ -110,6 +120,7 @@ impl<'a> Ctx<'a> {
             doc_prefix,
             current_doc: main_doc,
             walking: HashSet::new(),
+            external_ref_to_id: HashMap::new(),
             referenced_component_path_items: HashSet::new(),
             referenced_component_media_types: HashSet::new(),
             is_oas_3_0: false,

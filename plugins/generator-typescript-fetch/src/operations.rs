@@ -540,19 +540,28 @@ fn render_path_template(spec: &ir::Ir, template: &str, path_params: &[ir::Parame
         if bytes[i] == b'{' {
             if let Some(close) = template[i..].find('}') {
                 let raw = &template[i + 1..i + close];
-                let var = ts_ident(raw);
-                let is_array = path_params
-                    .iter()
-                    .find(|p| p.name == raw)
-                    .map(|p| param_is_array(spec, &p.r#type))
-                    .unwrap_or(false);
-                if is_array {
-                    out.push_str(&format!(
-                        "${{({var} as ReadonlyArray<unknown>).map((v) => encodeURIComponent(String(v))).join(\",\")}}"
-                    ));
-                } else {
-                    out.push_str(&format!("${{encodeURIComponent(String({var}))}}"));
+                let matched = path_params.iter().find(|p| p.name == raw);
+                if let Some(p) = matched {
+                    let var = ts_ident(raw);
+                    let is_array = param_is_array(spec, &p.r#type);
+                    if is_array {
+                        out.push_str(&format!(
+                            "${{({var} as ReadonlyArray<unknown>).map((v) => encodeURIComponent(String(v))).join(\",\")}}"
+                        ));
+                    } else {
+                        out.push_str(&format!("${{encodeURIComponent(String({var}))}}"));
+                    }
+                    i += close + 1;
+                    continue;
                 }
+                // Real-world specs sometimes embed a placeholder in the
+                // template that they never declare under `parameters`.
+                // Substituting it would emit a reference to an
+                // undefined identifier; pass it through literally
+                // instead so the generated client compiles.
+                out.push('{');
+                out.push_str(raw);
+                out.push('}');
                 i += close + 1;
                 continue;
             }

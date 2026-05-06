@@ -499,20 +499,30 @@ pub(crate) fn walk_resolved_schema_at_pointer(
         return None;
     };
     let fragment_string = fragment.to_string();
-
-    // 3. Build the global type id. When the caller passed a `Named`
-    //    hint (e.g. `components.schemas.Pet = {$ref: ...}`) we use the
-    //    caller's id verbatim so other parts of the main spec that
-    //    reference `Pet` resolve correctly. Otherwise we use the
-    //    external doc's prefix scheme.
-    let target_id = match hint {
-        NameHint::Named(s) => crate::sanitize::ident(s),
-        NameHint::Inline { .. } => {
-            let prefix = ctx.doc_prefix.get(canonical).cloned().unwrap_or_default();
-            format!("{prefix}{}", crate::sanitize::ident(&schema_name))
-        }
-    };
     let canonical = canonical.to_path_buf();
+    let dedup_key = (canonical.clone(), fragment_string.clone());
+
+    // 3. Decide on the target id. The dedup map carries a pre-registered
+    //    or previously-walked id for this `(canonical, fragment)`:
+    //      - The spec's `components.schemas.Pet = { $ref: ext.json#/Pet }`
+    //        seeds it with `Pet` *before* sibling components are walked,
+    //        so a later inline ref to the same target reuses `Pet`
+    //        instead of synthesising a fresh `<docprefix>Pet`.
+    //      - On first walk we register the id we just minted, so a
+    //        third resolution under yet another hint hits the cache.
+    //    When the dedup map has nothing, fall back to the hint: `Named`
+    //    uses the caller's id verbatim, `Inline` uses the doc-prefix
+    //    scheme.
+    let target_id = match ctx.external_ref_to_id.get(&dedup_key).cloned() {
+        Some(existing) => existing,
+        None => match hint {
+            NameHint::Named(s) => crate::sanitize::ident(s),
+            NameHint::Inline { .. } => {
+                let prefix = ctx.doc_prefix.get(&canonical).cloned().unwrap_or_default();
+                format!("{prefix}{}", crate::sanitize::ident(&schema_name))
+            }
+        },
+    };
 
     // 4. Cycle / already-walked detection. Re-entry returns the id
     //    immediately; finalize handles the cycle as recursion (for
@@ -559,6 +569,10 @@ pub(crate) fn walk_resolved_schema_at_pointer(
         if let Some(nt) = ctx.types.get_mut(id) {
             nt.original_name = Some(schema_name);
         }
+        // Cache the canonical id for this `(canonical, fragment)` pair so
+        // a later ref to the same schema under a different hint reuses
+        // it instead of producing a duplicate type.
+        ctx.external_ref_to_id.insert(dedup_key, id.clone());
     }
     walked.or(Some(target_id))
 }

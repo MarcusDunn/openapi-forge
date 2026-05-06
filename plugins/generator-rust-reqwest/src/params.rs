@@ -109,7 +109,18 @@ pub fn render_url_construction(spec: &ir::Ir, op: &ir::Operation) -> String {
     }
 
     // Convert `{petId}` placeholders into format-arg placeholders
-    // referencing the (snake-cased) Rust ident.
+    // referencing the (snake-cased) Rust ident. Real-world specs
+    // sometimes leave a `{x}` in the template without declaring `x`
+    // under `parameters`; substituting that would emit `format!` with
+    // an undefined identifier and fail to compile. Emit such
+    // placeholders literally instead — the URL is wrong at runtime,
+    // but the client compiles, matching the spec author's apparent
+    // intent that the path text passes through unchanged.
+    let declared: std::collections::HashSet<String> = op
+        .path_params
+        .iter()
+        .map(|p| rust_ident_snake(&p.name))
+        .collect();
     let mut tpl = String::new();
     let chars: Vec<char> = template.chars().collect();
     let mut i = 0;
@@ -118,9 +129,15 @@ pub fn render_url_construction(spec: &ir::Ir, op: &ir::Operation) -> String {
             if let Some(end) = chars[i + 1..].iter().position(|c| *c == '}') {
                 let raw_name: String = chars[i + 1..i + 1 + end].iter().collect();
                 let snake = rust_ident_snake(&raw_name);
-                tpl.push('{');
-                tpl.push_str(&snake);
-                tpl.push('}');
+                if declared.contains(&snake) {
+                    tpl.push('{');
+                    tpl.push_str(&snake);
+                    tpl.push('}');
+                } else {
+                    tpl.push_str("{{");
+                    tpl.push_str(&raw_name);
+                    tpl.push_str("}}");
+                }
                 i += 1 + end + 1;
                 continue;
             }
