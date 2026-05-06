@@ -308,8 +308,14 @@ jobs:
           path.write_text(text.replace(marker, replacement, 1))
           PY
 
-      - name: Refresh Cargo.lock
-        run: cargo update --workspace
+      # The SDK is a separate workspace with its own Cargo.lock. If we don't
+      # refresh it after bumping forge-ir, the next `cargo package` will
+      # detect a dirty lockfile and abort. (Found this the painful way on
+      # the v0.1.1 cut.)
+      - name: Refresh Cargo.lock (root + SDK)
+        run: |
+          cargo update --workspace
+          cargo update --manifest-path crates/forge-plugin-sdk/Cargo.toml
 
       - name: Compute new version for branch / title
         id: next
