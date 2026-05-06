@@ -36,11 +36,11 @@ of `0.1.0` first to seed them.
 - **Environment**: create `release` (Settings → Environments → New environment).
   - Deployment branch rule: `main` only.
   - (Optional but recommended) required reviewer = a maintainer.
-- **Secret**: `RELEASE_BOT_TOKEN`. Either a PAT with `repo` + `workflow` scopes
-  or a GitHub App installation token. Required so the prep-next-release PR
-  triggers CI — the default `GITHUB_TOKEN` does not.
-- **Branch protection** on `main`: require CI to pass before merging
-  `release-prep` PRs.
+
+The prep-next-release PR is opened with the default `GITHUB_TOKEN`, which
+means GitHub will not automatically trigger CI on it. The bump is mechanical
+(version-only) so this is acceptable; if you want CI to run before merging,
+push an empty commit to the branch, or close-and-reopen the PR.
 
 ## Cutting a release
 
@@ -65,8 +65,9 @@ of `0.1.0` first to seed them.
    gh release download "vX.Y.Z" --pattern 'forge-ir-X.Y.Z.crate'
    gh attestation verify forge-ir-X.Y.Z.crate --owner marcusdunn
    ```
-9. Review and merge the prep-next PR. CI should run on it (because of
-   `RELEASE_BOT_TOKEN`); if it doesn't, the token is misconfigured.
+9. Review and merge the prep-next PR. CI does not run on it automatically
+   (it's opened by `GITHUB_TOKEN`); if you want CI before merging, push an
+   empty commit or close-and-reopen.
 
 ## Recovering from a failed release
 
