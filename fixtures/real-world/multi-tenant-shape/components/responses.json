@@ -1,0 +1,17 @@
+{
+  "Error": {
+    "description": "An unexpected error occurred.",
+    "content": {
+      "application/json": {
+        "schema": {
+          "type": "object",
+          "required": ["code", "message"],
+          "properties": {
+            "code": { "type": "integer", "format": "int32" },
+            "message": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}

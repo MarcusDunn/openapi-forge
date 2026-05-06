@@ -1,0 +1,11 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "external-docs-no-url",
+    "version": "1.0.0"
+  },
+  "externalDocs": {
+    "description": "missing url"
+  },
+  "paths": {}
+}

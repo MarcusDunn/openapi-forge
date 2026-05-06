@@ -1,0 +1,275 @@
+{
+  "info": {
+    "title": "extensions-universal",
+    "version": "1",
+    "extensions": [
+      [
+        "x-info",
+        0
+      ]
+    ]
+  },
+  "operations": [
+    {
+      "id": "create",
+      "original_id": "create",
+      "method": "post",
+      "path_template": "/things",
+      "query_params": [
+        {
+          "name": "q",
+          "type": "create_param_query_q",
+          "required": false,
+          "deprecated": false,
+          "style": "form",
+          "explode": true,
+          "allow_empty_value": false,
+          "allow_reserved": false,
+          "extensions": [
+            [
+              "x-param",
+              7
+            ]
+          ],
+          "location": {
+            "pointer": "/paths/~1things/post/parameters/0",
+            "file": "spec.json"
+          }
+        }
+      ],
+      "request_body": {
+        "content": [
+          {
+            "media_type": "application/json",
+            "type": "Thing",
+            "extensions": [
+              [
+                "x-content",
+                8
+              ]
+            ]
+          }
+        ],
+        "required": false,
+        "extensions": [
+          [
+            "x-body",
+            9
+          ]
+        ]
+      },
+      "responses": [
+        {
+          "status": {
+            "kind": "explicit",
+            "code": 200
+          },
+          "documentation": "ok",
+          "extensions": [
+            [
+              "x-response",
+              10
+            ]
+          ]
+        }
+      ],
+      "deprecated": false,
+      "servers": [
+        {
+          "url": "https://api.example.com/{tier}",
+          "variables": [
+            [
+              "tier",
+              {
+                "default": "v1",
+                "extensions": [
+                  [
+                    "x-var",
+                    1
+                  ]
+                ]
+              }
+            ]
+          ],
+          "extensions": [
+            [
+              "x-server",
+              2
+            ]
+          ]
+        }
+      ],
+      "location": {
+        "pointer": "/paths/~1things/post",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "types": [
+    {
+      "id": "Thing_property_name",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "extensions": [
+        [
+          "x-prop",
+          5
+        ]
+      ],
+      "location": {
+        "pointer": "/components/schemas/Thing/properties/name",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Thing",
+      "original_name": "Thing",
+      "definition": {
+        "def": "object",
+        "properties": [
+          {
+            "name": "name",
+            "type": "Thing_property_name",
+            "required": false,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false,
+            "extensions": [
+              [
+                "x-prop",
+                5
+              ]
+            ]
+          }
+        ],
+        "additional_properties": {
+          "kind": "any"
+        },
+        "constraints": {}
+      },
+      "extensions": [
+        [
+          "x-schema",
+          6
+        ]
+      ],
+      "location": {
+        "pointer": "/components/schemas/Thing",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "create_param_query_q",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/paths/~1things/post/parameters/0/schema",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [
+    {
+      "id": "OAuth",
+      "kind": {
+        "type": "oauth2",
+        "flows": [
+          {
+            "kind": "authorization-code",
+            "authorization_url": "https://a",
+            "token_url": "https://t",
+            "extensions": [
+              [
+                "x-flow",
+                4
+              ]
+            ]
+          }
+        ]
+      },
+      "extensions": [
+        [
+          "x-scheme",
+          3
+        ]
+      ]
+    }
+  ],
+  "servers": [
+    {
+      "url": "https://api.example.com/{tier}",
+      "variables": [
+        [
+          "tier",
+          {
+            "default": "v1",
+            "extensions": [
+              [
+                "x-var",
+                1
+              ]
+            ]
+          }
+        ]
+      ],
+      "extensions": [
+        [
+          "x-server",
+          2
+        ]
+      ]
+    }
+  ],
+  "values": [
+    {
+      "kind": "string",
+      "value": "info-ext"
+    },
+    {
+      "kind": "string",
+      "value": "var-ext"
+    },
+    {
+      "kind": "string",
+      "value": "server-ext"
+    },
+    {
+      "kind": "string",
+      "value": "scheme-ext"
+    },
+    {
+      "kind": "string",
+      "value": "flow-ext"
+    },
+    {
+      "kind": "string",
+      "value": "prop-ext"
+    },
+    {
+      "kind": "string",
+      "value": "schema-ext"
+    },
+    {
+      "kind": "string",
+      "value": "param-ext"
+    },
+    {
+      "kind": "string",
+      "value": "content-ext"
+    },
+    {
+      "kind": "string",
+      "value": "body-ext"
+    },
+    {
+      "kind": "string",
+      "value": "response-ext"
+    }
+  ]
+}

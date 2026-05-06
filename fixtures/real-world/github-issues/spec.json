@@ -1,0 +1,576 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "GitHub Issues (trimmed)",
+    "version": "2026.04.0",
+    "description": "A trimmed GitHub-shaped spec covering the Issues API. Modeled after the upstream description at github.com/github/rest-api-description but hand-curated so the fixture stays small (target <50 KB) and stays within feature coverage that openapi-forge supports today. See fixtures/real-world/README.md for the policy."
+  },
+  "servers": [
+    {
+      "url": "https://api.github.com"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "GitHub personal access token or app installation token"
+      }
+    },
+    "schemas": {
+      "SimpleUser": {
+        "type": "object",
+        "required": ["login", "id", "node_id", "type", "url", "html_url", "site_admin"],
+        "properties": {
+          "login": { "type": "string" },
+          "id": { "type": "integer", "format": "int64" },
+          "node_id": { "type": "string" },
+          "avatar_url": { "type": "string", "format": "uri" },
+          "gravatar_id": { "type": "string", "nullable": true },
+          "url": { "type": "string", "format": "uri" },
+          "html_url": { "type": "string", "format": "uri" },
+          "type": {
+            "type": "string",
+            "enum": ["User", "Organization", "Bot", "Mannequin"]
+          },
+          "site_admin": { "type": "boolean" },
+          "name": { "type": "string", "nullable": true },
+          "email": { "type": "string", "format": "email", "nullable": true }
+        }
+      },
+      "Label": {
+        "type": "object",
+        "required": ["id", "node_id", "url", "name", "color", "default"],
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "node_id": { "type": "string" },
+          "url": { "type": "string", "format": "uri" },
+          "name": { "type": "string" },
+          "description": { "type": "string", "nullable": true },
+          "color": { "type": "string", "description": "6-character hex code, no leading #." },
+          "default": { "type": "boolean" }
+        }
+      },
+      "Milestone": {
+        "type": "object",
+        "required": ["id", "node_id", "url", "html_url", "labels_url", "number", "title", "state", "creator", "open_issues", "closed_issues", "created_at", "updated_at"],
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "node_id": { "type": "string" },
+          "url": { "type": "string", "format": "uri" },
+          "html_url": { "type": "string", "format": "uri" },
+          "labels_url": { "type": "string", "format": "uri" },
+          "number": { "type": "integer", "format": "int32" },
+          "title": { "type": "string" },
+          "description": { "type": "string", "nullable": true },
+          "state": {
+            "type": "string",
+            "enum": ["open", "closed"],
+            "default": "open"
+          },
+          "creator": { "$ref": "#/components/schemas/SimpleUser", "nullable": true },
+          "open_issues": { "type": "integer", "format": "int32" },
+          "closed_issues": { "type": "integer", "format": "int32" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" },
+          "closed_at": { "type": "string", "format": "date-time", "nullable": true },
+          "due_on": { "type": "string", "format": "date-time", "nullable": true }
+        }
+      },
+      "Reactions": {
+        "type": "object",
+        "required": ["url", "total_count"],
+        "properties": {
+          "url": { "type": "string", "format": "uri" },
+          "total_count": { "type": "integer", "format": "int32" },
+          "+1": { "type": "integer", "format": "int32" },
+          "-1": { "type": "integer", "format": "int32" },
+          "laugh": { "type": "integer", "format": "int32" },
+          "confused": { "type": "integer", "format": "int32" },
+          "heart": { "type": "integer", "format": "int32" },
+          "hooray": { "type": "integer", "format": "int32" },
+          "eyes": { "type": "integer", "format": "int32" },
+          "rocket": { "type": "integer", "format": "int32" }
+        }
+      },
+      "Issue": {
+        "type": "object",
+        "required": ["id", "node_id", "url", "html_url", "number", "state", "title", "user", "labels", "assignee", "milestone", "comments", "created_at", "updated_at", "author_association"],
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "node_id": { "type": "string" },
+          "url": { "type": "string", "format": "uri" },
+          "repository_url": { "type": "string", "format": "uri" },
+          "labels_url": { "type": "string" },
+          "comments_url": { "type": "string", "format": "uri" },
+          "events_url": { "type": "string", "format": "uri" },
+          "html_url": { "type": "string", "format": "uri" },
+          "number": { "type": "integer", "format": "int32" },
+          "state": {
+            "type": "string",
+            "enum": ["open", "closed"]
+          },
+          "state_reason": {
+            "type": "string",
+            "enum": ["completed", "reopened", "not_planned"],
+            "nullable": true
+          },
+          "title": { "type": "string" },
+          "body": { "type": "string", "nullable": true },
+          "user": { "$ref": "#/components/schemas/SimpleUser", "nullable": true },
+          "labels": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Label" }
+          },
+          "assignee": { "$ref": "#/components/schemas/SimpleUser", "nullable": true },
+          "assignees": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/SimpleUser" },
+            "nullable": true
+          },
+          "milestone": { "$ref": "#/components/schemas/Milestone", "nullable": true },
+          "locked": { "type": "boolean" },
+          "active_lock_reason": {
+            "type": "string",
+            "enum": ["resolved", "off-topic", "too heated", "spam"],
+            "nullable": true
+          },
+          "comments": { "type": "integer", "format": "int32" },
+          "closed_at": { "type": "string", "format": "date-time", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" },
+          "draft": { "type": "boolean" },
+          "author_association": {
+            "type": "string",
+            "enum": ["COLLABORATOR", "CONTRIBUTOR", "FIRST_TIMER", "FIRST_TIME_CONTRIBUTOR", "MANNEQUIN", "MEMBER", "NONE", "OWNER"]
+          },
+          "reactions": { "$ref": "#/components/schemas/Reactions" }
+        }
+      },
+      "IssueComment": {
+        "type": "object",
+        "required": ["id", "node_id", "url", "html_url", "issue_url", "body", "user", "created_at", "updated_at", "author_association"],
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "node_id": { "type": "string" },
+          "url": { "type": "string", "format": "uri" },
+          "html_url": { "type": "string", "format": "uri" },
+          "issue_url": { "type": "string", "format": "uri" },
+          "body": { "type": "string" },
+          "body_text": { "type": "string", "nullable": true },
+          "body_html": { "type": "string", "nullable": true },
+          "user": { "$ref": "#/components/schemas/SimpleUser", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" },
+          "author_association": {
+            "type": "string",
+            "enum": ["COLLABORATOR", "CONTRIBUTOR", "FIRST_TIMER", "FIRST_TIME_CONTRIBUTOR", "MANNEQUIN", "MEMBER", "NONE", "OWNER"]
+          },
+          "reactions": { "$ref": "#/components/schemas/Reactions" }
+        }
+      },
+      "IssueCreate": {
+        "type": "object",
+        "required": ["title"],
+        "properties": {
+          "title": { "type": "string" },
+          "body": { "type": "string" },
+          "assignees": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "milestone": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "labels": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      },
+      "IssueUpdate": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "body": { "type": "string", "nullable": true },
+          "state": {
+            "type": "string",
+            "enum": ["open", "closed"]
+          },
+          "state_reason": {
+            "type": "string",
+            "enum": ["completed", "not_planned", "reopened"],
+            "nullable": true
+          },
+          "assignees": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "milestone": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "labels": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      },
+      "BasicError": {
+        "type": "object",
+        "required": ["message", "documentation_url"],
+        "properties": {
+          "message": { "type": "string" },
+          "documentation_url": { "type": "string", "format": "uri" },
+          "url": { "type": "string", "format": "uri" },
+          "status": { "type": "string" }
+        }
+      },
+      "ValidationError": {
+        "type": "object",
+        "required": ["message", "documentation_url"],
+        "properties": {
+          "message": { "type": "string" },
+          "documentation_url": { "type": "string", "format": "uri" },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["resource", "code"],
+              "properties": {
+                "resource": { "type": "string" },
+                "field": { "type": "string" },
+                "code": { "type": "string" },
+                "message": { "type": "string" },
+                "value": {
+                  "nullable": true,
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "security": [{ "bearerAuth": [] }],
+  "paths": {
+    "/repos/{owner}/{repo}/issues": {
+      "get": {
+        "operationId": "listIssuesForRepo",
+        "summary": "List repository issues.",
+        "tags": ["Issues"],
+        "parameters": [
+          {
+            "name": "owner",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "repo",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "milestone",
+            "in": "query",
+            "description": "If integer, only issues in this milestone. `none` for no milestone, `*` for any.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["open", "closed", "all"],
+              "default": "open"
+            }
+          },
+          {
+            "name": "assignee",
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "labels",
+            "in": "query",
+            "description": "Comma-separated label names.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["created", "updated", "comments"],
+              "default": "created"
+            }
+          },
+          {
+            "name": "direction",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["asc", "desc"],
+              "default": "desc"
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "schema": { "type": "string", "format": "date-time" }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": { "type": "integer", "format": "int32", "default": 30, "minimum": 1, "maximum": 100 }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": { "type": "integer", "format": "int32", "default": 1 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of issues.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Issue" }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BasicError" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createIssue",
+        "summary": "Create an issue.",
+        "tags": ["Issues"],
+        "parameters": [
+          {
+            "name": "owner",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "repo",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/IssueCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created issue.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Issue" }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BasicError" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/issues/{issue_number}": {
+      "get": {
+        "operationId": "getIssue",
+        "summary": "Get an issue.",
+        "tags": ["Issues"],
+        "parameters": [
+          {
+            "name": "owner",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "repo",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "issue_number",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "format": "int32" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Issue.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Issue" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BasicError" }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateIssue",
+        "summary": "Update an issue.",
+        "tags": ["Issues"],
+        "parameters": [
+          {
+            "name": "owner",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "repo",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "issue_number",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "format": "int32" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/IssueUpdate" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated issue.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Issue" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/issues/{issue_number}/comments": {
+      "get": {
+        "operationId": "listIssueComments",
+        "summary": "List issue comments.",
+        "tags": ["Issues"],
+        "parameters": [
+          {
+            "name": "owner",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "repo",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "issue_number",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "format": "int32" }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "schema": { "type": "string", "format": "date-time" }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": { "type": "integer", "format": "int32", "default": 30, "minimum": 1, "maximum": 100 }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": { "type": "integer", "format": "int32", "default": 1 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Issue comments.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/IssueComment" }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BasicError" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

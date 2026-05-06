@@ -1,0 +1,18 @@
+{
+  "openapi": "3.2.0",
+  "info": { "title": "xml-text-ordered-3-2", "version": "1" },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "Title": {
+        "type": "string",
+        "xml": { "name": "title", "text": true }
+      },
+      "Steps": {
+        "type": "array",
+        "items": { "type": "string" },
+        "xml": { "name": "steps", "wrapped": true, "ordered": true }
+      }
+    }
+  }
+}

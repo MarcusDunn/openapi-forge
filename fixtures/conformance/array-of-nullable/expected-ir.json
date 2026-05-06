@@ -1,0 +1,63 @@
+{
+  "info": {
+    "title": "array-of-nullable",
+    "version": "1"
+  },
+  "operations": [],
+  "types": [
+    {
+      "id": "OptionalScores_items_nonnull",
+      "definition": {
+        "def": "primitive",
+        "kind": "integer",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/OptionalScores/items",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "null",
+      "definition": {
+        "def": "null"
+      }
+    },
+    {
+      "id": "OptionalScores_items",
+      "definition": {
+        "def": "union",
+        "variants": [
+          {
+            "type": "OptionalScores_items_nonnull"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "kind": "one-of"
+      },
+      "location": {
+        "pointer": "/components/schemas/OptionalScores/items",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "OptionalScores",
+      "original_name": "OptionalScores",
+      "definition": {
+        "def": "array",
+        "items": "OptionalScores_items",
+        "constraints": {
+          "unique_items": false
+        }
+      },
+      "location": {
+        "pointer": "/components/schemas/OptionalScores",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": []
+}

@@ -1,0 +1,14 @@
+{
+  "components": {
+    "schemas": {
+      "File": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string" },
+          "parent": { "$ref": "./spec.json#/components/schemas/Folder" }
+        }
+      }
+    }
+  }
+}

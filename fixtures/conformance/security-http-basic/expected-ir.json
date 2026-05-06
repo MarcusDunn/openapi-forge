@@ -1,0 +1,52 @@
+{
+  "info": {
+    "title": "security-http-basic",
+    "version": "1"
+  },
+  "operations": [
+    {
+      "id": "adminHealth",
+      "original_id": "adminHealth",
+      "method": "get",
+      "path_template": "/admin/health",
+      "responses": [
+        {
+          "status": {
+            "kind": "explicit",
+            "code": 204
+          },
+          "documentation": "ok"
+        }
+      ],
+      "security": [
+        {
+          "scheme_id": "basicAuth"
+        }
+      ],
+      "deprecated": false,
+      "servers": [
+        {
+          "url": "https://api.example.com"
+        }
+      ],
+      "location": {
+        "pointer": "/paths/~1admin~1health/get",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "types": [],
+  "security_schemes": [
+    {
+      "id": "basicAuth",
+      "kind": {
+        "type": "http-basic"
+      }
+    }
+  ],
+  "servers": [
+    {
+      "url": "https://api.example.com"
+    }
+  ]
+}

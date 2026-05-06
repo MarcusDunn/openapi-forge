@@ -1,0 +1,7 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "split-doc-cycle", "version": "1" },
+  "paths": {
+    "/a": { "$ref": "b.json#/~1a" }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "openapi": "3.2.0",
+  "info": { "title": "v3_2-tags-structured", "version": "1" },
+  "tags": [
+    {
+      "name": "pets",
+      "summary": "Pet endpoints",
+      "description": "All pet endpoints.",
+      "kind": "audience",
+      "externalDocs": {
+        "description": "Pet docs.",
+        "url": "https://example.com/pets"
+      },
+      "x-vendor-priority": 5
+    },
+    {
+      "name": "cats",
+      "parent": "pets",
+      "description": "Cat endpoints."
+    },
+    {
+      "name": "dogs",
+      "parent": "pets"
+    }
+  ],
+  "paths": {}
+}

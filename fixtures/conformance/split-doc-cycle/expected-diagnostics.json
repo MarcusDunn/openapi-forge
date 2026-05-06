@@ -1,0 +1,11 @@
+[
+  {
+    "severity": "error",
+    "code": "parser/E-CYCLIC-REF",
+    "message": "$ref `b.json#/~1a` forms a cycle",
+    "location": {
+      "pointer": "/paths/~1a",
+      "file": "spec.json"
+    }
+  }
+]

@@ -1,0 +1,16 @@
+{
+  "/pets": {
+    "get": {
+      "operationId": "listPets",
+      "responses": {
+        "204": { "description": "ok" }
+      }
+    },
+    "post": {
+      "operationId": "createPet",
+      "responses": {
+        "204": { "description": "ok" }
+      }
+    }
+  }
+}

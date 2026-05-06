@@ -1,0 +1,43 @@
+{
+  "info": {
+    "title": "v3_1-numeric-exclusive",
+    "version": "1"
+  },
+  "operations": [],
+  "types": [
+    {
+      "id": "Score",
+      "original_name": "Score",
+      "definition": {
+        "def": "primitive",
+        "kind": "integer",
+        "constraints": {
+          "minimum": 0,
+          "maximum": 2,
+          "exclusive_minimum": 1,
+          "exclusive_maximum": 1
+        }
+      },
+      "location": {
+        "pointer": "/components/schemas/Score",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": [],
+  "values": [
+    {
+      "kind": "int",
+      "value": 0
+    },
+    {
+      "kind": "bool",
+      "value": true
+    },
+    {
+      "kind": "int",
+      "value": 100
+    }
+  ]
+}

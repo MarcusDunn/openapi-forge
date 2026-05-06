@@ -1,0 +1,39 @@
+{
+  "openapi": "3.2.0",
+  "info": {
+    "title": "multi-tenant-shape",
+    "version": "1",
+    "summary": "Multi-tenant API exercising split-document $refs, OAuth2, and multipart upload."
+  },
+  "servers": [{ "url": "https://api.example.com" }],
+  "security": [{ "bearerAuth": [] }],
+  "paths": {
+    "/api/org/{tenant}/v1/admin/users": {
+      "$ref": "paths/admin.json#/~1api~1org~1{tenant}~1v1~1admin~1users"
+    },
+    "/api/org/{tenant}/v1/documents/{documentId}": {
+      "$ref": "paths/documents.json#/~1api~1org~1{tenant}~1v1~1documents~1{documentId}"
+    },
+    "/api/org/{tenant}/v1/documents/{documentId}/attachment": {
+      "$ref": "paths/documents.json#/~1api~1org~1{tenant}~1v1~1documents~1{documentId}~1attachment"
+    },
+    "/api/org/{tenant}/v1/notes/views/{viewId}": {
+      "$ref": "paths/notes.json#/~1api~1org~1{tenant}~1v1~1notes~1views~1{viewId}"
+    }
+  },
+  "components": {
+    "schemas": {
+      "User": { "$ref": "components/schemas.json#/User" },
+      "Document": { "$ref": "components/schemas.json#/Document" },
+      "Page": { "$ref": "components/schemas.json#/Page" }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "$ref": "components/securitySchemes.json#/bearerAuth"
+      },
+      "oauth2Auth": {
+        "$ref": "components/securitySchemes.json#/oauth2Auth"
+      }
+    }
+  }
+}

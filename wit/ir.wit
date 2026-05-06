@@ -1,0 +1,538 @@
+/// Intermediate representation shared by all worlds.
+///
+/// Design notes (see docs/ir-spec.md for the full contract):
+///
+/// - Every named type lives in `ir.types` keyed by a sanitized `id` string.
+///   `type-ref` is just a `string` id into that map. Inline (anonymous) types
+///   are lifted into the type map with synthesized ids during parse. This keeps
+///   recursion trivial in WIT (no recursive records).
+///
+/// - Extensions are structured `value`s, never JSON strings. Plugins read `x-*`
+///   data without linking a JSON parser.
+///
+/// - Schema constraints are first-class. Generators that emit validators have
+///   what they need; generators that don't can ignore the field.
+///
+/// - Nullability is explicit and orthogonal to optionality.
+interface types {
+    // ----------------------------------------------------------------------
+    // Top-level
+    // ----------------------------------------------------------------------
+
+    record api-info {
+        title: string,
+        version: string,
+        description: option<string>,
+        summary: option<string>,                 // OpenAPI 3.1 only
+        terms-of-service: option<string>,        // URL
+        contact: option<contact>,
+        license-name: option<string>,            // OAS license.name
+        license-url: option<string>,             // OAS license.url
+        license-identifier: option<string>,      // SPDX identifier (3.1)
+        extensions: list<tuple<string, value-ref>>,
+    }
+
+    record contact {
+        name: option<string>,
+        url: option<string>,
+        email: option<string>,
+    }
+
+    record server {
+        url: string,
+        description: option<string>,
+        name: option<string>,                // OAS 3.2 short label (server picker UI)
+        variables: list<tuple<string, server-variable>>,
+        extensions: list<tuple<string, value-ref>>,
+    }
+
+    record server-variable {
+        default: string,
+        %enum: option<list<string>>,
+        description: option<string>,
+        extensions: list<tuple<string, value-ref>>,
+    }
+
+    record ir {
+        info: api-info,
+        operations: list<operation>,         // sorted by id
+        types: list<named-type>,             // topologically sorted; lookup by id
+        security-schemes: list<security-scheme>,
+        servers: list<server>,
+        webhooks: list<webhook>,             // OpenAPI 3.1+ inbound webhooks (sorted by name)
+        external-docs: option<external-docs>,
+        tags: list<tag>,                     // sorted by name
+        json-schema-dialect: option<string>, // 3.1+ declared JSON Schema dialect URL
+        self-url: option<string>,            // 3.2 `$self` document base URI
+        values: list<value>,                 // pool of every Value referenced from elsewhere
+    }
+
+    record external-docs {
+        description: option<string>,
+        url: string,
+    }
+
+    record example {
+        summary: option<string>,
+        description: option<string>,
+        %value: option<value-ref>,           // pool index; mutually exclusive with external-value
+        external-value: option<string>,      // URL escape hatch
+        data-value: option<value-ref>,       // OAS 3.2: parsed/decoded form (pool index)
+        serialized-value: option<string>,    // OAS 3.2: wire form
+    }
+
+    record xml-object {
+        name: option<string>,
+        namespace: option<string>,
+        prefix: option<string>,
+        attribute: bool,                     // false ⇒ child element
+        wrapped: bool,                       // array-only
+        text: bool,                          // OAS 3.2: render as element text content
+        ordered: bool,                       // OAS 3.2: array element order significant
+        extensions: list<tuple<string, value-ref>>,
+    }
+
+    record link {
+        operation-ref: option<string>,
+        operation-id: option<string>,
+        parameters: list<tuple<string, value-ref>>,
+        request-body: option<value-ref>,
+        description: option<string>,
+        server: option<server>,
+        extensions: list<tuple<string, value-ref>>,
+    }
+
+    record callback {
+        name: string,
+        expression: string,                  // e.g. {$request.body#/callbackUrl}
+        operation-ids: list<string>,         // refs into ir.operations
+        extensions: list<tuple<string, value-ref>>,
+    }
+
+    record webhook {
+        name: string,                        // routing key from `webhooks.<name>`
+        operations: list<operation>,
+    }
+
+    record tag {
+        name: string,
+        summary: option<string>,             // OAS 3.2
+        description: option<string>,
+        external-docs: option<external-docs>,
+        parent: option<string>,              // OAS 3.2
+        kind: option<string>,                // OAS 3.2 (free-form)
+        extensions: list<tuple<string, value-ref>>,
+    }
+
+    // ----------------------------------------------------------------------
+    // Types
+    // ----------------------------------------------------------------------
+
+    record named-type {
+        id: string,                          // unique, sanitized; this is the ref key
+        original-name: option<string>,
+        documentation: option<string>,       // JSON Schema `description`
+        title: option<string>,               // JSON Schema `title` (short label)
+        read-only: bool,                     // JSON Schema readOnly at schema level
+        write-only: bool,                    // JSON Schema writeOnly at schema level
+        external-docs: option<external-docs>,
+        %default: option<value-ref>,         // JSON Schema default; pool index
+        examples: list<tuple<string, example>>,
+        xml: option<xml-object>,
+        definition: type-def,
+        extensions: list<tuple<string, value-ref>>,
+        location: option<spec-location>,
+    }
+
+    /// `type-ref` is a string id into `ir.types`. It is *not* a record so that
+    /// `type-def` can be recursive without WIT pain.
+    type type-ref = string;
+
+    variant type-def {
+        primitive(primitive-type),
+        %object(object-type),
+        array(array-type),
+        enum-string(enum-string-type),
+        enum-int(enum-int-type),
+        %union(union-type),
+        // JSON's `null` as a unit type. Pool id is "null" (see issue #107).
+        // `T | null` is a `union-type` whose variants list contains a Null
+        // reference, canonicalized to last.
+        %null,
+    }
+
+    // ----- primitives -----
+
+    record primitive-type {
+        kind: primitive-kind,
+        constraints: primitive-constraints,
+    }
+
+    /// JSON Schema's `type` keyword values, minus those with their own IR
+    /// shapes (`object` / `array` / `null`). Width / semantic refinements
+    /// (`int32`, `int64`, `float`, `double`, `date`, `uuid`, `byte`, `decimal`,
+    /// `email`, etc.) live in `format-extension`; plugins interpret as needed.
+    enum primitive-kind {
+        prim-string,
+        prim-integer,
+        prim-number,
+        prim-bool,
+    }
+
+    record primitive-constraints {
+        // numeric — pool indices
+        minimum: option<value-ref>,
+        maximum: option<value-ref>,
+        exclusive-minimum: option<value-ref>,
+        exclusive-maximum: option<value-ref>,
+        multiple-of: option<value-ref>,
+        // string
+        min-length: option<u64>,
+        max-length: option<u64>,
+        pattern: option<string>,             // ECMA-262 regex (per JSON Schema)
+        // format-derived
+        format-extension: option<string>,    // unrecognized OAS format strings
+        // JSON Schema 2020-12 / OAS 3.2 content-* keywords (string-only)
+        content-encoding: option<string>,    // e.g. "base64"
+        content-media-type: option<string>,  // e.g. "image/png"
+        content-schema: option<type-ref>,    // schema for decoded payload (3.2)
+    }
+
+    // ----- arrays -----
+
+    record array-type {
+        items: type-ref,
+        constraints: array-constraints,
+    }
+
+    record array-constraints {
+        min-items: option<u64>,
+        max-items: option<u64>,
+        unique-items: bool,
+    }
+
+    // ----- objects -----
+
+    record object-type {
+        properties: list<property>,
+        additional-properties: additional-properties,
+        constraints: object-constraints,
+    }
+
+    record property {
+        name: string,                        // original name; sanitized variant elsewhere
+        %type: type-ref,
+        required: bool,                      // moved from object-type.required (#110)
+        documentation: option<string>,
+        deprecated: bool,
+        read-only: bool,
+        write-only: bool,
+        %default: option<value-ref>,         // JSON Schema default; pool index
+        extensions: list<tuple<string, value-ref>>,
+    }
+
+    variant additional-properties {
+        forbidden,                           // additionalProperties: false
+        any,                                 // additionalProperties: true / unset
+        typed(type-ref),                     // additionalProperties: { ... }
+    }
+
+    record object-constraints {
+        min-properties: option<u64>,
+        max-properties: option<u64>,
+    }
+
+    // ----- enums -----
+
+    record enum-string-type {
+        values: list<enum-string-value>,
+    }
+
+    record enum-string-value {
+        value: string,
+        documentation: option<string>,
+    }
+
+    record enum-int-type {
+        values: list<enum-int-value>,
+        kind: int-kind,
+    }
+
+    record enum-int-value {
+        value: s64,
+        documentation: option<string>,
+    }
+
+    enum int-kind { int32, int64 }
+
+    // ----- unions -----
+
+    record union-type {
+        variants: list<union-variant>,
+        discriminator: option<discriminator>,
+        kind: union-kind,
+    }
+
+    record union-variant {
+        %type: type-ref,
+        tag: option<string>,                 // value of the discriminator property, if any
+    }
+
+    enum union-kind { one-of, any-of }
+
+    record discriminator {
+        property-name: string,
+        mapping: list<tuple<string, type-ref>>,
+        extensions: list<tuple<string, value-ref>>,
+    }
+
+    // ----------------------------------------------------------------------
+    // Operations
+    // ----------------------------------------------------------------------
+
+    record operation {
+        id: string,                          // sanitized, unique
+        original-id: option<string>,
+        method: http-method,
+        path-template: string,
+        path-params: list<parameter>,
+        query-params: list<parameter>,
+        header-params: list<parameter>,
+        cookie-params: list<parameter>,
+        querystring-params: list<parameter>, // OAS 3.2 `in: querystring` (whole query-string opaque)
+        request-body: option<body>,
+        responses: list<response>,
+        security: list<security-requirement>,
+        tags: list<string>,
+        documentation: option<string>,
+        deprecated: bool,
+        extensions: list<tuple<string, value-ref>>,
+        external-docs: option<external-docs>,
+        servers: list<server>,               // effective list, with §4.8.10 inheritance applied
+        callbacks: list<callback>,
+        location: option<spec-location>,
+    }
+
+    variant http-method {
+        get,
+        put,
+        post,
+        delete,
+        options,
+        head,
+        patch,
+        trace,
+        other(string),                       // OAS 3.2 additionalOperations (QUERY etc.)
+    }
+
+    record parameter {
+        name: string,                        // original name
+        %type: type-ref,
+        required: bool,
+        documentation: option<string>,
+        deprecated: bool,
+        style: option<parameter-style>,
+        explode: bool,
+        allow-empty-value: bool,             // query-only; warn elsewhere
+        allow-reserved: bool,                // raw RFC 3986 reserved chars
+        examples: list<tuple<string, example>>,
+        extensions: list<tuple<string, value-ref>>,
+        location: option<spec-location>,
+    }
+
+    enum parameter-style {
+        param-form,
+        param-simple,
+        param-label,
+        param-matrix,
+        param-space-delimited,
+        param-pipe-delimited,
+        param-deep-object,
+    }
+
+    record body {
+        content: list<body-content>,         // at least one entry
+        required: bool,
+        documentation: option<string>,
+        extensions: list<tuple<string, value-ref>>,
+    }
+
+    record body-content {
+        media-type: string,                  // e.g. "application/json"
+        %type: type-ref,
+        encoding: list<tuple<string, encoding>>,
+        item-schema: option<type-ref>,       // OAS 3.2 sequence-of-items per-item shape
+        examples: list<tuple<string, example>>,
+        extensions: list<tuple<string, value-ref>>,
+    }
+
+    record encoding {
+        content-type: option<string>,
+        style: option<parameter-style>,
+        explode: bool,
+        allow-reserved: bool,                // RFC 3986 reserved chars passthrough
+        headers: list<tuple<string, header>>,
+        extensions: list<tuple<string, value-ref>>,
+    }
+
+    record header {
+        %type: type-ref,
+        required: bool,                      // for response headers: "always present"
+        deprecated: bool,
+        documentation: option<string>,
+        examples: list<tuple<string, example>>,
+        // Header serialization fields (spec fixes style to `simple`,
+        // but values are captured verbatim for spec-strict consumers).
+        style: option<parameter-style>,
+        explode: bool,
+        allow-reserved: bool,
+        allow-empty-value: bool,
+        location: option<spec-location>,
+    }
+
+    record response {
+        status: response-status,
+        content: list<body-content>,         // may be empty
+        headers: list<tuple<string, header>>,
+        documentation: option<string>,
+        links: list<tuple<string, link>>,
+        extensions: list<tuple<string, value-ref>>,
+    }
+
+    variant response-status {
+        explicit(u16),                       // e.g. 200, 404
+        default,                             // OpenAPI "default"
+        range(u8),                           // 1..=5 for 1xx..5xx
+    }
+
+    // ----------------------------------------------------------------------
+    // Security
+    // ----------------------------------------------------------------------
+
+    record security-scheme {
+        id: string,
+        kind: security-scheme-kind,
+        documentation: option<string>,
+        deprecated: bool,                    // OAS 3.2; defaults to false
+        extensions: list<tuple<string, value-ref>>,
+    }
+
+    variant security-scheme-kind {
+        api-key(api-key-scheme),
+        http-basic,
+        http-bearer(option<string>),         // bearer-format hint
+        mutual-tls,                          // OAS 3.0+ mTLS (cert provisioning is consumer's responsibility)
+        oauth2(oauth2-scheme),
+        open-id-connect(string),             // discovery URL
+    }
+
+    record api-key-scheme {
+        name: string,
+        location: api-key-location,
+    }
+
+    enum api-key-location { header, query, cookie }
+
+    record oauth2-scheme {
+        flows: list<oauth2-flow>,
+    }
+
+    record oauth2-flow {
+        kind: oauth2-flow-kind,
+        authorization-url: option<string>,
+        token-url: option<string>,
+        refresh-url: option<string>,
+        scopes: list<tuple<string, string>>,
+        extensions: list<tuple<string, value-ref>>,
+    }
+
+    enum oauth2-flow-kind {
+        implicit,
+        password,
+        client-credentials,
+        authorization-code,
+    }
+
+    record security-requirement {
+        scheme-id: string,
+        scopes: list<string>,
+    }
+
+    // ----------------------------------------------------------------------
+    // Diagnostics
+    // ----------------------------------------------------------------------
+
+    record diagnostic {
+        severity: severity,
+        code: string,                        // stable, e.g. "rust-axum/E-UNTAGGED-UNION"
+        message: string,
+        location: option<spec-location>,
+        related: list<related-info>,
+        suggested-fix: option<fix-suggestion>,
+    }
+
+    enum severity { error, warning, info, hint }
+
+    record related-info {
+        message: string,
+        location: option<spec-location>,
+    }
+
+    record fix-suggestion {
+        message: string,
+        edits: list<fix-edit>,
+    }
+
+    record fix-edit {
+        location: spec-location,
+        replacement: string,
+    }
+
+    record spec-location {
+        pointer: string,                     // RFC 6901 JSON pointer
+        file: option<string>,
+    }
+
+    // ----------------------------------------------------------------------
+    // Plugin metadata
+    // ----------------------------------------------------------------------
+
+    /// Plugins that can't handle their input emit `stage-error::rejected`
+    /// with structured diagnostics; plugins that can but lose information
+    /// emit `severity::warning` diagnostics. There is no static feature
+    /// gate; the host does not pre-check pipelines.
+    record plugin-info {
+        name: string,
+        version: string,
+    }
+
+    // ----------------------------------------------------------------------
+    // Structured value (defaults, examples, extensions, link parameters,
+    // constraint values)
+    // ----------------------------------------------------------------------
+
+    /// Index into `ir.values`. Compound `value` arms (`%list` / `%object`)
+    /// hold lists of `value-ref` rather than recursing — WIT doesn't allow
+    /// recursive variants, so the pool indirection is the only way to
+    /// preserve nested structure across the boundary. See ADR-0007.
+    type value-ref = u32;
+
+    /// Pool entry. Every IR field that previously held a `value` now
+    /// holds a `value-ref` indexing into `ir.values`. The compound arms
+    /// preserve declared order; `%object` keys are *not* re-sorted.
+    variant value {
+        %null,
+        %bool(bool),
+        %int(s64),
+        %float(f64),
+        %string(string),
+        %list(list<value-ref>),
+        %object(list<tuple<string, value-ref>>),
+    }
+
+    // ----------------------------------------------------------------------
+    // Logging level (re-used by host-api)
+    // ----------------------------------------------------------------------
+
+    enum log-level { trace, debug, info, warn, error }
+}

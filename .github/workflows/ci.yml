@@ -1,0 +1,190 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
+  RUST_BACKTRACE: 1
+
+# macOS and Linux only. No Windows. See plan §2.
+jobs:
+  fmt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - run: cargo fmt --all -- --check
+
+  clippy:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-wasip2
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@nextest
+      # No `#[test]` / `#[cfg(test)]` may live inside a plugin crate — see
+      # ADR-0004. Catch any reintroduction before doing the slow build.
+      - run: cargo xtask plugin-test-discipline
+      # Plugin .wasm artifacts must exist before host integration tests run.
+      - run: cargo build --release --target wasm32-wasip2 --manifest-path plugins/Cargo.toml
+      - run: cargo nextest run --workspace
+
+  doc:
+    runs-on: ubuntu-latest
+    env:
+      RUSTDOCFLAGS: -D warnings
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo doc --workspace --no-deps
+
+  wit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-tools
+      - name: Resolve WIT package
+        run: wasm-tools component wit ./wit
+
+  # Quick fuzz smoke. Runs each parser fuzz target for ~1 minute on the
+  # nightly toolchain (cargo-fuzz / libFuzzer require nightly). Catches
+  # parser-panic regressions on PRs cheaply; deeper coverage runs nightly
+  # via .github/workflows/fuzz.yml. See docs/fuzzing.md.
+  fuzz-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: fuzz
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-fuzz
+      - name: Seed corpus from in-tree fixtures
+        run: bash fuzz/seed-corpus.sh
+      - name: Fuzz parse_str_bytes (60s)
+        working-directory: fuzz
+        run: cargo fuzz run parse_str_bytes -- -runs=10000 -max_total_time=60
+      - name: Fuzz parse_str_structured (60s)
+        working-directory: fuzz
+        run: cargo fuzz run parse_str_structured -- -runs=10000 -max_total_time=60
+      - name: Fuzz transformer_output_ir (60s)
+        working-directory: fuzz
+        run: cargo fuzz run transformer_output_ir -- -runs=10000 -max_total_time=60
+
+  # MVP-gate smoke tests. For each fixture under `fixtures/real-world/`,
+  # parse the spec and run it through both generators, then assert the
+  # output compiles (`tsc --noEmit` for TS, `cargo check` for Rust).
+  # Linux only — the property doesn't differ across OSes and the test is
+  # heavyweight (pulls reqwest and friends through cargo check).
+  real-world:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-wasip2
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@nextest
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm install -g typescript@5
+      # Plugin .wasm artifacts must exist before the test loads them.
+      - run: cargo build --release --target wasm32-wasip2 --manifest-path plugins/Cargo.toml
+      - run: cargo nextest run -p forge-plugin-itests --features real-world --test real_world
+
+  # Reference cross-language plugin (issue #58). Builds a Go server
+  # generator via TinyGo + wit-bindgen-go, loads it through the same
+  # `forge-host` runtime as Rust plugins, asserts `go build` accepts the
+  # generated output. Linux only — TinyGo's wasip2 target is identical
+  # across OSes and the job is heavyweight.
+  plugin-go-server:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@nextest
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+      - name: Install TinyGo
+        run: |
+          curl -fsSL -o /tmp/tinygo.deb \
+            https://github.com/tinygo-org/tinygo/releases/download/v0.40.1/tinygo_0.40.1_amd64.deb
+          sudo dpkg -i /tmp/tinygo.deb
+      - name: Build Go plugin
+        run: bash plugins/generator-go-server/build.sh
+      - run: cargo nextest run -p forge-plugin-itests --features go-server --test generator_go_server
+
+  # Reference cross-language plugin: TypeScript-source CLI generator
+  # (issue #58). Builds via jco + componentize-js + esbuild + typescript;
+  # acceptance subtests `npm install` + `tsc` + `node bin/...js --help` on
+  # the generated output. Linux only — the toolchain is identical across
+  # OSes and the job is heavyweight (~6 minutes).
+  plugin-typescript-cli:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@nextest
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Build TS plugin
+        run: bash plugins/generator-typescript-cli/build.sh
+      - run: cargo nextest run -p forge-plugin-itests --features typescript-cli --test generator_typescript_cli
+
+  # Prove the pipeline is deterministic. Two `forge generate` runs against
+  # the same input must produce byte-identical outputs. Linux only — the
+  # property doesn't differ across OSes and a matrix would just double cost.
+  determinism:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-wasip2
+      - uses: Swatinem/rust-cache@v2
+      # Plugins must be built first so the bundled forge.toml in the
+      # petstore fixture can resolve `..../generator_typescript_fetch.wasm`.
+      - run: cargo build --release --target wasm32-wasip2 --manifest-path plugins/Cargo.toml
+      - run: cargo build --release -p forge-cli
+      - name: Generate twice and diff
+        run: |
+          rm -rf /tmp/forge-a /tmp/forge-b
+          ./target/release/forge generate fixtures/e2e/petstore --out /tmp/forge-a
+          ./target/release/forge generate fixtures/e2e/petstore --out /tmp/forge-b
+          diff -r /tmp/forge-a /tmp/forge-b

@@ -1,0 +1,105 @@
+{
+  "info": {
+    "title": "anyof",
+    "version": "1"
+  },
+  "operations": [],
+  "types": [
+    {
+      "id": "Cat_property_whiskers",
+      "definition": {
+        "def": "primitive",
+        "kind": "integer",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Cat/properties/whiskers",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Cat",
+      "original_name": "Cat",
+      "definition": {
+        "def": "object",
+        "properties": [
+          {
+            "name": "whiskers",
+            "type": "Cat_property_whiskers",
+            "required": true,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          }
+        ],
+        "additional_properties": {
+          "kind": "any"
+        },
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Cat",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Dog_property_barks",
+      "definition": {
+        "def": "primitive",
+        "kind": "bool",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Dog/properties/barks",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Dog",
+      "original_name": "Dog",
+      "definition": {
+        "def": "object",
+        "properties": [
+          {
+            "name": "barks",
+            "type": "Dog_property_barks",
+            "required": true,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          }
+        ],
+        "additional_properties": {
+          "kind": "any"
+        },
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Dog",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Pet",
+      "original_name": "Pet",
+      "definition": {
+        "def": "union",
+        "variants": [
+          {
+            "type": "Cat"
+          },
+          {
+            "type": "Dog"
+          }
+        ],
+        "kind": "any-of"
+      },
+      "location": {
+        "pointer": "/components/schemas/Pet",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": []
+}

@@ -1,0 +1,38 @@
+[package]
+name = "forge-plugin-sdk"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.83"
+license = "Apache-2.0 OR MIT"
+repository = "https://github.com/marcusdunn/openapi-forge"
+description = "OpenAPI Forge plugin author SDK (wasm32-wasip2 only)"
+readme = "README.md"
+keywords = ["openapi", "codegen", "wasm", "plugin", "sdk"]
+categories = ["development-tools", "wasm"]
+
+[lib]
+crate-type = ["rlib"]
+
+# IMPORTANT: this crate is intentionally not part of the host workspace. It
+# targets `wasm32-wasip2` exclusively. There is no native shim: see ADR-0004.
+# The `compile_error!` in `lib.rs` enforces the target.
+#
+# Plugin authors pick exactly one of the `transformer` / `generator` features
+# in their plugin's Cargo.toml. Each feature pulls in a `wit_bindgen::generate!`
+# for the matching world. Both features at once is rejected at compile time —
+# a single component implements one world.
+
+[features]
+transformer = []
+generator = []
+
+[dependencies]
+forge-ir = { path = "../forge-ir", version = "0.1.0" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "2.0"
+wit-bindgen = "0.36"
+wit-bindgen-rt = { version = "0.36", features = ["bitflags"] }
+
+[lints.rust]
+unsafe_code = "deny"

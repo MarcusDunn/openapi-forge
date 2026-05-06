@@ -1,0 +1,27 @@
+{
+  "info": {
+    "title": "v3_1-const-string",
+    "version": "1"
+  },
+  "operations": [],
+  "types": [
+    {
+      "id": "Kind",
+      "original_name": "Kind",
+      "definition": {
+        "def": "enum-string",
+        "values": [
+          {
+            "value": "pet"
+          }
+        ]
+      },
+      "location": {
+        "pointer": "/components/schemas/Kind",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": []
+}

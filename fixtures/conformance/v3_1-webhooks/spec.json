@@ -1,0 +1,27 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "v3_1-webhooks", "version": "1" },
+  "paths": {},
+  "webhooks": {
+    "newPet": {
+      "post": {
+        "operationId": "newPetWebhook",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["id"],
+                "properties": { "id": { "type": "string" } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": { "description": "ok" }
+        }
+      }
+    }
+  }
+}

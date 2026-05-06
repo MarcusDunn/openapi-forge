@@ -1,0 +1,27 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "header-style-fields", "version": "1" },
+  "paths": {
+    "/things": {
+      "get": {
+        "operationId": "list",
+        "responses": {
+          "200": {
+            "description": "ok",
+            "headers": {
+              "X-Rate-Limit": {
+                "description": "remaining requests",
+                "required": true,
+                "schema": { "type": "integer" },
+                "style": "simple",
+                "explode": false,
+                "allowReserved": false,
+                "allowEmptyValue": false
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

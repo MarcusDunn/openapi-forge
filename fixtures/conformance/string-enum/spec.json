@@ -1,0 +1,14 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "string-enum", "version": "1" },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "Status": {
+        "type": "string",
+        "description": "A pet's lifecycle status.",
+        "enum": ["available", "pending", "sold"]
+      }
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "info": {
+    "title": "null-const",
+    "version": "1"
+  },
+  "operations": [],
+  "types": [
+    {
+      "id": "Marker",
+      "original_name": "Marker",
+      "definition": {
+        "def": "null"
+      },
+      "location": {
+        "pointer": "/components/schemas/Marker",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": []
+}

@@ -1,0 +1,59 @@
+{
+  "info": {
+    "title": "security-oauth2-password",
+    "version": "1"
+  },
+  "operations": [
+    {
+      "id": "getMe",
+      "original_id": "getMe",
+      "method": "get",
+      "path_template": "/me",
+      "responses": [
+        {
+          "status": {
+            "kind": "explicit",
+            "code": 200
+          },
+          "documentation": "ok"
+        }
+      ],
+      "deprecated": false,
+      "servers": [
+        {
+          "url": "https://api.example.com"
+        }
+      ],
+      "location": {
+        "pointer": "/paths/~1me/get",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "types": [],
+  "security_schemes": [
+    {
+      "id": "oauth2Auth",
+      "kind": {
+        "type": "oauth2",
+        "flows": [
+          {
+            "kind": "password",
+            "token_url": "https://auth.example.com/token",
+            "scopes": [
+              [
+                "read",
+                "Read access"
+              ]
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "servers": [
+    {
+      "url": "https://api.example.com"
+    }
+  ]
+}

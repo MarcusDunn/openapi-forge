@@ -1,0 +1,11 @@
+[
+  {
+    "severity": "warning",
+    "code": "parser/W-ALLOF-CONFLICT",
+    "message": "allOf merge: property `value` declared with conflicting types `Conflict_allof_part_0_property_value` and `Conflict_allof_part_1_property_value`; using the latter",
+    "location": {
+      "pointer": "/components/schemas/Conflict/allOf/1",
+      "file": "spec.json"
+    }
+  }
+]

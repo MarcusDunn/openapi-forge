@@ -1,0 +1,19 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "ref-siblings-3-1-allowed", "version": "1.0.0" },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "Animal": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" }
+        }
+      },
+      "Pet": {
+        "$ref": "#/components/schemas/Animal",
+        "description": "A pet — siblings allowed in 3.1+."
+      }
+    }
+  }
+}

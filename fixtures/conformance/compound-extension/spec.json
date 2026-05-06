@@ -1,0 +1,13 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "compound-extension", "version": "1" },
+  "paths": {
+    "/things": {
+      "get": {
+        "operationId": "listThings",
+        "responses": { "200": { "description": "ok" } },
+        "x-config": { "retries": 3, "backoffMs": [100, 250, 500] }
+      }
+    }
+  }
+}

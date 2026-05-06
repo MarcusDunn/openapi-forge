@@ -1,0 +1,77 @@
+{
+  "info": {
+    "title": "split-doc-request-body",
+    "version": "1"
+  },
+  "operations": [
+    {
+      "id": "createPet",
+      "original_id": "createPet",
+      "method": "post",
+      "path_template": "/pets",
+      "request_body": {
+        "content": [
+          {
+            "media_type": "application/json",
+            "type": "createPet_request_body"
+          }
+        ],
+        "required": true
+      },
+      "responses": [
+        {
+          "status": {
+            "kind": "explicit",
+            "code": 204
+          },
+          "documentation": "ok"
+        }
+      ],
+      "deprecated": false,
+      "location": {
+        "pointer": "/paths/~1pets/post",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "types": [
+    {
+      "id": "createPet_request_body_property_name",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/paths/~1pets/post/requestBody/content/application~1json/schema/properties/name",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "createPet_request_body",
+      "definition": {
+        "def": "object",
+        "properties": [
+          {
+            "name": "name",
+            "type": "createPet_request_body_property_name",
+            "required": true,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          }
+        ],
+        "additional_properties": {
+          "kind": "any"
+        },
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/paths/~1pets/post/requestBody/content/application~1json/schema",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": []
+}

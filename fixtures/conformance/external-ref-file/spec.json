@@ -1,0 +1,30 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "external-ref-file", "version": "1" },
+  "servers": [{ "url": "https://api.example.com" }],
+  "paths": {
+    "/pets/{id}": {
+      "get": {
+        "operationId": "getPet",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "./types.json#/components/schemas/Pet" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

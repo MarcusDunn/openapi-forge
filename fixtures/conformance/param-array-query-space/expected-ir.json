@@ -1,0 +1,83 @@
+{
+  "info": {
+    "title": "param-array-query-space",
+    "version": "1"
+  },
+  "operations": [
+    {
+      "id": "listItems",
+      "original_id": "listItems",
+      "method": "get",
+      "path_template": "/items",
+      "query_params": [
+        {
+          "name": "ids",
+          "type": "listItems_param_query_ids",
+          "required": false,
+          "deprecated": false,
+          "style": "space-delimited",
+          "explode": false,
+          "allow_empty_value": false,
+          "allow_reserved": false,
+          "location": {
+            "pointer": "/paths/~1items/get/parameters/0",
+            "file": "spec.json"
+          }
+        }
+      ],
+      "responses": [
+        {
+          "status": {
+            "kind": "explicit",
+            "code": 204
+          },
+          "documentation": "ok"
+        }
+      ],
+      "deprecated": false,
+      "servers": [
+        {
+          "url": "https://api.example.com"
+        }
+      ],
+      "location": {
+        "pointer": "/paths/~1items/get",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "types": [
+    {
+      "id": "listItems_param_query_ids_items",
+      "definition": {
+        "def": "primitive",
+        "kind": "integer",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/paths/~1items/get/parameters/0/schema/items",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "listItems_param_query_ids",
+      "definition": {
+        "def": "array",
+        "items": "listItems_param_query_ids_items",
+        "constraints": {
+          "unique_items": false
+        }
+      },
+      "location": {
+        "pointer": "/paths/~1items/get/parameters/0/schema",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": [
+    {
+      "url": "https://api.example.com"
+    }
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "info": {
+    "title": "param-array-path-simple",
+    "version": "1"
+  },
+  "operations": [
+    {
+      "id": "getUsers",
+      "original_id": "getUsers",
+      "method": "get",
+      "path_template": "/users/{ids}",
+      "path_params": [
+        {
+          "name": "ids",
+          "type": "getUsers_param_path_ids",
+          "required": true,
+          "deprecated": false,
+          "style": "simple",
+          "explode": false,
+          "allow_empty_value": false,
+          "allow_reserved": false,
+          "location": {
+            "pointer": "/paths/~1users~1{ids}/get/parameters/0",
+            "file": "spec.json"
+          }
+        }
+      ],
+      "responses": [
+        {
+          "status": {
+            "kind": "explicit",
+            "code": 204
+          },
+          "documentation": "ok"
+        }
+      ],
+      "deprecated": false,
+      "servers": [
+        {
+          "url": "https://api.example.com"
+        }
+      ],
+      "location": {
+        "pointer": "/paths/~1users~1{ids}/get",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "types": [
+    {
+      "id": "getUsers_param_path_ids_items",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/paths/~1users~1{ids}/get/parameters/0/schema/items",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "getUsers_param_path_ids",
+      "definition": {
+        "def": "array",
+        "items": "getUsers_param_path_ids_items",
+        "constraints": {
+          "unique_items": false
+        }
+      },
+      "location": {
+        "pointer": "/paths/~1users~1{ids}/get/parameters/0/schema",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": [
+    {
+      "url": "https://api.example.com"
+    }
+  ]
+}

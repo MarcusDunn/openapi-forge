@@ -1,0 +1,13 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "v3_1-error-dependent-required", "version": "1" },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "Bad": {
+        "type": "object",
+        "dependentRequired": { "credit_card": ["billing_address"] }
+      }
+    }
+  }
+}

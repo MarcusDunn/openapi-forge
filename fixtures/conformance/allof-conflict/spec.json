@@ -1,0 +1,25 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "allof-conflict", "version": "1" },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "Conflict": {
+        "allOf": [
+          {
+            "type": "object",
+            "properties": {
+              "value": { "type": "string" }
+            }
+          },
+          {
+            "type": "object",
+            "properties": {
+              "value": { "type": "integer" }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

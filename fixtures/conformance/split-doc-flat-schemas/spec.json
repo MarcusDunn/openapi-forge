@@ -1,0 +1,21 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "split-doc-flat-schemas", "version": "1" },
+  "paths": {
+    "/pets": {
+      "get": {
+        "operationId": "listPets",
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "schemas.json#/Pet" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

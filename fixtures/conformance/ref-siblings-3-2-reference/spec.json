@@ -1,0 +1,35 @@
+{
+  "openapi": "3.2.0",
+  "info": { "title": "ref-siblings-3-2-reference", "version": "1" },
+  "paths": {
+    "/things": {
+      "get": {
+        "operationId": "list",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Generic",
+            "description": "Override the shared description with a per-call one."
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "responses": {
+      "Generic": {
+        "description": "Shared default.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Thing" }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Thing": {
+        "type": "object",
+        "properties": { "id": { "type": "string" } }
+      }
+    }
+  }
+}

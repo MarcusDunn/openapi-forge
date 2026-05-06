@@ -1,0 +1,63 @@
+{
+  "info": {
+    "title": "integer-enum",
+    "version": "1"
+  },
+  "operations": [],
+  "types": [
+    {
+      "id": "BigPriority",
+      "original_name": "BigPriority",
+      "definition": {
+        "def": "enum-int",
+        "values": [
+          {
+            "value": 100
+          },
+          {
+            "value": 200
+          },
+          {
+            "value": 300
+          }
+        ],
+        "kind": "int64"
+      },
+      "location": {
+        "pointer": "/components/schemas/BigPriority",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Priority",
+      "original_name": "Priority",
+      "definition": {
+        "def": "enum-int",
+        "values": [
+          {
+            "value": 1
+          },
+          {
+            "value": 2
+          },
+          {
+            "value": 3
+          },
+          {
+            "value": 5
+          },
+          {
+            "value": 8
+          }
+        ],
+        "kind": "int32"
+      },
+      "location": {
+        "pointer": "/components/schemas/Priority",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": []
+}

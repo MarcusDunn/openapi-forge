@@ -1,0 +1,57 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "examples", "version": "1.0.0" },
+  "paths": {
+    "/items/{id}": {
+      "get": {
+        "operationId": "getItem",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "examples": {
+              "shortId": {
+                "summary": "Short numeric id",
+                "value": "42"
+              },
+              "uuid": {
+                "$ref": "#/components/examples/UuidExample"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Item" },
+                "example": { "id": "1", "name": "alpha" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "examples": {
+      "UuidExample": {
+        "summary": "UUID id",
+        "value": "abc123"
+      }
+    },
+    "schemas": {
+      "Item": {
+        "type": "object",
+        "example": "compound-fallback-string",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" }
+        }
+      }
+    }
+  }
+}

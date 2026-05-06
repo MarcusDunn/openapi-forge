@@ -1,0 +1,132 @@
+{
+  "info": {
+    "title": "split-doc-responses",
+    "version": "1"
+  },
+  "operations": [
+    {
+      "id": "listItems",
+      "original_id": "listItems",
+      "method": "get",
+      "path_template": "/items",
+      "responses": [
+        {
+          "status": {
+            "kind": "explicit",
+            "code": 200
+          },
+          "content": [
+            {
+              "media_type": "application/json",
+              "type": "listItems_response_200"
+            }
+          ],
+          "documentation": "ok"
+        },
+        {
+          "status": {
+            "kind": "default"
+          },
+          "content": [
+            {
+              "media_type": "application/json",
+              "type": "listItems_response_default"
+            }
+          ],
+          "documentation": "An error occurred"
+        }
+      ],
+      "deprecated": false,
+      "location": {
+        "pointer": "/paths/~1items/get",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "types": [
+    {
+      "id": "listItems_response_200_items",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/paths/~1items/get/responses/200/content/application~1json/schema/items",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "listItems_response_200",
+      "definition": {
+        "def": "array",
+        "items": "listItems_response_200_items",
+        "constraints": {
+          "unique_items": false
+        }
+      },
+      "location": {
+        "pointer": "/paths/~1items/get/responses/200/content/application~1json/schema",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "listItems_response_default_property_code",
+      "definition": {
+        "def": "primitive",
+        "kind": "integer",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/paths/~1items/get/responses/default/content/application~1json/schema/properties/code",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "listItems_response_default_property_message",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/paths/~1items/get/responses/default/content/application~1json/schema/properties/message",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "listItems_response_default",
+      "definition": {
+        "def": "object",
+        "properties": [
+          {
+            "name": "code",
+            "type": "listItems_response_default_property_code",
+            "required": true,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          },
+          {
+            "name": "message",
+            "type": "listItems_response_default_property_message",
+            "required": true,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          }
+        ],
+        "additional_properties": {
+          "kind": "any"
+        },
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/paths/~1items/get/responses/default/content/application~1json/schema",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": []
+}

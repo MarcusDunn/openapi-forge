@@ -1,0 +1,11 @@
+[
+  {
+    "severity": "warning",
+    "code": "parser/W-COMPONENT-PATH-ITEM-UNUSED",
+    "message": "components.pathItems.`UnusedPath` is declared but never referenced from paths, webhooks, or callbacks. The declaration is silently invisible to generators.",
+    "location": {
+      "pointer": "/components/pathItems/UnusedPath",
+      "file": "spec.json"
+    }
+  }
+]

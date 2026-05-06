@@ -1,0 +1,45 @@
+{
+  "openapi": "3.2.0",
+  "info": { "title": "components-mediatypes-3-2", "version": "1" },
+  "paths": {
+    "/things": {
+      "get": {
+        "operationId": "getThings",
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": { "$ref": "#/components/mediaTypes/ThingJson" }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createThing",
+        "requestBody": {
+          "content": {
+            "application/json": { "$ref": "#/components/mediaTypes/ThingJson" }
+          }
+        },
+        "responses": { "204": { "description": "created" } }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Thing": {
+        "type": "object",
+        "required": ["id"],
+        "properties": { "id": { "type": "string" } }
+      }
+    },
+    "mediaTypes": {
+      "ThingJson": {
+        "schema": { "$ref": "#/components/schemas/Thing" }
+      },
+      "UnusedJson": {
+        "schema": { "$ref": "#/components/schemas/Thing" }
+      }
+    }
+  }
+}

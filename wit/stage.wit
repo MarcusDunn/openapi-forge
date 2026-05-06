@@ -1,0 +1,27 @@
+/// Shared error type used by transformer and generator worlds.
+interface stage {
+    use types.{diagnostic};
+
+    variant stage-error {
+        /// Plugin refuses the input it received. `diagnostics` explains why.
+        rejected(rejection),
+        /// Plugin trapped, panicked, or returned malformed data.
+        plugin-bug(string),
+        /// Plugin config did not validate against the plugin's declared schema.
+        config-invalid(string),
+        /// One of fuel / memory / time / output-size was exceeded.
+        resource-exceeded(resource-kind),
+    }
+
+    record rejection {
+        reason: string,
+        diagnostics: list<diagnostic>,
+    }
+
+    enum resource-kind {
+        fuel,
+        memory,
+        time,
+        output-size,
+    }
+}

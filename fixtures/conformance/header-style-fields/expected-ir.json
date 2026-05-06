@@ -1,0 +1,63 @@
+{
+  "info": {
+    "title": "header-style-fields",
+    "version": "1"
+  },
+  "operations": [
+    {
+      "id": "list",
+      "original_id": "list",
+      "method": "get",
+      "path_template": "/things",
+      "responses": [
+        {
+          "status": {
+            "kind": "explicit",
+            "code": 200
+          },
+          "headers": [
+            [
+              "X-Rate-Limit",
+              {
+                "type": "list_header_X_Rate_Limit",
+                "required": true,
+                "deprecated": false,
+                "documentation": "remaining requests",
+                "style": "simple",
+                "explode": false,
+                "allow_reserved": false,
+                "allow_empty_value": false,
+                "location": {
+                  "pointer": "/paths/~1things/get/responses/200/headers/X-Rate-Limit",
+                  "file": "spec.json"
+                }
+              }
+            ]
+          ],
+          "documentation": "ok"
+        }
+      ],
+      "deprecated": false,
+      "location": {
+        "pointer": "/paths/~1things/get",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "types": [
+    {
+      "id": "list_header_X_Rate_Limit",
+      "definition": {
+        "def": "primitive",
+        "kind": "integer",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/paths/~1things/get/responses/200/headers/X-Rate-Limit/schema",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": []
+}

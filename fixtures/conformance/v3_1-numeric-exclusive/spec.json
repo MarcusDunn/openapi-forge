@@ -1,0 +1,14 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "v3_1-numeric-exclusive", "version": "1" },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "Score": {
+        "type": "integer",
+        "exclusiveMinimum": 0,
+        "exclusiveMaximum": 100
+      }
+    }
+  }
+}

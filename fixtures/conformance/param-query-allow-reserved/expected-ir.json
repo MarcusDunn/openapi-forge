@@ -1,0 +1,62 @@
+{
+  "info": {
+    "title": "param-query-allow-reserved",
+    "version": "1"
+  },
+  "operations": [
+    {
+      "id": "follow",
+      "original_id": "follow",
+      "method": "get",
+      "path_template": "/follow",
+      "query_params": [
+        {
+          "name": "redirect_uri",
+          "type": "follow_param_query_redirect_uri",
+          "required": true,
+          "deprecated": false,
+          "style": "form",
+          "explode": true,
+          "allow_empty_value": false,
+          "allow_reserved": true,
+          "location": {
+            "pointer": "/paths/~1follow/get/parameters/0",
+            "file": "spec.json"
+          }
+        }
+      ],
+      "responses": [
+        {
+          "status": {
+            "kind": "explicit",
+            "code": 302
+          },
+          "documentation": "redirected"
+        }
+      ],
+      "deprecated": false,
+      "location": {
+        "pointer": "/paths/~1follow/get",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "types": [
+    {
+      "id": "follow_param_query_redirect_uri",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {
+          "format_extension": "uri"
+        }
+      },
+      "location": {
+        "pointer": "/paths/~1follow/get/parameters/0/schema",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": []
+}

@@ -1,0 +1,22 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "primitives", "version": "1" },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "Bag": {
+        "type": "object",
+        "properties": {
+          "s": { "type": "string" },
+          "ts": { "type": "string", "format": "date-time" },
+          "id": { "type": "string", "format": "uuid" },
+          "i32": { "type": "integer", "format": "int32" },
+          "i64": { "type": "integer", "format": "int64" },
+          "f32": { "type": "number", "format": "float" },
+          "f64": { "type": "number" },
+          "b": { "type": "boolean" }
+        }
+      }
+    }
+  }
+}

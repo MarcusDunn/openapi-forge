@@ -1,0 +1,26 @@
+{
+  "/api/org/{tenant}/v1/notes/views/{viewId}": {
+    "put": {
+      "operationId": "updateNoteSavedView",
+      "description": "Real-world specs sometimes leave a placeholder in the path-template undeclared in `parameters` (here, `viewId`). The generated TS client must still compile — generators that blindly substitute every `{...}` produce code referencing undeclared variables.",
+      "parameters": [
+        { "$ref": "../components/parameters.json#/TenantSlug" }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": ["name"],
+              "properties": { "name": { "type": "string" } }
+            }
+          }
+        }
+      },
+      "responses": {
+        "204": { "description": "updated" }
+      }
+    }
+  }
+}

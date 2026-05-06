@@ -1,0 +1,3 @@
+{
+  "/a": { "$ref": "spec.json#/paths/~1a" }
+}

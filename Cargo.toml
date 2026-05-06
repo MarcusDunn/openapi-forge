@@ -1,0 +1,89 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/forge-ir",
+    "crates/forge-ir-bindgen",
+    "crates/forge-parser",
+    "crates/forge-host",
+    "crates/forge-pipeline",
+    "crates/forge-cli",
+    "crates/forge-test-harness",
+    "crates/forge-plugin-itests",
+    "xtask",
+]
+
+# `forge-plugin-sdk` targets wasm32-wasip2 only; it is excluded from the host
+# workspace so that a plain `cargo build --workspace` never tries to compile it
+# for the host. Plugin authors depend on it as a regular crates.io dependency.
+#
+# `fuzz` requires the nightly toolchain (cargo-fuzz / libFuzzer); it pins its
+# own `rust-toolchain.toml` and is excluded so stable workspace builds don't
+# try to compile it. See `docs/fuzzing.md`.
+exclude = ["crates/forge-plugin-sdk", "plugins", "fuzz"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.87"
+license = "Apache-2.0 OR MIT"
+repository = "https://github.com/marcusdunn/openapi-forge"
+authors = ["OpenAPI Forge contributors"]
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+missing_debug_implementations = "warn"
+
+[workspace.lints.clippy]
+# Determinism-relevant: prefer IndexMap over HashMap where iteration order
+# matters. We do not deny `disallowed_types` globally because some HashMap
+# usage is fine (set membership where order is not observed).
+all = { level = "warn", priority = -1 }
+
+[workspace.dependencies]
+# Internal
+forge-ir = { path = "crates/forge-ir", version = "0.1.0" }
+forge-ir-bindgen = { path = "crates/forge-ir-bindgen", version = "0.1.0" }
+forge-parser = { path = "crates/forge-parser", version = "0.1.0" }
+forge-host = { path = "crates/forge-host", version = "0.1.0" }
+forge-pipeline = { path = "crates/forge-pipeline", version = "0.1.0" }
+forge-test-harness = { path = "crates/forge-test-harness", version = "0.1.0" }
+
+# Core
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yml = "0.0.12"
+indexmap = { version = "2.7", features = ["serde"] }
+thiserror = "2.0"
+miette = { version = "7.4", features = ["fancy"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# CLI / config
+clap = { version = "4.5", features = ["derive"] }
+figment = { version = "0.10", features = ["toml", "env"] }
+
+# Spec navigation
+jsonptr = "0.6"
+
+# JSON Schema validation (used by forge-cli to validate plugin config blocks
+# against each plugin's `config_schema()` before invoking the stage).
+jsonschema = { version = "0.30", default-features = false }
+
+# WASM toolchain
+wasmtime = { version = "28", default-features = false, features = ["component-model", "cranelift", "runtime", "std", "addr2line", "demangle", "parallel-compilation"] }
+wasmtime-wasi = "28"
+wit-bindgen = "0.36"
+wit-bindgen-rt = "0.36"
+
+# Testing
+proptest = "1.6"
+insta = { version = "1.41", features = ["yaml", "json"] }
+assert_cmd = "2.0"
+predicates = "3.1"
+pretty_assertions = "1.4"
+tempfile = "3.13"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = "debuginfo"

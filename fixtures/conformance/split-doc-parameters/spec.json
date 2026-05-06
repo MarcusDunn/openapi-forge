@@ -1,0 +1,18 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "split-doc-parameters", "version": "1" },
+  "paths": {
+    "/items": {
+      "get": {
+        "operationId": "listItems",
+        "parameters": [
+          { "$ref": "parameters.json#/Page" },
+          { "$ref": "parameters.json#/PageSize" }
+        ],
+        "responses": {
+          "204": { "description": "ok" }
+        }
+      }
+    }
+  }
+}

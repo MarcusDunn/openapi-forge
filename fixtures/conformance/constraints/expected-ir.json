@@ -1,0 +1,122 @@
+{
+  "info": {
+    "title": "constraints",
+    "version": "1"
+  },
+  "operations": [],
+  "types": [
+    {
+      "id": "Constrained_property_name",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {
+          "min_length": 1,
+          "max_length": 64,
+          "pattern": "^[A-Za-z]+$"
+        }
+      },
+      "location": {
+        "pointer": "/components/schemas/Constrained/properties/name",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Constrained_property_score",
+      "definition": {
+        "def": "primitive",
+        "kind": "integer",
+        "constraints": {
+          "minimum": 0,
+          "maximum": 1,
+          "format_extension": "int32"
+        }
+      },
+      "location": {
+        "pointer": "/components/schemas/Constrained/properties/score",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Constrained_property_tags_items",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Constrained/properties/tags/items",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Constrained_property_tags",
+      "definition": {
+        "def": "array",
+        "items": "Constrained_property_tags_items",
+        "constraints": {
+          "min_items": 0,
+          "max_items": 16,
+          "unique_items": true
+        }
+      },
+      "location": {
+        "pointer": "/components/schemas/Constrained/properties/tags",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Constrained",
+      "original_name": "Constrained",
+      "definition": {
+        "def": "object",
+        "properties": [
+          {
+            "name": "name",
+            "type": "Constrained_property_name",
+            "required": false,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          },
+          {
+            "name": "score",
+            "type": "Constrained_property_score",
+            "required": false,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          },
+          {
+            "name": "tags",
+            "type": "Constrained_property_tags",
+            "required": false,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          }
+        ],
+        "additional_properties": {
+          "kind": "any"
+        },
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Constrained",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": [],
+  "values": [
+    {
+      "kind": "int",
+      "value": 0
+    },
+    {
+      "kind": "int",
+      "value": 100
+    }
+  ]
+}

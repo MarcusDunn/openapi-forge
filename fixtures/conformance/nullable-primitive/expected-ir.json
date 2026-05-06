@@ -1,0 +1,134 @@
+{
+  "info": {
+    "title": "nullable-primitive",
+    "version": "1"
+  },
+  "operations": [],
+  "types": [
+    {
+      "id": "Profile_property_bio_nonnull",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Profile/properties/bio",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Profile_property_id",
+      "definition": {
+        "def": "primitive",
+        "kind": "integer",
+        "constraints": {
+          "format_extension": "int64"
+        }
+      },
+      "location": {
+        "pointer": "/components/schemas/Profile/properties/id",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Profile_property_nickname_nonnull",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Profile/properties/nickname",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "null",
+      "definition": {
+        "def": "null"
+      }
+    },
+    {
+      "id": "Profile_property_bio",
+      "definition": {
+        "def": "union",
+        "variants": [
+          {
+            "type": "Profile_property_bio_nonnull"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "kind": "one-of"
+      },
+      "location": {
+        "pointer": "/components/schemas/Profile/properties/bio",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Profile_property_nickname",
+      "definition": {
+        "def": "union",
+        "variants": [
+          {
+            "type": "Profile_property_nickname_nonnull"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "kind": "one-of"
+      },
+      "location": {
+        "pointer": "/components/schemas/Profile/properties/nickname",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Profile",
+      "original_name": "Profile",
+      "definition": {
+        "def": "object",
+        "properties": [
+          {
+            "name": "bio",
+            "type": "Profile_property_bio",
+            "required": false,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          },
+          {
+            "name": "id",
+            "type": "Profile_property_id",
+            "required": true,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          },
+          {
+            "name": "nickname",
+            "type": "Profile_property_nickname",
+            "required": true,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          }
+        ],
+        "additional_properties": {
+          "kind": "any"
+        },
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Profile",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": []
+}

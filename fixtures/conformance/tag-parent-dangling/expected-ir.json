@@ -1,0 +1,15 @@
+{
+  "info": {
+    "title": "tag-parent-dangling",
+    "version": "1"
+  },
+  "operations": [],
+  "types": [],
+  "security_schemes": [],
+  "servers": [],
+  "tags": [
+    {
+      "name": "cats"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "info": {
+    "title": "null-only",
+    "version": "1"
+  },
+  "operations": [],
+  "types": [
+    {
+      "id": "Maybe",
+      "original_name": "Maybe",
+      "definition": {
+        "def": "null"
+      },
+      "location": {
+        "pointer": "/components/schemas/Maybe",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": []
+}

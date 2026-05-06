@@ -1,0 +1,58 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "security-operation-override", "version": "1" },
+  "servers": [{ "url": "https://api.example.com" }],
+  "security": [{ "bearerAuth": [] }],
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "health",
+        "security": [],
+        "responses": {
+          "204": { "description": "ok" }
+        }
+      }
+    },
+    "/me": {
+      "get": {
+        "operationId": "getMe",
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["id"],
+                  "properties": { "id": { "type": "string" } }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin": {
+      "get": {
+        "operationId": "adminAccess",
+        "security": [{ "apiKeyAuth": [] }],
+        "responses": {
+          "204": { "description": "ok" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      },
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Admin-Key"
+      }
+    }
+  }
+}

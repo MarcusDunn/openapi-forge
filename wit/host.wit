@@ -1,0 +1,23 @@
+/// Host imports available to plugins.
+///
+/// This is the *complete* host import surface. Not included: filesystem,
+/// network, clocks, random, environment variables, process args, or any host
+/// context. See ADR-0008.
+interface host-api {
+    use types.{log-level};
+
+    /// Emit a structured log line. The host is free to filter or buffer.
+    log: func(level: log-level, message: string);
+
+    /// Convert an identifier between case styles. Provided as a host import so
+    /// every plugin doesn't link its own case-conversion crate.
+    case-convert: func(input: string, style: case-style) -> string;
+
+    enum case-style {
+        snake,
+        kebab,
+        camel,
+        pascal,
+        screaming-snake,
+    }
+}

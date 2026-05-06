@@ -1,0 +1,20 @@
+[package]
+name = "forge-pipeline"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Pipeline orchestration for OpenAPI Forge"
+
+[lints]
+workspace = true
+
+[dependencies]
+forge-ir = { workspace = true }
+forge-host = { workspace = true }
+forge-parser = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+indexmap = { workspace = true }

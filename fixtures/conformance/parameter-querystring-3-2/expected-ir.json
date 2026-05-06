@@ -1,0 +1,61 @@
+{
+  "info": {
+    "title": "parameter-querystring-3-2",
+    "version": "1"
+  },
+  "operations": [
+    {
+      "id": "search",
+      "original_id": "search",
+      "method": "get",
+      "path_template": "/search",
+      "querystring_params": [
+        {
+          "name": "raw",
+          "type": "search_param_querystring_raw",
+          "required": false,
+          "documentation": "the entire URL query string is passed through verbatim",
+          "deprecated": false,
+          "style": "simple",
+          "explode": false,
+          "allow_empty_value": false,
+          "allow_reserved": false,
+          "location": {
+            "pointer": "/paths/~1search/get/parameters/0",
+            "file": "spec.json"
+          }
+        }
+      ],
+      "responses": [
+        {
+          "status": {
+            "kind": "explicit",
+            "code": 200
+          },
+          "documentation": "ok"
+        }
+      ],
+      "deprecated": false,
+      "location": {
+        "pointer": "/paths/~1search/get",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "types": [
+    {
+      "id": "search_param_querystring_raw",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/paths/~1search/get/parameters/0/schema",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": []
+}

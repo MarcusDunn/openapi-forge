@@ -1,0 +1,64 @@
+{
+  "info": {
+    "title": "nullable-union-three-way",
+    "version": "1"
+  },
+  "operations": [],
+  "types": [
+    {
+      "id": "Either_variant_0",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Either/oneOf/0",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Either_variant_1",
+      "definition": {
+        "def": "primitive",
+        "kind": "integer",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Either/oneOf/1",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "null",
+      "definition": {
+        "def": "null"
+      }
+    },
+    {
+      "id": "Either",
+      "original_name": "Either",
+      "definition": {
+        "def": "union",
+        "variants": [
+          {
+            "type": "Either_variant_0"
+          },
+          {
+            "type": "Either_variant_1"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "kind": "one-of"
+      },
+      "location": {
+        "pointer": "/components/schemas/Either",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": []
+}

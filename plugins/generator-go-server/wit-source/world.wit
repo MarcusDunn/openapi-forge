@@ -1,0 +1,11 @@
+// Plugin-local world. Combines `forge:plugin/code-generator` (the host
+// contract) with `wasi:cli/imports` (the WASI surface TinyGo's runtime
+// needs at component synthesis time). The Rust plugins don't need this
+// step because cargo-component synthesizes wasi:cli imports automatically;
+// TinyGo does not.
+package forge-go-server:plugin@0.1.0;
+
+world code-generator-go {
+    include forge:plugin/code-generator@0.1.0;
+    include wasi:cli/imports@0.2.0;
+}

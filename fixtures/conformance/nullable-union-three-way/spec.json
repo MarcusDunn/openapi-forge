@@ -1,0 +1,16 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "nullable-union-three-way", "version": "1" },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "Either": {
+        "nullable": true,
+        "oneOf": [
+          { "type": "string" },
+          { "type": "integer" }
+        ]
+      }
+    }
+  }
+}

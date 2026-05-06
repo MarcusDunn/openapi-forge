@@ -1,0 +1,198 @@
+{
+  "info": {
+    "title": "primitives",
+    "version": "1"
+  },
+  "operations": [],
+  "types": [
+    {
+      "id": "Bag_property_b",
+      "definition": {
+        "def": "primitive",
+        "kind": "bool",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Bag/properties/b",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Bag_property_f32",
+      "definition": {
+        "def": "primitive",
+        "kind": "number",
+        "constraints": {
+          "format_extension": "float"
+        }
+      },
+      "location": {
+        "pointer": "/components/schemas/Bag/properties/f32",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Bag_property_f64",
+      "definition": {
+        "def": "primitive",
+        "kind": "number",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Bag/properties/f64",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Bag_property_i32",
+      "definition": {
+        "def": "primitive",
+        "kind": "integer",
+        "constraints": {
+          "format_extension": "int32"
+        }
+      },
+      "location": {
+        "pointer": "/components/schemas/Bag/properties/i32",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Bag_property_i64",
+      "definition": {
+        "def": "primitive",
+        "kind": "integer",
+        "constraints": {
+          "format_extension": "int64"
+        }
+      },
+      "location": {
+        "pointer": "/components/schemas/Bag/properties/i64",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Bag_property_id",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {
+          "format_extension": "uuid"
+        }
+      },
+      "location": {
+        "pointer": "/components/schemas/Bag/properties/id",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Bag_property_s",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Bag/properties/s",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Bag_property_ts",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {
+          "format_extension": "date-time"
+        }
+      },
+      "location": {
+        "pointer": "/components/schemas/Bag/properties/ts",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Bag",
+      "original_name": "Bag",
+      "definition": {
+        "def": "object",
+        "properties": [
+          {
+            "name": "b",
+            "type": "Bag_property_b",
+            "required": false,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          },
+          {
+            "name": "f32",
+            "type": "Bag_property_f32",
+            "required": false,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          },
+          {
+            "name": "f64",
+            "type": "Bag_property_f64",
+            "required": false,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          },
+          {
+            "name": "i32",
+            "type": "Bag_property_i32",
+            "required": false,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          },
+          {
+            "name": "i64",
+            "type": "Bag_property_i64",
+            "required": false,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          },
+          {
+            "name": "id",
+            "type": "Bag_property_id",
+            "required": false,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          },
+          {
+            "name": "s",
+            "type": "Bag_property_s",
+            "required": false,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          },
+          {
+            "name": "ts",
+            "type": "Bag_property_ts",
+            "required": false,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          }
+        ],
+        "additional_properties": {
+          "kind": "any"
+        },
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Bag",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": []
+}

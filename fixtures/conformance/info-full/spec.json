@@ -1,0 +1,21 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "info-full",
+    "version": "2.0.0",
+    "summary": "All info fields populated.",
+    "description": "Long-form description of the API.",
+    "termsOfService": "https://example.com/tos",
+    "contact": {
+      "name": "API Support",
+      "url": "https://example.com/support",
+      "email": "support@example.com"
+    },
+    "license": {
+      "name": "Apache 2.0",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0",
+      "identifier": "Apache-2.0"
+    }
+  },
+  "paths": {}
+}

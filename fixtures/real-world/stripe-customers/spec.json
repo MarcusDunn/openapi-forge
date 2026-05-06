@@ -1,0 +1,470 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Stripe Customers (trimmed)",
+    "version": "2026-04-22",
+    "description": "A trimmed Stripe-shaped spec covering /customers and /charges. Modeled after the upstream Stripe API at github.com/stripe/openapi but hand-curated so the fixture stays small (target <50 KB) and stays within feature coverage that openapi-forge supports today. See fixtures/real-world/README.md for the policy."
+  },
+  "servers": [
+    {
+      "url": "https://api.stripe.com"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "Stripe API key (sk_test_… or sk_live_…)"
+      },
+      "basicAuth": {
+        "type": "http",
+        "scheme": "basic"
+      }
+    },
+    "schemas": {
+      "Address": {
+        "type": "object",
+        "properties": {
+          "city": { "type": "string", "nullable": true },
+          "country": { "type": "string", "description": "ISO 3166-1 alpha-2 country code.", "nullable": true },
+          "line1": { "type": "string", "nullable": true },
+          "line2": { "type": "string", "nullable": true },
+          "postal_code": { "type": "string", "nullable": true },
+          "state": { "type": "string", "nullable": true }
+        }
+      },
+      "Customer": {
+        "type": "object",
+        "description": "A Stripe customer.",
+        "required": ["id", "object", "created", "livemode"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique identifier." },
+          "object": {
+            "type": "string",
+            "enum": ["customer"]
+          },
+          "address": { "$ref": "#/components/schemas/Address", "nullable": true },
+          "balance": { "type": "integer", "format": "int32", "description": "Current balance in cents.", "default": 0 },
+          "created": { "type": "integer", "format": "int64", "description": "Unix timestamp." },
+          "currency": { "type": "string", "nullable": true, "description": "Three-letter ISO currency code." },
+          "delinquent": { "type": "boolean", "nullable": true },
+          "description": { "type": "string", "nullable": true, "maxLength": 500 },
+          "email": { "type": "string", "format": "email", "nullable": true },
+          "livemode": { "type": "boolean" },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": { "type": "string" },
+            "nullable": true
+          },
+          "name": { "type": "string", "nullable": true, "maxLength": 256 },
+          "phone": { "type": "string", "nullable": true },
+          "shipping": {
+            "nullable": true,
+            "type": "object",
+            "required": ["address", "name"],
+            "properties": {
+              "address": { "$ref": "#/components/schemas/Address" },
+              "name": { "type": "string" },
+              "phone": { "type": "string", "nullable": true },
+              "tracking_number": { "type": "string", "nullable": true }
+            }
+          },
+          "tax_exempt": {
+            "type": "string",
+            "enum": ["none", "exempt", "reverse"],
+            "nullable": true
+          }
+        }
+      },
+      "CustomerCreateParams": {
+        "type": "object",
+        "properties": {
+          "address": { "$ref": "#/components/schemas/Address" },
+          "description": { "type": "string", "maxLength": 500 },
+          "email": { "type": "string", "format": "email" },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": { "type": "string" }
+          },
+          "name": { "type": "string", "maxLength": 256 },
+          "phone": { "type": "string" },
+          "tax_exempt": {
+            "type": "string",
+            "enum": ["none", "exempt", "reverse"]
+          }
+        }
+      },
+      "CustomerUpdateParams": {
+        "allOf": [
+          { "$ref": "#/components/schemas/CustomerCreateParams" },
+          {
+            "type": "object",
+            "properties": {
+              "balance": { "type": "integer", "format": "int32" }
+            }
+          }
+        ]
+      },
+      "CustomerList": {
+        "type": "object",
+        "required": ["object", "data", "has_more", "url"],
+        "properties": {
+          "object": {
+            "type": "string",
+            "enum": ["list"]
+          },
+          "data": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Customer" }
+          },
+          "has_more": { "type": "boolean" },
+          "url": { "type": "string" }
+        }
+      },
+      "Charge": {
+        "type": "object",
+        "required": ["id", "object", "amount", "currency", "created", "status"],
+        "properties": {
+          "id": { "type": "string" },
+          "object": {
+            "type": "string",
+            "enum": ["charge"]
+          },
+          "amount": { "type": "integer", "format": "int64", "description": "Amount in the smallest currency unit." },
+          "amount_captured": { "type": "integer", "format": "int64" },
+          "amount_refunded": { "type": "integer", "format": "int64" },
+          "captured": { "type": "boolean" },
+          "created": { "type": "integer", "format": "int64" },
+          "currency": { "type": "string" },
+          "customer": { "type": "string", "nullable": true, "description": "ID of the associated customer." },
+          "description": { "type": "string", "nullable": true },
+          "disputed": { "type": "boolean" },
+          "failure_code": { "type": "string", "nullable": true },
+          "failure_message": { "type": "string", "nullable": true },
+          "livemode": { "type": "boolean" },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": { "type": "string" }
+          },
+          "paid": { "type": "boolean" },
+          "receipt_email": { "type": "string", "format": "email", "nullable": true },
+          "receipt_url": { "type": "string", "format": "uri", "nullable": true },
+          "refunded": { "type": "boolean" },
+          "status": {
+            "type": "string",
+            "enum": ["succeeded", "pending", "failed"]
+          }
+        }
+      },
+      "ChargeList": {
+        "type": "object",
+        "required": ["object", "data", "has_more", "url"],
+        "properties": {
+          "object": {
+            "type": "string",
+            "enum": ["list"]
+          },
+          "data": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Charge" }
+          },
+          "has_more": { "type": "boolean" },
+          "url": { "type": "string" }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": ["type"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "api_error",
+                  "card_error",
+                  "idempotency_error",
+                  "invalid_request_error"
+                ]
+              },
+              "code": { "type": "string", "nullable": true },
+              "decline_code": { "type": "string", "nullable": true },
+              "doc_url": { "type": "string", "format": "uri", "nullable": true },
+              "message": { "type": "string", "nullable": true },
+              "param": { "type": "string", "nullable": true },
+              "request_log_url": { "type": "string", "format": "uri", "nullable": true }
+            }
+          }
+        }
+      }
+    }
+  },
+  "security": [{ "bearerAuth": [] }],
+  "paths": {
+    "/v1/customers": {
+      "get": {
+        "operationId": "listCustomers",
+        "tags": ["Customers"],
+        "summary": "List all customers.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "format": "int32", "minimum": 1, "maximum": 100, "default": 10 }
+          },
+          {
+            "name": "starting_after",
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "ending_before",
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "email",
+            "in": "query",
+            "schema": { "type": "string", "format": "email" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of customers.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CustomerList" }
+              }
+            }
+          },
+          "default": {
+            "description": "Error.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createCustomer",
+        "tags": ["Customers"],
+        "summary": "Create a customer.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CustomerCreateParams" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created customer.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Customer" }
+              }
+            }
+          },
+          "default": {
+            "description": "Error.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/customers/{customer}": {
+      "get": {
+        "operationId": "retrieveCustomer",
+        "tags": ["Customers"],
+        "summary": "Retrieve a single customer.",
+        "parameters": [
+          {
+            "name": "customer",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Customer.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Customer" }
+              }
+            }
+          },
+          "default": {
+            "description": "Error.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "updateCustomer",
+        "tags": ["Customers"],
+        "summary": "Update a customer.",
+        "parameters": [
+          {
+            "name": "customer",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CustomerUpdateParams" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated customer.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Customer" }
+              }
+            }
+          },
+          "default": {
+            "description": "Error.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteCustomer",
+        "tags": ["Customers"],
+        "summary": "Delete a customer.",
+        "parameters": [
+          {
+            "name": "customer",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted customer marker.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["id", "object", "deleted"],
+                  "properties": {
+                    "id": { "type": "string" },
+                    "object": {
+                      "type": "string",
+                      "enum": ["customer"]
+                    },
+                    "deleted": { "type": "boolean" }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/charges": {
+      "get": {
+        "operationId": "listCharges",
+        "tags": ["Charges"],
+        "summary": "List all charges.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "format": "int32", "minimum": 1, "maximum": 100, "default": 10 }
+          },
+          {
+            "name": "customer",
+            "in": "query",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of charges.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ChargeList" }
+              }
+            }
+          },
+          "default": {
+            "description": "Error.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/charges/{charge}": {
+      "get": {
+        "operationId": "retrieveCharge",
+        "tags": ["Charges"],
+        "summary": "Retrieve a single charge.",
+        "parameters": [
+          {
+            "name": "charge",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Charge.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Charge" }
+              }
+            }
+          },
+          "default": {
+            "description": "Error.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

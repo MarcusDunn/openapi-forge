@@ -1,0 +1,136 @@
+{
+  "info": {
+    "title": "response-links",
+    "version": "1.0.0"
+  },
+  "operations": [
+    {
+      "id": "getAddressById",
+      "original_id": "getAddressById",
+      "method": "get",
+      "path_template": "/addresses/{addressId}",
+      "path_params": [
+        {
+          "name": "addressId",
+          "type": "getAddressById_param_path_addressId",
+          "required": true,
+          "deprecated": false,
+          "style": "simple",
+          "explode": false,
+          "allow_empty_value": false,
+          "allow_reserved": false,
+          "location": {
+            "pointer": "/paths/~1addresses~1{addressId}/get/parameters/0",
+            "file": "spec.json"
+          }
+        }
+      ],
+      "responses": [
+        {
+          "status": {
+            "kind": "explicit",
+            "code": 200
+          },
+          "documentation": "ok"
+        }
+      ],
+      "deprecated": false,
+      "location": {
+        "pointer": "/paths/~1addresses~1{addressId}/get",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "getUserById",
+      "original_id": "getUserById",
+      "method": "get",
+      "path_template": "/users/{id}",
+      "path_params": [
+        {
+          "name": "id",
+          "type": "getUserById_param_path_id",
+          "required": true,
+          "deprecated": false,
+          "style": "simple",
+          "explode": false,
+          "allow_empty_value": false,
+          "allow_reserved": false,
+          "location": {
+            "pointer": "/paths/~1users~1{id}/get/parameters/0",
+            "file": "spec.json"
+          }
+        }
+      ],
+      "responses": [
+        {
+          "status": {
+            "kind": "explicit",
+            "code": 200
+          },
+          "documentation": "ok",
+          "links": [
+            [
+              "address",
+              {
+                "operation_id": "getAddressById",
+                "parameters": [
+                  [
+                    "addressId",
+                    0
+                  ]
+                ],
+                "description": "Look up the user's primary address."
+              }
+            ],
+            [
+              "shared",
+              {
+                "operation_ref": "#/paths/~1addresses~1{addressId}/get",
+                "description": "Shared link defined at components.links."
+              }
+            ]
+          ]
+        }
+      ],
+      "deprecated": false,
+      "location": {
+        "pointer": "/paths/~1users~1{id}/get",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "types": [
+    {
+      "id": "getAddressById_param_path_addressId",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/paths/~1addresses~1{addressId}/get/parameters/0/schema",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "getUserById_param_path_id",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/paths/~1users~1{id}/get/parameters/0/schema",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": [],
+  "values": [
+    {
+      "kind": "string",
+      "value": "$response.body#/addressId"
+    }
+  ]
+}

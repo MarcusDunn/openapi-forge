@@ -1,0 +1,48 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "security-oauth2-auth-code", "version": "1" },
+  "servers": [{ "url": "https://api.example.com" }],
+  "security": [{ "oauth2Auth": ["read"] }],
+  "paths": {
+    "/me": {
+      "get": {
+        "operationId": "getMe",
+        "security": [{ "oauth2Auth": ["read", "profile"] }],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["id"],
+                  "properties": { "id": { "type": "string" } }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "oauth2Auth": {
+        "type": "oauth2",
+        "description": "OAuth 2.0 Authorization Code Flow with PKCE.",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://auth.example.com/authorize",
+            "tokenUrl": "https://auth.example.com/token",
+            "refreshUrl": "https://auth.example.com/refresh",
+            "scopes": {
+              "read": "Read access",
+              "write": "Write access",
+              "profile": "Read profile data"
+            }
+          }
+        }
+      }
+    }
+  }
+}

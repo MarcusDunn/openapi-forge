@@ -1,0 +1,182 @@
+{
+  "info": {
+    "title": "formats-extended",
+    "version": "1"
+  },
+  "operations": [],
+  "types": [
+    {
+      "id": "AllFormats_property_account",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {
+          "format_extension": "iban"
+        }
+      },
+      "location": {
+        "pointer": "/components/schemas/AllFormats/properties/account",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "AllFormats_property_born",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {
+          "format_extension": "date"
+        }
+      },
+      "location": {
+        "pointer": "/components/schemas/AllFormats/properties/born",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "AllFormats_property_contact",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {
+          "format_extension": "email"
+        }
+      },
+      "location": {
+        "pointer": "/components/schemas/AllFormats/properties/contact",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "AllFormats_property_encoded",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {
+          "format_extension": "byte"
+        }
+      },
+      "location": {
+        "pointer": "/components/schemas/AllFormats/properties/encoded",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "AllFormats_property_homepage",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {
+          "format_extension": "uri"
+        }
+      },
+      "location": {
+        "pointer": "/components/schemas/AllFormats/properties/homepage",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "AllFormats_property_raw",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {
+          "format_extension": "binary"
+        }
+      },
+      "location": {
+        "pointer": "/components/schemas/AllFormats/properties/raw",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "AllFormats_property_secret",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {
+          "format_extension": "password"
+        }
+      },
+      "location": {
+        "pointer": "/components/schemas/AllFormats/properties/secret",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "AllFormats",
+      "original_name": "AllFormats",
+      "definition": {
+        "def": "object",
+        "properties": [
+          {
+            "name": "account",
+            "type": "AllFormats_property_account",
+            "required": false,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          },
+          {
+            "name": "born",
+            "type": "AllFormats_property_born",
+            "required": false,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          },
+          {
+            "name": "contact",
+            "type": "AllFormats_property_contact",
+            "required": false,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          },
+          {
+            "name": "encoded",
+            "type": "AllFormats_property_encoded",
+            "required": false,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          },
+          {
+            "name": "homepage",
+            "type": "AllFormats_property_homepage",
+            "required": false,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          },
+          {
+            "name": "raw",
+            "type": "AllFormats_property_raw",
+            "required": false,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          },
+          {
+            "name": "secret",
+            "type": "AllFormats_property_secret",
+            "required": false,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          }
+        ],
+        "additional_properties": {
+          "kind": "any"
+        },
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/AllFormats",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": []
+}

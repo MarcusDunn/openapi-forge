@@ -1,0 +1,12 @@
+{
+  "info": {
+    "title": "json-schema-dialect-and-self-3-2",
+    "version": "1"
+  },
+  "operations": [],
+  "types": [],
+  "security_schemes": [],
+  "servers": [],
+  "json_schema_dialect": "https://json-schema.org/draft/2020-12/schema",
+  "self_url": "https://example.com/api.json"
+}

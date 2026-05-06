@@ -1,0 +1,42 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "oneof-discriminator", "version": "1" },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "Cat": {
+        "type": "object",
+        "required": ["kind", "name"],
+        "properties": {
+          "kind": { "type": "string" },
+          "name": { "type": "string" },
+          "purrs": { "type": "boolean" }
+        }
+      },
+      "Dog": {
+        "type": "object",
+        "required": ["kind", "name"],
+        "properties": {
+          "kind": { "type": "string" },
+          "name": { "type": "string" },
+          "barks": { "type": "boolean" }
+        }
+      },
+      "Pet": {
+        "oneOf": [
+          { "$ref": "#/components/schemas/Cat" },
+          { "$ref": "#/components/schemas/Dog" }
+        ],
+        "discriminator": {
+          "propertyName": "kind",
+          "mapping": {
+            "cat": "#/components/schemas/Cat",
+            "dog": "#/components/schemas/Dog"
+          },
+          "x-codegen-naming-strategy": "tagged-union",
+          "x-vendor-priority": 5
+        }
+      }
+    }
+  }
+}

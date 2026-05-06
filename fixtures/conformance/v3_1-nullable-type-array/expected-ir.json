@@ -1,0 +1,49 @@
+{
+  "info": {
+    "title": "v3_1-nullable-type-array",
+    "version": "1"
+  },
+  "operations": [],
+  "types": [
+    {
+      "id": "MaybeName_nonnull",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/MaybeName",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "null",
+      "definition": {
+        "def": "null"
+      }
+    },
+    {
+      "id": "MaybeName",
+      "original_name": "MaybeName",
+      "definition": {
+        "def": "union",
+        "variants": [
+          {
+            "type": "MaybeName_nonnull"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "kind": "one-of"
+      },
+      "location": {
+        "pointer": "/components/schemas/MaybeName",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": []
+}

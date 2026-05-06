@@ -1,0 +1,47 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "multipart-with-encoding-headers",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/upload": {
+      "post": {
+        "operationId": "uploadFile",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["file"],
+                "properties": {
+                  "file": { "type": "string", "format": "binary" },
+                  "metadata": { "type": "string" }
+                }
+              },
+              "encoding": {
+                "file": {
+                  "contentType": "application/octet-stream",
+                  "headers": {
+                    "Content-Disposition": {
+                      "description": "Per-part Content-Disposition override.",
+                      "schema": { "type": "string" }
+                    },
+                    "X-File-Hash": {
+                      "description": "SHA-256 of the file contents.",
+                      "schema": { "type": "string", "format": "byte" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": { "description": "uploaded" }
+        }
+      }
+    }
+  }
+}

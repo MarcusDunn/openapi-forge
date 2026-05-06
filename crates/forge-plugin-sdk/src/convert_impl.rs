@@ -1,0 +1,1283 @@
+//! The body of the per-world conversion macros lives here.
+//!
+//! `forge-plugin-sdk` invokes `__impl_transformer_world!` and
+//! `__impl_generator_world!` once each, in the respective world modules,
+//! to produce full bidirectional conversions between `wit_bindgen`
+//! generated types and `forge_ir::*` (plus the SDK's
+//! [`crate::output::OutputFile`], [`crate::output::GenerationOutput`],
+//! [`crate::output::TransformOutput`]).
+//!
+//! Mirror of `forge-ir-bindgen`'s host-side conversion macro. Pre-1.0 the
+//! two are kept in sync by hand; the proptest roundtrip in the host is the
+//! authority — if you touch one, port the change to the other.
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __impl_world_shared {
+    ($types_mod:path, $stage_mod:path) => {
+        use $stage_mod as b_stage;
+        use $types_mod as b;
+        use $crate::ir;
+
+        // ----- PluginInfo -----
+
+        pub fn plugin_info_to_wit(p: ir::PluginInfo) -> b::PluginInfo {
+            b::PluginInfo {
+                name: p.name,
+                version: p.version,
+            }
+        }
+
+        pub fn plugin_info_from_wit(p: b::PluginInfo) -> ir::PluginInfo {
+            ir::PluginInfo {
+                name: p.name,
+                version: p.version,
+            }
+        }
+
+        // ----- SpecLocation -----
+
+        fn loc_to(l: ir::SpecLocation) -> b::SpecLocation {
+            b::SpecLocation {
+                pointer: l.pointer,
+                file: l.file,
+            }
+        }
+
+        fn loc_from(l: b::SpecLocation) -> ir::SpecLocation {
+            ir::SpecLocation {
+                pointer: l.pointer,
+                file: l.file,
+            }
+        }
+
+        // ----- Severity / Diagnostic -----
+
+        fn severity_to(s: ir::Severity) -> b::Severity {
+            match s {
+                ir::Severity::Error => b::Severity::Error,
+                ir::Severity::Warning => b::Severity::Warning,
+                ir::Severity::Info => b::Severity::Info,
+                ir::Severity::Hint => b::Severity::Hint,
+            }
+        }
+
+        fn severity_from(s: b::Severity) -> ir::Severity {
+            match s {
+                b::Severity::Error => ir::Severity::Error,
+                b::Severity::Warning => ir::Severity::Warning,
+                b::Severity::Info => ir::Severity::Info,
+                b::Severity::Hint => ir::Severity::Hint,
+            }
+        }
+
+        fn related_to(r: ir::RelatedInfo) -> b::RelatedInfo {
+            b::RelatedInfo {
+                message: r.message,
+                location: r.location.map(loc_to),
+            }
+        }
+
+        fn related_from(r: b::RelatedInfo) -> ir::RelatedInfo {
+            ir::RelatedInfo {
+                message: r.message,
+                location: r.location.map(loc_from),
+            }
+        }
+
+        fn fix_to(f: ir::FixSuggestion) -> b::FixSuggestion {
+            b::FixSuggestion {
+                message: f.message,
+                edits: f
+                    .edits
+                    .into_iter()
+                    .map(|e| b::FixEdit {
+                        location: loc_to(e.location),
+                        replacement: e.replacement,
+                    })
+                    .collect(),
+            }
+        }
+
+        fn fix_from(f: b::FixSuggestion) -> ir::FixSuggestion {
+            ir::FixSuggestion {
+                message: f.message,
+                edits: f
+                    .edits
+                    .into_iter()
+                    .map(|e| ir::FixEdit {
+                        location: loc_from(e.location),
+                        replacement: e.replacement,
+                    })
+                    .collect(),
+            }
+        }
+
+        pub fn diagnostic_to_wit(d: ir::Diagnostic) -> b::Diagnostic {
+            b::Diagnostic {
+                severity: severity_to(d.severity),
+                code: d.code,
+                message: d.message,
+                location: d.location.map(loc_to),
+                related: d.related.into_iter().map(related_to).collect(),
+                suggested_fix: d.suggested_fix.map(fix_to),
+            }
+        }
+
+        pub fn diagnostic_from_wit(d: b::Diagnostic) -> ir::Diagnostic {
+            ir::Diagnostic {
+                severity: severity_from(d.severity),
+                code: d.code,
+                message: d.message,
+                location: d.location.map(loc_from),
+                related: d.related.into_iter().map(related_from).collect(),
+                suggested_fix: d.suggested_fix.map(fix_from),
+            }
+        }
+
+        // ----- Value -----
+
+        fn value_to(v: ir::Value) -> b::Value {
+            match v {
+                ir::Value::Null => b::Value::Null,
+                ir::Value::Bool { value } => b::Value::Bool(value),
+                ir::Value::Int { value } => b::Value::Int(value),
+                ir::Value::Float { value } => b::Value::Float(value),
+                ir::Value::String { value } => b::Value::String(value),
+                ir::Value::List { items } => b::Value::List(items),
+                ir::Value::Object { fields } => b::Value::Object(fields),
+            }
+        }
+
+        fn value_from(v: b::Value) -> ir::Value {
+            match v {
+                b::Value::Null => ir::Value::Null,
+                b::Value::Bool(value) => ir::Value::Bool { value },
+                b::Value::Int(value) => ir::Value::Int { value },
+                b::Value::Float(value) => ir::Value::Float { value },
+                b::Value::String(value) => ir::Value::String { value },
+                b::Value::List(items) => ir::Value::List { items },
+                b::Value::Object(fields) => ir::Value::Object {
+                    fields: fields.into_iter().collect(),
+                },
+            }
+        }
+
+        // Identity copies — both sides are `Vec<(String, ValueRef)>` (u32).
+        fn extensions_to(xs: Vec<(String, ir::ValueRef)>) -> Vec<(String, ir::ValueRef)> {
+            xs
+        }
+
+        fn extensions_from(xs: Vec<(String, ir::ValueRef)>) -> Vec<(String, ir::ValueRef)> {
+            xs
+        }
+
+        // ----- ApiInfo / Server -----
+
+        fn api_info_to(a: ir::ApiInfo) -> b::ApiInfo {
+            b::ApiInfo {
+                title: a.title,
+                version: a.version,
+                description: a.description,
+                summary: a.summary,
+                terms_of_service: a.terms_of_service,
+                contact: a.contact.map(contact_to),
+                license_name: a.license_name,
+                license_url: a.license_url,
+                license_identifier: a.license_identifier,
+                extensions: extensions_to(a.extensions),
+            }
+        }
+
+        fn api_info_from(a: b::ApiInfo) -> ir::ApiInfo {
+            ir::ApiInfo {
+                title: a.title,
+                version: a.version,
+                description: a.description,
+                summary: a.summary,
+                terms_of_service: a.terms_of_service,
+                contact: a.contact.map(contact_from),
+                license_name: a.license_name,
+                license_url: a.license_url,
+                license_identifier: a.license_identifier,
+                extensions: extensions_from(a.extensions),
+            }
+        }
+
+        fn contact_to(c: ir::Contact) -> b::Contact {
+            b::Contact {
+                name: c.name,
+                url: c.url,
+                email: c.email,
+            }
+        }
+
+        fn contact_from(c: b::Contact) -> ir::Contact {
+            ir::Contact {
+                name: c.name,
+                url: c.url,
+                email: c.email,
+            }
+        }
+
+        fn server_var_to(v: ir::ServerVariable) -> b::ServerVariable {
+            b::ServerVariable {
+                default: v.default,
+                enum_: v.r#enum,
+                description: v.description,
+                extensions: extensions_to(v.extensions),
+            }
+        }
+
+        fn server_var_from(v: b::ServerVariable) -> ir::ServerVariable {
+            ir::ServerVariable {
+                default: v.default,
+                r#enum: v.enum_,
+                description: v.description,
+                extensions: extensions_from(v.extensions),
+            }
+        }
+
+        fn server_to(s: ir::Server) -> b::Server {
+            b::Server {
+                url: s.url,
+                description: s.description,
+                name: s.name,
+                variables: s
+                    .variables
+                    .into_iter()
+                    .map(|(k, v)| (k, server_var_to(v)))
+                    .collect(),
+                extensions: extensions_to(s.extensions),
+            }
+        }
+
+        fn server_from(s: b::Server) -> ir::Server {
+            ir::Server {
+                url: s.url,
+                description: s.description,
+                name: s.name,
+                variables: s
+                    .variables
+                    .into_iter()
+                    .map(|(k, v)| (k, server_var_from(v)))
+                    .collect(),
+                extensions: extensions_from(s.extensions),
+            }
+        }
+
+        // ----- Type system -----
+
+        fn prim_kind_to(k: ir::PrimitiveKind) -> b::PrimitiveKind {
+            use b::PrimitiveKind as W;
+            use ir::PrimitiveKind as I;
+            match k {
+                I::String => W::PrimString,
+                I::Integer => W::PrimInteger,
+                I::Number => W::PrimNumber,
+                I::Bool => W::PrimBool,
+            }
+        }
+
+        fn prim_kind_from(k: b::PrimitiveKind) -> ir::PrimitiveKind {
+            use b::PrimitiveKind as W;
+            use ir::PrimitiveKind as I;
+            match k {
+                W::PrimString => I::String,
+                W::PrimInteger => I::Integer,
+                W::PrimNumber => I::Number,
+                W::PrimBool => I::Bool,
+            }
+        }
+
+        fn prim_constraints_to(c: ir::PrimitiveConstraints) -> b::PrimitiveConstraints {
+            b::PrimitiveConstraints {
+                minimum: c.minimum,
+                maximum: c.maximum,
+                exclusive_minimum: c.exclusive_minimum,
+                exclusive_maximum: c.exclusive_maximum,
+                multiple_of: c.multiple_of,
+                min_length: c.min_length,
+                max_length: c.max_length,
+                pattern: c.pattern,
+                format_extension: c.format_extension,
+                content_encoding: c.content_encoding,
+                content_media_type: c.content_media_type,
+                content_schema: c.content_schema,
+            }
+        }
+
+        fn prim_constraints_from(c: b::PrimitiveConstraints) -> ir::PrimitiveConstraints {
+            ir::PrimitiveConstraints {
+                minimum: c.minimum,
+                maximum: c.maximum,
+                exclusive_minimum: c.exclusive_minimum,
+                exclusive_maximum: c.exclusive_maximum,
+                multiple_of: c.multiple_of,
+                min_length: c.min_length,
+                max_length: c.max_length,
+                pattern: c.pattern,
+                format_extension: c.format_extension,
+                content_encoding: c.content_encoding,
+                content_media_type: c.content_media_type,
+                content_schema: c.content_schema,
+            }
+        }
+
+        fn prim_to(p: ir::PrimitiveType) -> b::PrimitiveType {
+            b::PrimitiveType {
+                kind: prim_kind_to(p.kind),
+                constraints: prim_constraints_to(p.constraints),
+            }
+        }
+
+        fn prim_from(p: b::PrimitiveType) -> ir::PrimitiveType {
+            ir::PrimitiveType {
+                kind: prim_kind_from(p.kind),
+                constraints: prim_constraints_from(p.constraints),
+            }
+        }
+
+        fn array_to(a: ir::ArrayType) -> b::ArrayType {
+            b::ArrayType {
+                items: a.items,
+                constraints: b::ArrayConstraints {
+                    min_items: a.constraints.min_items,
+                    max_items: a.constraints.max_items,
+                    unique_items: a.constraints.unique_items,
+                },
+            }
+        }
+
+        fn array_from(a: b::ArrayType) -> ir::ArrayType {
+            ir::ArrayType {
+                items: a.items,
+                constraints: ir::ArrayConstraints {
+                    min_items: a.constraints.min_items,
+                    max_items: a.constraints.max_items,
+                    unique_items: a.constraints.unique_items,
+                },
+            }
+        }
+
+        fn object_to(o: ir::ObjectType) -> b::ObjectType {
+            b::ObjectType {
+                properties: o
+                    .properties
+                    .into_iter()
+                    .map(|p| b::Property {
+                        name: p.name,
+                        type_: p.r#type,
+                        required: p.required,
+                        documentation: p.documentation,
+                        deprecated: p.deprecated,
+                        read_only: p.read_only,
+                        write_only: p.write_only,
+                        default: p.default,
+                        extensions: p.extensions,
+                    })
+                    .collect(),
+                additional_properties: match o.additional_properties {
+                    ir::AdditionalProperties::Forbidden => b::AdditionalProperties::Forbidden,
+                    ir::AdditionalProperties::Any => b::AdditionalProperties::Any,
+                    ir::AdditionalProperties::Typed { r#type } => {
+                        b::AdditionalProperties::Typed(r#type)
+                    }
+                },
+                constraints: b::ObjectConstraints {
+                    min_properties: o.constraints.min_properties,
+                    max_properties: o.constraints.max_properties,
+                },
+            }
+        }
+
+        fn object_from(o: b::ObjectType) -> ir::ObjectType {
+            ir::ObjectType {
+                properties: o
+                    .properties
+                    .into_iter()
+                    .map(|p| ir::Property {
+                        name: p.name,
+                        r#type: p.type_,
+                        required: p.required,
+                        documentation: p.documentation,
+                        deprecated: p.deprecated,
+                        read_only: p.read_only,
+                        write_only: p.write_only,
+                        default: p.default,
+                        extensions: p.extensions,
+                    })
+                    .collect(),
+                additional_properties: match o.additional_properties {
+                    b::AdditionalProperties::Forbidden => ir::AdditionalProperties::Forbidden,
+                    b::AdditionalProperties::Any => ir::AdditionalProperties::Any,
+                    b::AdditionalProperties::Typed(t) => {
+                        ir::AdditionalProperties::Typed { r#type: t }
+                    }
+                },
+                constraints: ir::ObjectConstraints {
+                    min_properties: o.constraints.min_properties,
+                    max_properties: o.constraints.max_properties,
+                },
+            }
+        }
+
+
+        fn enum_str_to(e: ir::EnumStringType) -> b::EnumStringType {
+            b::EnumStringType {
+                values: e
+                    .values
+                    .into_iter()
+                    .map(|v| b::EnumStringValue {
+                        value: v.value,
+                        documentation: v.documentation,
+                    })
+                    .collect(),
+            }
+        }
+
+        fn enum_str_from(e: b::EnumStringType) -> ir::EnumStringType {
+            ir::EnumStringType {
+                values: e
+                    .values
+                    .into_iter()
+                    .map(|v| ir::EnumStringValue {
+                        value: v.value,
+                        documentation: v.documentation,
+                    })
+                    .collect(),
+            }
+        }
+
+        fn enum_int_to(e: ir::EnumIntType) -> b::EnumIntType {
+            b::EnumIntType {
+                values: e
+                    .values
+                    .into_iter()
+                    .map(|v| b::EnumIntValue {
+                        value: v.value,
+                        documentation: v.documentation,
+                    })
+                    .collect(),
+                kind: match e.kind {
+                    ir::IntKind::Int32 => b::IntKind::Int32,
+                    ir::IntKind::Int64 => b::IntKind::Int64,
+                },
+            }
+        }
+
+        fn enum_int_from(e: b::EnumIntType) -> ir::EnumIntType {
+            ir::EnumIntType {
+                values: e
+                    .values
+                    .into_iter()
+                    .map(|v| ir::EnumIntValue {
+                        value: v.value,
+                        documentation: v.documentation,
+                    })
+                    .collect(),
+                kind: match e.kind {
+                    b::IntKind::Int32 => ir::IntKind::Int32,
+                    b::IntKind::Int64 => ir::IntKind::Int64,
+                },
+            }
+        }
+
+        fn union_to(u: ir::UnionType) -> b::UnionType {
+            b::UnionType {
+                variants: u
+                    .variants
+                    .into_iter()
+                    .map(|v| b::UnionVariant {
+                        type_: v.r#type,
+                        tag: v.tag,
+                    })
+                    .collect(),
+                discriminator: u.discriminator.map(|d| b::Discriminator {
+                    property_name: d.property_name,
+                    mapping: d.mapping,
+                    extensions: d.extensions,
+                }),
+                kind: match u.kind {
+                    ir::UnionKind::OneOf => b::UnionKind::OneOf,
+                    ir::UnionKind::AnyOf => b::UnionKind::AnyOf,
+                },
+            }
+        }
+
+        fn union_from(u: b::UnionType) -> ir::UnionType {
+            ir::UnionType {
+                variants: u
+                    .variants
+                    .into_iter()
+                    .map(|v| ir::UnionVariant {
+                        r#type: v.type_,
+                        tag: v.tag,
+                    })
+                    .collect(),
+                discriminator: u.discriminator.map(|d| ir::Discriminator {
+                    property_name: d.property_name,
+                    mapping: d.mapping,
+                    extensions: d.extensions,
+                }),
+                kind: match u.kind {
+                    b::UnionKind::OneOf => ir::UnionKind::OneOf,
+                    b::UnionKind::AnyOf => ir::UnionKind::AnyOf,
+                },
+            }
+        }
+
+        fn type_def_to(d: ir::TypeDef) -> b::TypeDef {
+            match d {
+                ir::TypeDef::Primitive(p) => b::TypeDef::Primitive(prim_to(p)),
+                ir::TypeDef::Object(o) => b::TypeDef::Object(object_to(o)),
+                ir::TypeDef::Array(a) => b::TypeDef::Array(array_to(a)),
+                ir::TypeDef::EnumString(e) => b::TypeDef::EnumString(enum_str_to(e)),
+                ir::TypeDef::EnumInt(e) => b::TypeDef::EnumInt(enum_int_to(e)),
+                ir::TypeDef::Union(u) => b::TypeDef::Union(union_to(u)),
+                ir::TypeDef::Null => b::TypeDef::Null,
+            }
+        }
+
+        fn type_def_from(d: b::TypeDef) -> ir::TypeDef {
+            match d {
+                b::TypeDef::Primitive(p) => ir::TypeDef::Primitive(prim_from(p)),
+                b::TypeDef::Object(o) => ir::TypeDef::Object(object_from(o)),
+                b::TypeDef::Array(a) => ir::TypeDef::Array(array_from(a)),
+                b::TypeDef::EnumString(e) => ir::TypeDef::EnumString(enum_str_from(e)),
+                b::TypeDef::EnumInt(e) => ir::TypeDef::EnumInt(enum_int_from(e)),
+                b::TypeDef::Union(u) => ir::TypeDef::Union(union_from(u)),
+                b::TypeDef::Null => ir::TypeDef::Null,
+            }
+        }
+
+        fn named_type_to(n: ir::NamedType) -> b::NamedType {
+            b::NamedType {
+                id: n.id,
+                original_name: n.original_name,
+                documentation: n.documentation,
+                title: n.title,
+                read_only: n.read_only,
+                write_only: n.write_only,
+                external_docs: n.external_docs.map(external_docs_to),
+                default: n.default,
+                examples: examples_to(n.examples),
+                xml: n.xml.map(xml_object_to),
+                definition: type_def_to(n.definition),
+                extensions: extensions_to(n.extensions),
+                location: n.location.map(loc_to),
+            }
+        }
+
+        fn named_type_from(n: b::NamedType) -> ir::NamedType {
+            ir::NamedType {
+                id: n.id,
+                original_name: n.original_name,
+                documentation: n.documentation,
+                title: n.title,
+                read_only: n.read_only,
+                write_only: n.write_only,
+                external_docs: n.external_docs.map(external_docs_from),
+                default: n.default,
+                examples: examples_from(n.examples),
+                xml: n.xml.map(xml_object_from),
+                definition: type_def_from(n.definition),
+                extensions: extensions_from(n.extensions),
+                location: n.location.map(loc_from),
+            }
+        }
+
+        fn external_docs_to(d: ir::ExternalDocs) -> b::ExternalDocs {
+            b::ExternalDocs {
+                description: d.description,
+                url: d.url,
+            }
+        }
+
+        fn external_docs_from(d: b::ExternalDocs) -> ir::ExternalDocs {
+            ir::ExternalDocs {
+                description: d.description,
+                url: d.url,
+            }
+        }
+
+        fn example_to(e: ir::Example) -> b::Example {
+            b::Example {
+                summary: e.summary,
+                description: e.description,
+                value: e.value,
+                external_value: e.external_value,
+                data_value: e.data_value,
+                serialized_value: e.serialized_value,
+            }
+        }
+
+        fn example_from(e: b::Example) -> ir::Example {
+            ir::Example {
+                summary: e.summary,
+                description: e.description,
+                value: e.value,
+                external_value: e.external_value,
+                data_value: e.data_value,
+                serialized_value: e.serialized_value,
+            }
+        }
+
+        fn examples_to(xs: Vec<(String, ir::Example)>) -> Vec<(String, b::Example)> {
+            xs.into_iter().map(|(k, v)| (k, example_to(v))).collect()
+        }
+
+        fn examples_from(xs: Vec<(String, b::Example)>) -> Vec<(String, ir::Example)> {
+            xs.into_iter().map(|(k, v)| (k, example_from(v))).collect()
+        }
+
+        fn xml_object_to(x: ir::XmlObject) -> b::XmlObject {
+            b::XmlObject {
+                name: x.name,
+                namespace: x.namespace,
+                prefix: x.prefix,
+                attribute: x.attribute,
+                wrapped: x.wrapped,
+                text: x.text,
+                ordered: x.ordered,
+                extensions: x.extensions,
+            }
+        }
+
+        fn xml_object_from(x: b::XmlObject) -> ir::XmlObject {
+            ir::XmlObject {
+                name: x.name,
+                namespace: x.namespace,
+                prefix: x.prefix,
+                attribute: x.attribute,
+                wrapped: x.wrapped,
+                text: x.text,
+                ordered: x.ordered,
+                extensions: x.extensions,
+            }
+        }
+
+        fn tag_to(t: ir::Tag) -> b::Tag {
+            b::Tag {
+                name: t.name,
+                summary: t.summary,
+                description: t.description,
+                external_docs: t.external_docs.map(external_docs_to),
+                parent: t.parent,
+                kind: t.kind,
+                extensions: t.extensions,
+            }
+        }
+
+        fn tag_from(t: b::Tag) -> ir::Tag {
+            ir::Tag {
+                name: t.name,
+                summary: t.summary,
+                description: t.description,
+                external_docs: t.external_docs.map(external_docs_from),
+                parent: t.parent,
+                kind: t.kind,
+                extensions: t.extensions,
+            }
+        }
+
+        // ----- Operation -----
+
+        fn http_method_to(m: ir::HttpMethod) -> b::HttpMethod {
+            use b::HttpMethod as W;
+            use ir::HttpMethod as I;
+            match m {
+                I::Get => W::Get,
+                I::Put => W::Put,
+                I::Post => W::Post,
+                I::Delete => W::Delete,
+                I::Options => W::Options,
+                I::Head => W::Head,
+                I::Patch => W::Patch,
+                I::Trace => W::Trace,
+                I::Other(s) => W::Other(s),
+            }
+        }
+
+        fn http_method_from(m: b::HttpMethod) -> ir::HttpMethod {
+            use b::HttpMethod as W;
+            use ir::HttpMethod as I;
+            match m {
+                W::Get => I::Get,
+                W::Put => I::Put,
+                W::Post => I::Post,
+                W::Delete => I::Delete,
+                W::Options => I::Options,
+                W::Head => I::Head,
+                W::Patch => I::Patch,
+                W::Trace => I::Trace,
+                W::Other(s) => I::Other(s),
+            }
+        }
+
+        fn param_style_to(s: ir::ParameterStyle) -> b::ParameterStyle {
+            use b::ParameterStyle as W;
+            use ir::ParameterStyle as I;
+            match s {
+                I::Form => W::ParamForm,
+                I::Simple => W::ParamSimple,
+                I::Label => W::ParamLabel,
+                I::Matrix => W::ParamMatrix,
+                I::SpaceDelimited => W::ParamSpaceDelimited,
+                I::PipeDelimited => W::ParamPipeDelimited,
+                I::DeepObject => W::ParamDeepObject,
+            }
+        }
+
+        fn param_style_from(s: b::ParameterStyle) -> ir::ParameterStyle {
+            use b::ParameterStyle as W;
+            use ir::ParameterStyle as I;
+            match s {
+                W::ParamForm => I::Form,
+                W::ParamSimple => I::Simple,
+                W::ParamLabel => I::Label,
+                W::ParamMatrix => I::Matrix,
+                W::ParamSpaceDelimited => I::SpaceDelimited,
+                W::ParamPipeDelimited => I::PipeDelimited,
+                W::ParamDeepObject => I::DeepObject,
+            }
+        }
+
+        fn header_to(h: ir::Header) -> b::Header {
+            b::Header {
+                type_: h.r#type,
+                required: h.required,
+                deprecated: h.deprecated,
+                documentation: h.documentation,
+                examples: examples_to(h.examples),
+                style: h.style.map(param_style_to),
+                explode: h.explode,
+                allow_reserved: h.allow_reserved,
+                allow_empty_value: h.allow_empty_value,
+                location: h.location.map(loc_to),
+            }
+        }
+
+        fn header_from(h: b::Header) -> ir::Header {
+            ir::Header {
+                r#type: h.type_,
+                required: h.required,
+                deprecated: h.deprecated,
+                documentation: h.documentation,
+                examples: examples_from(h.examples),
+                style: h.style.map(param_style_from),
+                explode: h.explode,
+                allow_reserved: h.allow_reserved,
+                allow_empty_value: h.allow_empty_value,
+                location: h.location.map(loc_from),
+            }
+        }
+
+        fn parameter_to(p: ir::Parameter) -> b::Parameter {
+            b::Parameter {
+                name: p.name,
+                type_: p.r#type,
+                required: p.required,
+                documentation: p.documentation,
+                deprecated: p.deprecated,
+                style: p.style.map(param_style_to),
+                explode: p.explode,
+                allow_empty_value: p.allow_empty_value,
+                allow_reserved: p.allow_reserved,
+                examples: examples_to(p.examples),
+                extensions: extensions_to(p.extensions),
+                location: p.location.map(loc_to),
+            }
+        }
+
+        fn parameter_from(p: b::Parameter) -> ir::Parameter {
+            ir::Parameter {
+                name: p.name,
+                r#type: p.type_,
+                required: p.required,
+                documentation: p.documentation,
+                deprecated: p.deprecated,
+                style: p.style.map(param_style_from),
+                explode: p.explode,
+                allow_empty_value: p.allow_empty_value,
+                allow_reserved: p.allow_reserved,
+                examples: examples_from(p.examples),
+                extensions: extensions_from(p.extensions),
+                location: p.location.map(loc_from),
+            }
+        }
+
+        fn body_content_to(c: ir::BodyContent) -> b::BodyContent {
+            b::BodyContent {
+                media_type: c.media_type,
+                type_: c.r#type,
+                encoding: c
+                    .encoding
+                    .into_iter()
+                    .map(|(k, v)| (k, encoding_to(v)))
+                    .collect(),
+                item_schema: c.item_schema,
+                examples: examples_to(c.examples),
+                extensions: extensions_to(c.extensions),
+            }
+        }
+
+        fn body_content_from(c: b::BodyContent) -> ir::BodyContent {
+            ir::BodyContent {
+                media_type: c.media_type,
+                r#type: c.type_,
+                encoding: c
+                    .encoding
+                    .into_iter()
+                    .map(|(k, v)| (k, encoding_from(v)))
+                    .collect(),
+                item_schema: c.item_schema,
+                examples: examples_from(c.examples),
+                extensions: extensions_from(c.extensions),
+            }
+        }
+
+        fn encoding_to(e: ir::Encoding) -> b::Encoding {
+            b::Encoding {
+                content_type: e.content_type,
+                style: e.style.map(param_style_to),
+                explode: e.explode,
+                allow_reserved: e.allow_reserved,
+                headers: e
+                    .headers
+                    .into_iter()
+                    .map(|(k, v)| (k, header_to(v)))
+                    .collect(),
+                extensions: extensions_to(e.extensions),
+            }
+        }
+
+        fn encoding_from(e: b::Encoding) -> ir::Encoding {
+            ir::Encoding {
+                content_type: e.content_type,
+                style: e.style.map(param_style_from),
+                explode: e.explode,
+                allow_reserved: e.allow_reserved,
+                headers: e
+                    .headers
+                    .into_iter()
+                    .map(|(k, v)| (k, header_from(v)))
+                    .collect(),
+                extensions: extensions_from(e.extensions),
+            }
+        }
+
+        fn body_to(b_: ir::Body) -> b::Body {
+            b::Body {
+                content: b_.content.into_iter().map(body_content_to).collect(),
+                required: b_.required,
+                documentation: b_.documentation,
+                extensions: extensions_to(b_.extensions),
+            }
+        }
+
+        fn body_from(b_: b::Body) -> ir::Body {
+            ir::Body {
+                content: b_.content.into_iter().map(body_content_from).collect(),
+                required: b_.required,
+                documentation: b_.documentation,
+                extensions: extensions_from(b_.extensions),
+            }
+        }
+
+        fn response_to(r: ir::Response) -> b::Response {
+            b::Response {
+                status: match r.status {
+                    ir::ResponseStatus::Explicit { code } => b::ResponseStatus::Explicit(code),
+                    ir::ResponseStatus::Default => b::ResponseStatus::Default,
+                    ir::ResponseStatus::Range { class } => b::ResponseStatus::Range(class),
+                },
+                content: r.content.into_iter().map(body_content_to).collect(),
+                headers: r
+                    .headers
+                    .into_iter()
+                    .map(|(k, v)| (k, header_to(v)))
+                    .collect(),
+                documentation: r.documentation,
+                links: links_to(r.links),
+                extensions: extensions_to(r.extensions),
+            }
+        }
+
+        fn response_from(r: b::Response) -> ir::Response {
+            ir::Response {
+                status: match r.status {
+                    b::ResponseStatus::Explicit(code) => ir::ResponseStatus::Explicit { code },
+                    b::ResponseStatus::Default => ir::ResponseStatus::Default,
+                    b::ResponseStatus::Range(class) => ir::ResponseStatus::Range { class },
+                },
+                content: r.content.into_iter().map(body_content_from).collect(),
+                headers: r
+                    .headers
+                    .into_iter()
+                    .map(|(k, v)| (k, header_from(v)))
+                    .collect(),
+                documentation: r.documentation,
+                links: links_from(r.links),
+                extensions: extensions_from(r.extensions),
+            }
+        }
+
+        fn link_to(l: ir::Link) -> b::Link {
+            b::Link {
+                operation_ref: l.operation_ref,
+                operation_id: l.operation_id,
+                parameters: l.parameters,
+                request_body: l.request_body,
+                description: l.description,
+                server: l.server.map(server_to),
+                extensions: l.extensions,
+            }
+        }
+
+        fn link_from(l: b::Link) -> ir::Link {
+            ir::Link {
+                operation_ref: l.operation_ref,
+                operation_id: l.operation_id,
+                parameters: l.parameters,
+                request_body: l.request_body,
+                description: l.description,
+                server: l.server.map(server_from),
+                extensions: l.extensions,
+            }
+        }
+
+        fn links_to(xs: Vec<(String, ir::Link)>) -> Vec<(String, b::Link)> {
+            xs.into_iter().map(|(k, v)| (k, link_to(v))).collect()
+        }
+
+        fn links_from(xs: Vec<(String, b::Link)>) -> Vec<(String, ir::Link)> {
+            xs.into_iter().map(|(k, v)| (k, link_from(v))).collect()
+        }
+
+        fn webhook_to(w: ir::Webhook) -> b::Webhook {
+            b::Webhook {
+                name: w.name,
+                operations: w.operations.into_iter().map(operation_to).collect(),
+            }
+        }
+
+        fn webhook_from(w: b::Webhook) -> ir::Webhook {
+            ir::Webhook {
+                name: w.name,
+                operations: w.operations.into_iter().map(operation_from).collect(),
+            }
+        }
+
+        fn callback_to(c: ir::Callback) -> b::Callback {
+            b::Callback {
+                name: c.name,
+                expression: c.expression,
+                operation_ids: c.operation_ids,
+                extensions: c.extensions,
+            }
+        }
+
+        fn callback_from(c: b::Callback) -> ir::Callback {
+            ir::Callback {
+                name: c.name,
+                expression: c.expression,
+                operation_ids: c.operation_ids,
+                extensions: c.extensions,
+            }
+        }
+
+        fn operation_to(op: ir::Operation) -> b::Operation {
+            b::Operation {
+                id: op.id,
+                original_id: op.original_id,
+                method: http_method_to(op.method),
+                path_template: op.path_template,
+                path_params: op.path_params.into_iter().map(parameter_to).collect(),
+                query_params: op.query_params.into_iter().map(parameter_to).collect(),
+                header_params: op.header_params.into_iter().map(parameter_to).collect(),
+                cookie_params: op.cookie_params.into_iter().map(parameter_to).collect(),
+                querystring_params: op
+                    .querystring_params
+                    .into_iter()
+                    .map(parameter_to)
+                    .collect(),
+                request_body: op.request_body.map(body_to),
+                responses: op.responses.into_iter().map(response_to).collect(),
+                security: op
+                    .security
+                    .into_iter()
+                    .map(|s| b::SecurityRequirement {
+                        scheme_id: s.scheme_id,
+                        scopes: s.scopes,
+                    })
+                    .collect(),
+                tags: op.tags,
+                documentation: op.documentation,
+                deprecated: op.deprecated,
+                extensions: op.extensions,
+                external_docs: op.external_docs.map(external_docs_to),
+                servers: op.servers.into_iter().map(server_to).collect(),
+                callbacks: op.callbacks.into_iter().map(callback_to).collect(),
+                location: op.location.map(loc_to),
+            }
+        }
+
+        fn operation_from(op: b::Operation) -> ir::Operation {
+            ir::Operation {
+                id: op.id,
+                original_id: op.original_id,
+                method: http_method_from(op.method),
+                path_template: op.path_template,
+                path_params: op.path_params.into_iter().map(parameter_from).collect(),
+                query_params: op.query_params.into_iter().map(parameter_from).collect(),
+                header_params: op.header_params.into_iter().map(parameter_from).collect(),
+                cookie_params: op.cookie_params.into_iter().map(parameter_from).collect(),
+                querystring_params: op
+                    .querystring_params
+                    .into_iter()
+                    .map(parameter_from)
+                    .collect(),
+                request_body: op.request_body.map(body_from),
+                responses: op.responses.into_iter().map(response_from).collect(),
+                security: op
+                    .security
+                    .into_iter()
+                    .map(|s| ir::SecurityRequirement {
+                        scheme_id: s.scheme_id,
+                        scopes: s.scopes,
+                    })
+                    .collect(),
+                tags: op.tags,
+                documentation: op.documentation,
+                deprecated: op.deprecated,
+                extensions: op.extensions,
+                external_docs: op.external_docs.map(external_docs_from),
+                servers: op.servers.into_iter().map(server_from).collect(),
+                callbacks: op.callbacks.into_iter().map(callback_from).collect(),
+                location: op.location.map(loc_from),
+            }
+        }
+
+        // ----- Security -----
+
+        fn oauth2_flow_to(f: ir::OAuth2Flow) -> b::Oauth2Flow {
+            b::Oauth2Flow {
+                kind: match f.kind {
+                    ir::OAuth2FlowKind::Implicit => b::Oauth2FlowKind::Implicit,
+                    ir::OAuth2FlowKind::Password => b::Oauth2FlowKind::Password,
+                    ir::OAuth2FlowKind::ClientCredentials => b::Oauth2FlowKind::ClientCredentials,
+                    ir::OAuth2FlowKind::AuthorizationCode => b::Oauth2FlowKind::AuthorizationCode,
+                },
+                authorization_url: f.authorization_url,
+                token_url: f.token_url,
+                refresh_url: f.refresh_url,
+                scopes: f.scopes,
+                extensions: extensions_to(f.extensions),
+            }
+        }
+
+        fn oauth2_flow_from(f: b::Oauth2Flow) -> ir::OAuth2Flow {
+            ir::OAuth2Flow {
+                kind: match f.kind {
+                    b::Oauth2FlowKind::Implicit => ir::OAuth2FlowKind::Implicit,
+                    b::Oauth2FlowKind::Password => ir::OAuth2FlowKind::Password,
+                    b::Oauth2FlowKind::ClientCredentials => ir::OAuth2FlowKind::ClientCredentials,
+                    b::Oauth2FlowKind::AuthorizationCode => ir::OAuth2FlowKind::AuthorizationCode,
+                },
+                authorization_url: f.authorization_url,
+                token_url: f.token_url,
+                refresh_url: f.refresh_url,
+                scopes: f.scopes,
+                extensions: extensions_from(f.extensions),
+            }
+        }
+
+        fn security_scheme_to(s: ir::SecurityScheme) -> b::SecurityScheme {
+            b::SecurityScheme {
+                id: s.id,
+                kind: match s.kind {
+                    ir::SecuritySchemeKind::ApiKey(k) => {
+                        b::SecuritySchemeKind::ApiKey(b::ApiKeyScheme {
+                            name: k.name,
+                            location: match k.location {
+                                ir::ApiKeyLocation::Header => b::ApiKeyLocation::Header,
+                                ir::ApiKeyLocation::Query => b::ApiKeyLocation::Query,
+                                ir::ApiKeyLocation::Cookie => b::ApiKeyLocation::Cookie,
+                            },
+                        })
+                    }
+                    ir::SecuritySchemeKind::HttpBasic => b::SecuritySchemeKind::HttpBasic,
+                    ir::SecuritySchemeKind::HttpBearer { bearer_format } => {
+                        b::SecuritySchemeKind::HttpBearer(bearer_format)
+                    }
+                    ir::SecuritySchemeKind::MutualTls => b::SecuritySchemeKind::MutualTls,
+                    ir::SecuritySchemeKind::Oauth2(o) => {
+                        b::SecuritySchemeKind::Oauth2(b::Oauth2Scheme {
+                            flows: o.flows.into_iter().map(oauth2_flow_to).collect(),
+                        })
+                    }
+                    ir::SecuritySchemeKind::OpenIdConnect { url } => {
+                        b::SecuritySchemeKind::OpenIdConnect(url)
+                    }
+                },
+                documentation: s.documentation,
+                deprecated: s.deprecated,
+                extensions: extensions_to(s.extensions),
+            }
+        }
+
+        fn security_scheme_from(s: b::SecurityScheme) -> ir::SecurityScheme {
+            ir::SecurityScheme {
+                id: s.id,
+                kind: match s.kind {
+                    b::SecuritySchemeKind::ApiKey(k) => {
+                        ir::SecuritySchemeKind::ApiKey(ir::ApiKeyScheme {
+                            name: k.name,
+                            location: match k.location {
+                                b::ApiKeyLocation::Header => ir::ApiKeyLocation::Header,
+                                b::ApiKeyLocation::Query => ir::ApiKeyLocation::Query,
+                                b::ApiKeyLocation::Cookie => ir::ApiKeyLocation::Cookie,
+                            },
+                        })
+                    }
+                    b::SecuritySchemeKind::HttpBasic => ir::SecuritySchemeKind::HttpBasic,
+                    b::SecuritySchemeKind::HttpBearer(f) => {
+                        ir::SecuritySchemeKind::HttpBearer { bearer_format: f }
+                    }
+                    b::SecuritySchemeKind::MutualTls => ir::SecuritySchemeKind::MutualTls,
+                    b::SecuritySchemeKind::Oauth2(o) => {
+                        ir::SecuritySchemeKind::Oauth2(ir::OAuth2Scheme {
+                            flows: o.flows.into_iter().map(oauth2_flow_from).collect(),
+                        })
+                    }
+                    b::SecuritySchemeKind::OpenIdConnect(u) => {
+                        ir::SecuritySchemeKind::OpenIdConnect { url: u }
+                    }
+                },
+                documentation: s.documentation,
+                deprecated: s.deprecated,
+                extensions: extensions_from(s.extensions),
+            }
+        }
+
+        // ----- Top-level Ir -----
+
+        pub fn ir_to_wit(i: ir::Ir) -> b::Ir {
+            b::Ir {
+                info: api_info_to(i.info),
+                operations: i.operations.into_iter().map(operation_to).collect(),
+                types: i.types.into_iter().map(named_type_to).collect(),
+                security_schemes: i
+                    .security_schemes
+                    .into_iter()
+                    .map(security_scheme_to)
+                    .collect(),
+                servers: i.servers.into_iter().map(server_to).collect(),
+                webhooks: i.webhooks.into_iter().map(webhook_to).collect(),
+                external_docs: i.external_docs.map(external_docs_to),
+                tags: i.tags.into_iter().map(tag_to).collect(),
+                json_schema_dialect: i.json_schema_dialect,
+                self_url: i.self_url,
+                values: i.values.into_iter().map(value_to).collect(),
+            }
+        }
+
+        pub fn ir_from_wit(i: b::Ir) -> ir::Ir {
+            ir::Ir {
+                info: api_info_from(i.info),
+                operations: i.operations.into_iter().map(operation_from).collect(),
+                types: i.types.into_iter().map(named_type_from).collect(),
+                security_schemes: i
+                    .security_schemes
+                    .into_iter()
+                    .map(security_scheme_from)
+                    .collect(),
+                servers: i.servers.into_iter().map(server_from).collect(),
+                webhooks: i.webhooks.into_iter().map(webhook_from).collect(),
+                external_docs: i.external_docs.map(external_docs_from),
+                tags: i.tags.into_iter().map(tag_from).collect(),
+                json_schema_dialect: i.json_schema_dialect,
+                self_url: i.self_url,
+                values: i.values.into_iter().map(value_from).collect(),
+            }
+        }
+
+        // ----- StageError builders for plugin error returns -----
+
+        /// Build a `stage-error::config-invalid`.
+        pub fn config_invalid(reason: impl Into<String>) -> b_stage::StageError {
+            b_stage::StageError::ConfigInvalid(reason.into())
+        }
+
+        /// Build a `stage-error::plugin-bug`.
+        pub fn plugin_bug(reason: impl Into<String>) -> b_stage::StageError {
+            b_stage::StageError::PluginBug(reason.into())
+        }
+
+        /// Build a `stage-error::rejected` carrying parsed diagnostics.
+        pub fn rejected(
+            reason: impl Into<String>,
+            diagnostics: Vec<ir::Diagnostic>,
+        ) -> b_stage::StageError {
+            b_stage::StageError::Rejected(b_stage::Rejection {
+                reason: reason.into(),
+                diagnostics: diagnostics.into_iter().map(diagnostic_to_wit).collect(),
+            })
+        }
+    };
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __impl_transformer_world {
+    ($types_mod:path, $exports_mod:path, $stage_mod:path) => {
+        $crate::__impl_world_shared!($types_mod, $stage_mod);
+        use $exports_mod as bx;
+        use $crate::output::TransformOutput;
+
+        /// Convert the SDK-level [`TransformOutput`] into the WIT result the
+        /// `Guest::transform` function returns.
+        pub fn transform_output_to_wit(o: TransformOutput) -> bx::TransformOutput {
+            bx::TransformOutput {
+                spec: ir_to_wit(o.spec),
+                diagnostics: o.diagnostics.into_iter().map(diagnostic_to_wit).collect(),
+            }
+        }
+    };
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __impl_generator_world {
+    ($types_mod:path, $exports_mod:path, $stage_mod:path) => {
+        $crate::__impl_world_shared!($types_mod, $stage_mod);
+        use $exports_mod as bx;
+        use $crate::output::{FileMode, GenerationOutput, OutputFile};
+
+        fn file_mode_to(m: FileMode) -> bx::FileMode {
+            match m {
+                FileMode::Text => bx::FileMode::Text,
+                FileMode::Binary => bx::FileMode::Binary,
+                FileMode::Executable => bx::FileMode::Executable,
+            }
+        }
+
+        fn output_file_to_wit(f: OutputFile) -> bx::OutputFile {
+            bx::OutputFile {
+                path: f.path,
+                content: f.content,
+                mode: file_mode_to(f.mode),
+            }
+        }
+
+        /// Convert the SDK-level [`GenerationOutput`] into the WIT result the
+        /// `Guest::generate` function returns.
+        pub fn generation_output_to_wit(o: GenerationOutput) -> bx::GenerationOutput {
+            bx::GenerationOutput {
+                files: o.files.into_iter().map(output_file_to_wit).collect(),
+                diagnostics: o.diagnostics.into_iter().map(diagnostic_to_wit).collect(),
+            }
+        }
+    };
+}

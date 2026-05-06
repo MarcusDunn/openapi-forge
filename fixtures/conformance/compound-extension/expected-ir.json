@@ -1,0 +1,76 @@
+{
+  "info": {
+    "title": "compound-extension",
+    "version": "1"
+  },
+  "operations": [
+    {
+      "id": "listThings",
+      "original_id": "listThings",
+      "method": "get",
+      "path_template": "/things",
+      "responses": [
+        {
+          "status": {
+            "kind": "explicit",
+            "code": 200
+          },
+          "documentation": "ok"
+        }
+      ],
+      "deprecated": false,
+      "extensions": [
+        [
+          "x-config",
+          5
+        ]
+      ],
+      "location": {
+        "pointer": "/paths/~1things/get",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "types": [],
+  "security_schemes": [],
+  "servers": [],
+  "values": [
+    {
+      "kind": "int",
+      "value": 100
+    },
+    {
+      "kind": "int",
+      "value": 250
+    },
+    {
+      "kind": "int",
+      "value": 500
+    },
+    {
+      "kind": "list",
+      "items": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "kind": "int",
+      "value": 3
+    },
+    {
+      "kind": "object",
+      "fields": [
+        [
+          "backoffMs",
+          3
+        ],
+        [
+          "retries",
+          4
+        ]
+      ]
+    }
+  ]
+}

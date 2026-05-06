@@ -1,0 +1,26 @@
+{
+  "openapi": "3.2.0",
+  "info": { "title": "content-encoding-keywords", "version": "1" },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "Avatar": {
+        "type": "string",
+        "contentEncoding": "base64",
+        "contentMediaType": "image/png"
+      },
+      "EmbeddedJson": {
+        "type": "string",
+        "contentMediaType": "application/json",
+        "contentSchema": {
+          "type": "object",
+          "required": ["id"],
+          "properties": {
+            "id": { "type": "string" },
+            "ts": { "type": "string", "format": "date-time" }
+          }
+        }
+      }
+    }
+  }
+}

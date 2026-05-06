@@ -1,0 +1,75 @@
+{
+  "info": {
+    "title": "ref-siblings-3-2-reference",
+    "version": "1"
+  },
+  "operations": [
+    {
+      "id": "list",
+      "original_id": "list",
+      "method": "get",
+      "path_template": "/things",
+      "responses": [
+        {
+          "status": {
+            "kind": "explicit",
+            "code": 200
+          },
+          "content": [
+            {
+              "media_type": "application/json",
+              "type": "Thing"
+            }
+          ],
+          "documentation": "Override the shared description with a per-call one."
+        }
+      ],
+      "deprecated": false,
+      "location": {
+        "pointer": "/paths/~1things/get",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "types": [
+    {
+      "id": "Thing_property_id",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Thing/properties/id",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Thing",
+      "original_name": "Thing",
+      "definition": {
+        "def": "object",
+        "properties": [
+          {
+            "name": "id",
+            "type": "Thing_property_id",
+            "required": false,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          }
+        ],
+        "additional_properties": {
+          "kind": "any"
+        },
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Thing",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": []
+}

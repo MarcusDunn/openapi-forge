@@ -1,0 +1,59 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "callbacks", "version": "1.0.0" },
+  "paths": {
+    "/subscribe": {
+      "post": {
+        "operationId": "subscribe",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "callbackUrl": { "type": "string" }
+                },
+                "required": ["callbackUrl"]
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "subscribed" } },
+        "callbacks": {
+          "newEvent": {
+            "{$request.body#/callbackUrl}": {
+              "post": {
+                "operationId": "newEventCallback",
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": { "type": "object" }
+                    }
+                  }
+                },
+                "responses": { "200": { "description": "callback ack" } }
+              }
+            }
+          },
+          "shared": {
+            "$ref": "#/components/callbacks/SharedCallback"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "callbacks": {
+      "SharedCallback": {
+        "{$request.body#/sharedUrl}": {
+          "post": {
+            "operationId": "sharedCallback",
+            "responses": { "200": { "description": "ack" } }
+          }
+        }
+      }
+    }
+  }
+}

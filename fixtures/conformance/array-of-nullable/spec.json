@@ -1,0 +1,13 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "array-of-nullable", "version": "1" },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "OptionalScores": {
+        "type": "array",
+        "items": { "type": "integer", "nullable": true }
+      }
+    }
+  }
+}

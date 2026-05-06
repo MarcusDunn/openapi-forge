@@ -1,0 +1,22 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "response-event-stream", "version": "1" },
+  "servers": [{ "url": "https://api.example.com" }],
+  "paths": {
+    "/events": {
+      "get": {
+        "operationId": "streamEvents",
+        "responses": {
+          "200": {
+            "description": "server-sent events",
+            "content": {
+              "text/event-stream": {
+                "schema": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

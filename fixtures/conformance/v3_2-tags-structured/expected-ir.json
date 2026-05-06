@@ -1,0 +1,43 @@
+{
+  "info": {
+    "title": "v3_2-tags-structured",
+    "version": "1"
+  },
+  "operations": [],
+  "types": [],
+  "security_schemes": [],
+  "servers": [],
+  "tags": [
+    {
+      "name": "cats",
+      "description": "Cat endpoints.",
+      "parent": "pets"
+    },
+    {
+      "name": "dogs",
+      "parent": "pets"
+    },
+    {
+      "name": "pets",
+      "summary": "Pet endpoints",
+      "description": "All pet endpoints.",
+      "external_docs": {
+        "description": "Pet docs.",
+        "url": "https://example.com/pets"
+      },
+      "kind": "audience",
+      "extensions": [
+        [
+          "x-vendor-priority",
+          0
+        ]
+      ]
+    }
+  ],
+  "values": [
+    {
+      "kind": "int",
+      "value": 5
+    }
+  ]
+}

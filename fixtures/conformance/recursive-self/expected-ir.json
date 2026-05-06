@@ -1,0 +1,70 @@
+{
+  "info": {
+    "title": "recursive-self",
+    "version": "1"
+  },
+  "operations": [],
+  "types": [
+    {
+      "id": "TreeNode_property_value",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/TreeNode/properties/value",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "TreeNode",
+      "original_name": "TreeNode",
+      "definition": {
+        "def": "object",
+        "properties": [
+          {
+            "name": "children",
+            "type": "TreeNode_property_children",
+            "required": false,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          },
+          {
+            "name": "value",
+            "type": "TreeNode_property_value",
+            "required": true,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          }
+        ],
+        "additional_properties": {
+          "kind": "any"
+        },
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/TreeNode",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "TreeNode_property_children",
+      "definition": {
+        "def": "array",
+        "items": "TreeNode",
+        "constraints": {
+          "unique_items": false
+        }
+      },
+      "location": {
+        "pointer": "/components/schemas/TreeNode/properties/children",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": []
+}

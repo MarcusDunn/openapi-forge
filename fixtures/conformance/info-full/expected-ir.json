@@ -1,0 +1,21 @@
+{
+  "info": {
+    "title": "info-full",
+    "version": "2.0.0",
+    "description": "Long-form description of the API.",
+    "summary": "All info fields populated.",
+    "terms_of_service": "https://example.com/tos",
+    "contact": {
+      "name": "API Support",
+      "url": "https://example.com/support",
+      "email": "support@example.com"
+    },
+    "license_name": "Apache 2.0",
+    "license_url": "https://www.apache.org/licenses/LICENSE-2.0",
+    "license_identifier": "Apache-2.0"
+  },
+  "operations": [],
+  "types": [],
+  "security_schemes": [],
+  "servers": []
+}

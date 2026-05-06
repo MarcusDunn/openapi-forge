@@ -1,0 +1,7 @@
+[
+  {
+    "severity": "info",
+    "code": "parser/W-RECURSIVE-TYPE",
+    "message": "recursive type group emitted as a unit: [Folder, b__File]"
+  }
+]

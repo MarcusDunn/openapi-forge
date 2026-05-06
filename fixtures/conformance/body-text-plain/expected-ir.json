@@ -1,0 +1,62 @@
+{
+  "info": {
+    "title": "body-text-plain",
+    "version": "1"
+  },
+  "operations": [
+    {
+      "id": "writeNote",
+      "original_id": "writeNote",
+      "method": "post",
+      "path_template": "/notes",
+      "request_body": {
+        "content": [
+          {
+            "media_type": "text/plain",
+            "type": "writeNote_request_body"
+          }
+        ],
+        "required": true
+      },
+      "responses": [
+        {
+          "status": {
+            "kind": "explicit",
+            "code": 204
+          },
+          "documentation": "ok"
+        }
+      ],
+      "deprecated": false,
+      "servers": [
+        {
+          "url": "https://api.example.com"
+        }
+      ],
+      "location": {
+        "pointer": "/paths/~1notes/post",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "types": [
+    {
+      "id": "writeNote_request_body",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/paths/~1notes/post/requestBody/content/text~1plain/schema",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": [
+    {
+      "url": "https://api.example.com"
+    }
+  ]
+}

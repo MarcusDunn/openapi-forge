@@ -1,0 +1,34 @@
+{
+  "info": {
+    "title": "string-enum",
+    "version": "1"
+  },
+  "operations": [],
+  "types": [
+    {
+      "id": "Status",
+      "original_name": "Status",
+      "documentation": "A pet's lifecycle status.",
+      "definition": {
+        "def": "enum-string",
+        "values": [
+          {
+            "value": "available"
+          },
+          {
+            "value": "pending"
+          },
+          {
+            "value": "sold"
+          }
+        ]
+      },
+      "location": {
+        "pointer": "/components/schemas/Status",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": []
+}

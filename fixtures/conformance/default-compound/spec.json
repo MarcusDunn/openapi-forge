@@ -1,0 +1,20 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "default-compound", "version": "1.0.0" },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "Config": {
+        "type": "object",
+        "default": { "verbose": true },
+        "properties": {
+          "tags": {
+            "type": "array",
+            "default": ["alpha", "beta"],
+            "items": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}

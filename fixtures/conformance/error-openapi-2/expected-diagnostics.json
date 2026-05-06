@@ -1,0 +1,11 @@
+[
+  {
+    "severity": "error",
+    "code": "parser/E-UNSUPPORTED-VERSION",
+    "message": "OpenAPI 2.0 (Swagger) is not supported and is not on the roadmap. Convert to OpenAPI 3.0 upstream (e.g. `swagger2openapi`) before invoking forge.",
+    "location": {
+      "pointer": "/swagger",
+      "file": "spec.json"
+    }
+  }
+]

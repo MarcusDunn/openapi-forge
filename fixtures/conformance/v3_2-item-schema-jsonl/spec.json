@@ -1,0 +1,33 @@
+{
+  "openapi": "3.2.0",
+  "info": { "title": "v3_2-item-schema-jsonl", "version": "1.0.0" },
+  "paths": {
+    "/events": {
+      "get": {
+        "operationId": "streamEvents",
+        "responses": {
+          "200": {
+            "description": "JSON-Lines stream of events.",
+            "content": {
+              "application/jsonl": {
+                "itemSchema": { "$ref": "#/components/schemas/Event" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Event": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "kind": { "type": "string" }
+        },
+        "required": ["id", "kind"]
+      }
+    }
+  }
+}

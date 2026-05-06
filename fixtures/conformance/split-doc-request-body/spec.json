@@ -1,0 +1,15 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "split-doc-request-body", "version": "1" },
+  "paths": {
+    "/pets": {
+      "post": {
+        "operationId": "createPet",
+        "requestBody": { "$ref": "requestBodies.json#/CreatePet" },
+        "responses": {
+          "204": { "description": "ok" }
+        }
+      }
+    }
+  }
+}

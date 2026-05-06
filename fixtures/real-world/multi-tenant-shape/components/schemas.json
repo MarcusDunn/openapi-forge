@@ -1,0 +1,41 @@
+{
+  "User": {
+    "type": "object",
+    "required": ["id", "name"],
+    "properties": {
+      "id": { "type": "string", "format": "uuid" },
+      "name": { "type": "string" },
+      "email": { "type": "string", "format": "email" },
+      "createdAt": { "type": "string", "format": "date-time" }
+    }
+  },
+  "UserList": {
+    "type": "object",
+    "required": ["data", "page"],
+    "properties": {
+      "data": {
+        "type": "array",
+        "items": { "$ref": "#/User" }
+      },
+      "page": { "$ref": "#/Page" }
+    }
+  },
+  "Document": {
+    "type": "object",
+    "required": ["id", "status"],
+    "properties": {
+      "id": { "type": "string", "format": "uuid" },
+      "status": { "type": "string", "enum": ["draft", "active", "archived"] },
+      "owner": { "$ref": "#/User" }
+    }
+  },
+  "Page": {
+    "type": "object",
+    "required": ["pageNumber", "pageSize"],
+    "properties": {
+      "pageNumber": { "type": "integer", "format": "int32" },
+      "pageSize": { "type": "integer", "format": "int32" },
+      "totalItems": { "type": "integer", "format": "int64" }
+    }
+  }
+}

@@ -1,0 +1,153 @@
+{
+  "info": {
+    "title": "schema-defaults",
+    "version": "1.0.0"
+  },
+  "operations": [],
+  "types": [
+    {
+      "id": "PageSize",
+      "original_name": "PageSize",
+      "default": 0,
+      "definition": {
+        "def": "primitive",
+        "kind": "integer",
+        "constraints": {
+          "format_extension": "int32"
+        }
+      },
+      "location": {
+        "pointer": "/components/schemas/PageSize",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Pet_property_missing",
+      "default": 1,
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Pet/properties/missing",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Pet_property_name",
+      "default": 2,
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Pet/properties/name",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Pet_property_score",
+      "default": 3,
+      "definition": {
+        "def": "primitive",
+        "kind": "number",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Pet/properties/score",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Pet_property_tagged",
+      "default": 4,
+      "definition": {
+        "def": "primitive",
+        "kind": "bool",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Pet/properties/tagged",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Pet",
+      "original_name": "Pet",
+      "definition": {
+        "def": "object",
+        "properties": [
+          {
+            "name": "missing",
+            "type": "Pet_property_missing",
+            "required": false,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false,
+            "default": 1
+          },
+          {
+            "name": "name",
+            "type": "Pet_property_name",
+            "required": false,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false,
+            "default": 2
+          },
+          {
+            "name": "score",
+            "type": "Pet_property_score",
+            "required": false,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false,
+            "default": 3
+          },
+          {
+            "name": "tagged",
+            "type": "Pet_property_tagged",
+            "required": false,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false,
+            "default": 4
+          }
+        ],
+        "additional_properties": {
+          "kind": "any"
+        },
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Pet",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": [],
+  "values": [
+    {
+      "kind": "int",
+      "value": 25
+    },
+    {
+      "kind": "null"
+    },
+    {
+      "kind": "string",
+      "value": "Rex"
+    },
+    {
+      "kind": "float",
+      "value": 1.5
+    },
+    {
+      "kind": "bool",
+      "value": false
+    }
+  ]
+}

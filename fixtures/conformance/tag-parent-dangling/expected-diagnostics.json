@@ -1,0 +1,11 @@
+[
+  {
+    "severity": "warning",
+    "code": "parser/W-TAG-PARENT-DANGLING",
+    "message": "tag `cats` references parent `no-such-tag`, which is not declared in the top-level `tags` array; dropping the parent reference.",
+    "location": {
+      "pointer": "/tags/0",
+      "file": "spec.json"
+    }
+  }
+]

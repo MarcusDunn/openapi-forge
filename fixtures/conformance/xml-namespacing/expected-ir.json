@@ -1,0 +1,111 @@
+{
+  "info": {
+    "title": "xml-namespacing",
+    "version": "1.0.0"
+  },
+  "operations": [],
+  "types": [
+    {
+      "id": "Pet_property_id",
+      "xml": {
+        "attribute": true,
+        "wrapped": false,
+        "text": false,
+        "ordered": false
+      },
+      "definition": {
+        "def": "primitive",
+        "kind": "integer",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Pet/properties/id",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Pet_property_tags_items",
+      "xml": {
+        "name": "tag",
+        "attribute": false,
+        "wrapped": false,
+        "text": false,
+        "ordered": false
+      },
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Pet/properties/tags/items",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Pet_property_tags",
+      "xml": {
+        "name": "tags",
+        "attribute": false,
+        "wrapped": true,
+        "text": false,
+        "ordered": false
+      },
+      "definition": {
+        "def": "array",
+        "items": "Pet_property_tags_items",
+        "constraints": {
+          "unique_items": false
+        }
+      },
+      "location": {
+        "pointer": "/components/schemas/Pet/properties/tags",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Pet",
+      "original_name": "Pet",
+      "xml": {
+        "name": "Pet",
+        "namespace": "http://example.com/schema/pet",
+        "prefix": "pt",
+        "attribute": false,
+        "wrapped": false,
+        "text": false,
+        "ordered": false
+      },
+      "definition": {
+        "def": "object",
+        "properties": [
+          {
+            "name": "id",
+            "type": "Pet_property_id",
+            "required": false,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          },
+          {
+            "name": "tags",
+            "type": "Pet_property_tags",
+            "required": false,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          }
+        ],
+        "additional_properties": {
+          "kind": "any"
+        },
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Pet",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": []
+}

@@ -1,0 +1,31 @@
+{
+  "info": {
+    "title": "components-pathitems-shared",
+    "version": "1.0.0"
+  },
+  "operations": [
+    {
+      "id": "listItems",
+      "original_id": "listItems",
+      "method": "get",
+      "path_template": "/items",
+      "responses": [
+        {
+          "status": {
+            "kind": "explicit",
+            "code": 200
+          },
+          "documentation": "ok"
+        }
+      ],
+      "deprecated": false,
+      "location": {
+        "pointer": "/paths/~1items/get",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "types": [],
+  "security_schemes": [],
+  "servers": []
+}

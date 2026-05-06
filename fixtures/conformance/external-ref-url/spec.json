@@ -1,0 +1,12 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "external-ref-url", "version": "1" },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "Bad": {
+        "$ref": "https://example.com/types.json#/components/schemas/Pet"
+      }
+    }
+  }
+}

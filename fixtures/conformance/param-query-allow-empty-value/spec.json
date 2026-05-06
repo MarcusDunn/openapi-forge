@@ -1,0 +1,30 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "param-query-allow-empty-value", "version": "1" },
+  "paths": {
+    "/search": {
+      "get": {
+        "operationId": "search",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "allowEmptyValue": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "X-Trace",
+            "in": "header",
+            "required": false,
+            "allowEmptyValue": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "204": { "description": "no content" }
+        }
+      }
+    }
+  }
+}

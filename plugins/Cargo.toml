@@ -1,0 +1,30 @@
+[workspace]
+resolver = "2"
+members = [
+    "transformer-noop",
+    "generator-debug-dump",
+    "generator-typescript-fetch",
+    "generator-rust-reqwest",
+    "validator-required-operation-id",
+    "test-fixtures/generator-strict",
+    "test-fixtures/generator-warn",
+]
+
+# Plugins are a SEPARATE workspace targeting `wasm32-wasip2`. Sharing a
+# workspace with the host caused feature-unification problems, so they live
+# here. Each plugin is added as it lands; see the project plan §10.
+
+[workspace.package]
+version = "0.0.1"
+edition = "2021"
+rust-version = "1.83"
+license = "Apache-2.0 OR MIT"
+
+[workspace.dependencies]
+forge-plugin-sdk = { path = "../crates/forge-plugin-sdk", version = "0.1.0" }
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+strip = "debuginfo"
+opt-level = "s"

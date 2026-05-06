@@ -1,0 +1,28 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "xml-namespacing", "version": "1.0.0" },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "Pet": {
+        "type": "object",
+        "xml": {
+          "name": "Pet",
+          "namespace": "http://example.com/schema/pet",
+          "prefix": "pt"
+        },
+        "properties": {
+          "id": {
+            "type": "integer",
+            "xml": { "attribute": true }
+          },
+          "tags": {
+            "type": "array",
+            "items": { "type": "string", "xml": { "name": "tag" } },
+            "xml": { "name": "tags", "wrapped": true }
+          }
+        }
+      }
+    }
+  }
+}

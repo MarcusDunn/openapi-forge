@@ -1,0 +1,33 @@
+{
+  "CreateUser": {
+    "required": true,
+    "content": {
+      "application/json": {
+        "schema": {
+          "type": "object",
+          "required": ["name"],
+          "properties": {
+            "name": { "type": "string" },
+            "email": { "type": "string", "format": "email" }
+          }
+        }
+      }
+    }
+  },
+  "UploadAttachment": {
+    "required": true,
+    "description": "Multipart upload — exercises the BodyInit path in generated TS clients.",
+    "content": {
+      "multipart/form-data": {
+        "schema": {
+          "type": "object",
+          "required": ["file"],
+          "properties": {
+            "file": { "type": "string", "format": "binary" },
+            "metadata": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "external-ref-escape", "version": "1" },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "Bad": {
+        "$ref": "../petstore-minimal/spec.json#/components/schemas/Pet"
+      }
+    }
+  }
+}

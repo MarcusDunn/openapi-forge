@@ -1,0 +1,71 @@
+{
+  "info": {
+    "title": "additional-properties-typed",
+    "version": "1"
+  },
+  "operations": [],
+  "types": [
+    {
+      "id": "Counts_additional_properties",
+      "definition": {
+        "def": "primitive",
+        "kind": "integer",
+        "constraints": {
+          "format_extension": "int64"
+        }
+      },
+      "location": {
+        "pointer": "/components/schemas/Counts/additionalProperties",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Counts",
+      "original_name": "Counts",
+      "definition": {
+        "def": "object",
+        "properties": [],
+        "additional_properties": {
+          "kind": "typed",
+          "type": "Counts_additional_properties"
+        },
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Counts",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Headers_additional_properties",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Headers/additionalProperties",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Headers",
+      "original_name": "Headers",
+      "definition": {
+        "def": "object",
+        "properties": [],
+        "additional_properties": {
+          "kind": "typed",
+          "type": "Headers_additional_properties"
+        },
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Headers",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": []
+}

@@ -1,0 +1,91 @@
+{
+  "info": {
+    "title": "servers-override",
+    "version": "1.0.0"
+  },
+  "operations": [
+    {
+      "id": "inheritsPathItem",
+      "original_id": "inheritsPathItem",
+      "method": "get",
+      "path_template": "/path-item-override",
+      "responses": [
+        {
+          "status": {
+            "kind": "explicit",
+            "code": 204
+          },
+          "documentation": "ok"
+        }
+      ],
+      "deprecated": false,
+      "servers": [
+        {
+          "url": "https://path.example.com"
+        }
+      ],
+      "location": {
+        "pointer": "/paths/~1path-item-override/get",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "inheritsRoot",
+      "original_id": "inheritsRoot",
+      "method": "get",
+      "path_template": "/inherits-root",
+      "responses": [
+        {
+          "status": {
+            "kind": "explicit",
+            "code": 204
+          },
+          "documentation": "ok"
+        }
+      ],
+      "deprecated": false,
+      "servers": [
+        {
+          "url": "https://root.example.com"
+        }
+      ],
+      "location": {
+        "pointer": "/paths/~1inherits-root/get",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "operationOverride",
+      "original_id": "operationOverride",
+      "method": "post",
+      "path_template": "/path-item-override",
+      "responses": [
+        {
+          "status": {
+            "kind": "explicit",
+            "code": 204
+          },
+          "documentation": "ok"
+        }
+      ],
+      "deprecated": false,
+      "servers": [
+        {
+          "url": "https://op.example.com",
+          "description": "Op-level override."
+        }
+      ],
+      "location": {
+        "pointer": "/paths/~1path-item-override/post",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "types": [],
+  "security_schemes": [],
+  "servers": [
+    {
+      "url": "https://root.example.com"
+    }
+  ]
+}

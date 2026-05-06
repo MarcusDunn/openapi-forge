@@ -1,0 +1,13 @@
+[package]
+name = "transformer-noop"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "OpenAPI Forge transformer that returns its input unchanged."
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+forge-plugin-sdk = { workspace = true, features = ["transformer"] }

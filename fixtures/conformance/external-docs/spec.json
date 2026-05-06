@@ -1,0 +1,45 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "external-docs",
+    "version": "1.0.0"
+  },
+  "externalDocs": {
+    "description": "Top-level guide.",
+    "url": "https://example.com/docs"
+  },
+  "paths": {
+    "/things": {
+      "get": {
+        "operationId": "listThings",
+        "externalDocs": {
+          "description": "Operation-level deep link.",
+          "url": "https://example.com/docs/list-things"
+        },
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Thing" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Thing": {
+        "type": "object",
+        "externalDocs": {
+          "url": "https://example.com/docs/thing"
+        },
+        "properties": {
+          "id": { "type": "string" }
+        }
+      }
+    }
+  }
+}

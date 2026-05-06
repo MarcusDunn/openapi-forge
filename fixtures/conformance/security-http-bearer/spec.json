@@ -1,0 +1,36 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "security-http-bearer", "version": "1" },
+  "servers": [{ "url": "https://api.example.com" }],
+  "security": [{ "bearerAuth": [] }],
+  "paths": {
+    "/me": {
+      "get": {
+        "operationId": "getMe",
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["id"],
+                  "properties": { "id": { "type": "string" } }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}

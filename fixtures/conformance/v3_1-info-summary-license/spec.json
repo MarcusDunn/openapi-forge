@@ -1,0 +1,13 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "v3_1-info-summary-license",
+    "version": "1",
+    "summary": "Short description for the API.",
+    "license": {
+      "name": "Apache-2.0",
+      "identifier": "Apache-2.0"
+    }
+  },
+  "paths": {}
+}

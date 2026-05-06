@@ -1,0 +1,11 @@
+[
+  {
+    "severity": "warning",
+    "code": "parser/W-PARAM-ALLOW-EMPTY-MISPLACED",
+    "message": "parameter `X-Trace` declares `allowEmptyValue: true` in `header`; OAS only permits this on query parameters. Dropping the flag.",
+    "location": {
+      "pointer": "/paths/~1search/get/parameters/1",
+      "file": "spec.json"
+    }
+  }
+]

@@ -1,0 +1,53 @@
+{
+  "info": {
+    "title": "path-item-shared-summary-description",
+    "version": "1.0.0"
+  },
+  "operations": [
+    {
+      "id": "createWidget",
+      "original_id": "createWidget",
+      "method": "post",
+      "path_template": "/widgets",
+      "responses": [
+        {
+          "status": {
+            "kind": "explicit",
+            "code": 201
+          },
+          "documentation": "created"
+        }
+      ],
+      "documentation": "Create one widget. Operation-level description wins.",
+      "deprecated": false,
+      "location": {
+        "pointer": "/paths/~1widgets/post",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "listWidgets",
+      "original_id": "listWidgets",
+      "method": "get",
+      "path_template": "/widgets",
+      "responses": [
+        {
+          "status": {
+            "kind": "explicit",
+            "code": 200
+          },
+          "documentation": "ok"
+        }
+      ],
+      "documentation": "All widgets the caller can see.",
+      "deprecated": false,
+      "location": {
+        "pointer": "/paths/~1widgets/get",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "types": [],
+  "security_schemes": [],
+  "servers": []
+}

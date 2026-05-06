@@ -1,0 +1,19 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "ref-siblings-3-0-warning", "version": "1.0.0" },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "Animal": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" }
+        }
+      },
+      "Pet": {
+        "$ref": "#/components/schemas/Animal",
+        "description": "A pet — sibling description (OAS 3.0 forbids this)."
+      }
+    }
+  }
+}

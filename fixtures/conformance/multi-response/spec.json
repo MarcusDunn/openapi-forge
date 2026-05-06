@@ -1,0 +1,95 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "multi-response", "version": "1" },
+  "servers": [{ "url": "https://api.example.com" }],
+  "paths": {
+    "/widgets": {
+      "post": {
+        "operationId": "createWidget",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/WidgetInput" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Existing widget returned",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Widget" }
+              }
+            }
+          },
+          "201": {
+            "description": "Widget created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/WidgetCreated" }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ValidationError" }
+              }
+            }
+          },
+          "default": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "WidgetInput": {
+        "type": "object",
+        "required": ["name"],
+        "properties": { "name": { "type": "string" } }
+      },
+      "Widget": {
+        "type": "object",
+        "required": ["id", "name"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" }
+        }
+      },
+      "WidgetCreated": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ValidationError": {
+        "type": "object",
+        "required": ["message"],
+        "properties": {
+          "message": { "type": "string" },
+          "field": { "type": "string" }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "required": ["code", "message"],
+        "properties": {
+          "code": { "type": "integer", "format": "int32" },
+          "message": { "type": "string" }
+        }
+      }
+    }
+  }
+}

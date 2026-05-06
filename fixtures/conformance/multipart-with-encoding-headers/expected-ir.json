@@ -1,0 +1,169 @@
+{
+  "info": {
+    "title": "multipart-with-encoding-headers",
+    "version": "1.0.0"
+  },
+  "operations": [
+    {
+      "id": "uploadFile",
+      "original_id": "uploadFile",
+      "method": "post",
+      "path_template": "/upload",
+      "request_body": {
+        "content": [
+          {
+            "media_type": "multipart/form-data",
+            "type": "uploadFile_request_body",
+            "encoding": [
+              [
+                "file",
+                {
+                  "content_type": "application/octet-stream",
+                  "explode": false,
+                  "allow_reserved": false,
+                  "headers": [
+                    [
+                      "Content-Disposition",
+                      {
+                        "type": "uploadFile_header_Content_Disposition",
+                        "required": false,
+                        "deprecated": false,
+                        "documentation": "Per-part Content-Disposition override.",
+                        "explode": false,
+                        "allow_reserved": false,
+                        "allow_empty_value": false,
+                        "location": {
+                          "pointer": "/paths/~1upload/post/requestBody/content/multipart~1form-data/encoding/file/headers/Content-Disposition",
+                          "file": "spec.json"
+                        }
+                      }
+                    ],
+                    [
+                      "X-File-Hash",
+                      {
+                        "type": "uploadFile_header_X_File_Hash",
+                        "required": false,
+                        "deprecated": false,
+                        "documentation": "SHA-256 of the file contents.",
+                        "explode": false,
+                        "allow_reserved": false,
+                        "allow_empty_value": false,
+                        "location": {
+                          "pointer": "/paths/~1upload/post/requestBody/content/multipart~1form-data/encoding/file/headers/X-File-Hash",
+                          "file": "spec.json"
+                        }
+                      }
+                    ]
+                  ]
+                }
+              ]
+            ]
+          }
+        ],
+        "required": true
+      },
+      "responses": [
+        {
+          "status": {
+            "kind": "explicit",
+            "code": 204
+          },
+          "documentation": "uploaded"
+        }
+      ],
+      "deprecated": false,
+      "location": {
+        "pointer": "/paths/~1upload/post",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "types": [
+    {
+      "id": "uploadFile_header_Content_Disposition",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/paths/~1upload/post/requestBody/content/multipart~1form-data/encoding/file/headers/Content-Disposition/schema",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "uploadFile_header_X_File_Hash",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {
+          "format_extension": "byte"
+        }
+      },
+      "location": {
+        "pointer": "/paths/~1upload/post/requestBody/content/multipart~1form-data/encoding/file/headers/X-File-Hash/schema",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "uploadFile_request_body_property_file",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {
+          "format_extension": "binary"
+        }
+      },
+      "location": {
+        "pointer": "/paths/~1upload/post/requestBody/content/multipart~1form-data/schema/properties/file",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "uploadFile_request_body_property_metadata",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/paths/~1upload/post/requestBody/content/multipart~1form-data/schema/properties/metadata",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "uploadFile_request_body",
+      "definition": {
+        "def": "object",
+        "properties": [
+          {
+            "name": "file",
+            "type": "uploadFile_request_body_property_file",
+            "required": true,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          },
+          {
+            "name": "metadata",
+            "type": "uploadFile_request_body_property_metadata",
+            "required": false,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          }
+        ],
+        "additional_properties": {
+          "kind": "any"
+        },
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/paths/~1upload/post/requestBody/content/multipart~1form-data/schema",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": []
+}

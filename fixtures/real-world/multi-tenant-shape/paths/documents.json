@@ -1,0 +1,44 @@
+{
+  "/api/org/{tenant}/v1/documents/{documentId}": {
+    "get": {
+      "operationId": "getDocument",
+      "parameters": [
+        { "$ref": "../components/parameters.json#/TenantSlug" },
+        {
+          "name": "documentId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string", "format": "uuid" }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "ok",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "../components/schemas.json#/Document" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/org/{tenant}/v1/documents/{documentId}/attachment": {
+    "post": {
+      "operationId": "uploadDocumentAttachment",
+      "parameters": [
+        { "$ref": "../components/parameters.json#/TenantSlug" },
+        {
+          "name": "documentId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string", "format": "uuid" }
+        }
+      ],
+      "requestBody": { "$ref": "../components/requestBodies.json#/UploadAttachment" },
+      "responses": {
+        "204": { "description": "uploaded" }
+      }
+    }
+  }
+}

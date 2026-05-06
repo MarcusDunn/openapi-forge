@@ -1,0 +1,31 @@
+{
+  "openapi": "3.2.0",
+  "info": { "title": "example-data-serialized-3-2", "version": "1" },
+  "paths": {
+    "/things": {
+      "post": {
+        "operationId": "create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Thing" },
+              "examples": {
+                "alice": {
+                  "summary": "Alice",
+                  "dataValue": "alice",
+                  "serializedValue": "{\"name\":\"alice\"}"
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "ok" } }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Thing": { "type": "object", "properties": { "name": { "type": "string" } } }
+    }
+  }
+}

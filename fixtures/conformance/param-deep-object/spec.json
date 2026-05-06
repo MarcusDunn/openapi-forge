@@ -1,0 +1,30 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "param-deep-object", "version": "1" },
+  "servers": [{ "url": "https://api.example.com" }],
+  "paths": {
+    "/items": {
+      "get": {
+        "operationId": "searchItems",
+        "parameters": [
+          {
+            "name": "filter",
+            "in": "query",
+            "style": "deepObject",
+            "explode": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string" },
+                "age": { "type": "integer" }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "204": { "description": "ok" }
+        }
+      }
+    }
+  }
+}

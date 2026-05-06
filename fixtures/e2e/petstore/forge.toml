@@ -1,0 +1,19 @@
+# `forge generate fixtures/e2e/petstore --out <dir>` runs the petstore spec
+# through the bundled TypeScript-fetch generator. The CI `determinism` job
+# runs this twice and `diff -r`s the outputs to prove the pipeline is
+# deterministic.
+#
+# The wasm path is relative to this file, so it points up to the
+# plugin-workspace target dir produced by:
+#
+#   cargo build --release --target wasm32-wasip2 --manifest-path plugins/Cargo.toml
+
+[input]
+spec = "spec.json"
+
+[generator]
+wasm = "../../../plugins/target/wasm32-wasip2/release/generator_typescript_fetch.wasm"
+config = { packageName = "petstore-client" }
+
+[output]
+dir = "out"

@@ -1,0 +1,11 @@
+[
+  {
+    "severity": "warning",
+    "code": "parser/W-COMPONENT-MEDIA-TYPE-UNUSED",
+    "message": "components.mediaTypes.`UnusedJson` is declared but never referenced. The declaration is silently invisible to generators.",
+    "location": {
+      "pointer": "/components/mediaTypes/UnusedJson",
+      "file": "spec.json"
+    }
+  }
+]

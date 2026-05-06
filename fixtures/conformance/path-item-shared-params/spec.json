@@ -1,0 +1,51 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "path-item-shared-params",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/pets/{petId}": {
+      "parameters": [
+        {
+          "name": "petId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string" }
+        },
+        { "$ref": "#/components/parameters/PageSize" }
+      ],
+      "get": {
+        "operationId": "getPet",
+        "responses": {
+          "200": { "description": "ok" }
+        }
+      },
+      "delete": {
+        "operationId": "deletePet",
+        "parameters": [
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": true,
+            "description": "operation-level override of the shared param",
+            "schema": { "type": "integer", "format": "int32", "minimum": 1, "maximum": 50 }
+          }
+        ],
+        "responses": {
+          "204": { "description": "deleted" }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "PageSize": {
+        "name": "pageSize",
+        "in": "query",
+        "required": false,
+        "schema": { "type": "integer", "format": "int32" }
+      }
+    }
+  }
+}

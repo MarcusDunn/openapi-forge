@@ -1,0 +1,22 @@
+{
+  "bearerAuth": {
+    "type": "http",
+    "scheme": "bearer",
+    "bearerFormat": "JWT"
+  },
+  "oauth2Auth": {
+    "type": "oauth2",
+    "description": "OAuth 2.0 Authorization Code Flow with PKCE. The CLI generator runs this end-to-end when plugin config supplies a clientId.",
+    "flows": {
+      "authorizationCode": {
+        "authorizationUrl": "https://auth.example.com/authorize",
+        "tokenUrl": "https://auth.example.com/token",
+        "refreshUrl": "https://auth.example.com/token",
+        "scopes": {
+          "read": "Read access to org resources",
+          "write": "Write access to org resources"
+        }
+      }
+    }
+  }
+}

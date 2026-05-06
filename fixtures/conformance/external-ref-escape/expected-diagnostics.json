@@ -1,0 +1,11 @@
+[
+  {
+    "severity": "error",
+    "code": "parser/E-EXTERNAL-REF",
+    "message": "external $ref `../petstore-minimal/spec.json#/components/schemas/Pet` resolves outside the input file's directory",
+    "location": {
+      "pointer": "/components/schemas/Bad/$ref",
+      "file": "spec.json"
+    }
+  }
+]

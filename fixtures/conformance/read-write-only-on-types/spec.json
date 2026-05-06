@@ -1,0 +1,29 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "read-write-only-on-types", "version": "1" },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "ServerAssignedId": {
+        "type": "string",
+        "format": "uuid",
+        "readOnly": true,
+        "description": "Set by the server; clients must not provide a value."
+      },
+      "WriteSecret": {
+        "type": "string",
+        "writeOnly": true,
+        "description": "Accepted on requests; never returned in responses."
+      },
+      "Pet": {
+        "type": "object",
+        "required": ["id", "name"],
+        "properties": {
+          "id": { "$ref": "#/components/schemas/ServerAssignedId" },
+          "secret": { "$ref": "#/components/schemas/WriteSecret" },
+          "name": { "type": "string" }
+        }
+      }
+    }
+  }
+}

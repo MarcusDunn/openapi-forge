@@ -1,0 +1,28 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "allof-flatten", "version": "1" },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "Cat": {
+        "allOf": [
+          {
+            "type": "object",
+            "required": ["id"],
+            "properties": {
+              "id": { "type": "string" },
+              "name": { "type": "string" }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["whiskers"],
+            "properties": {
+              "whiskers": { "type": "integer" }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

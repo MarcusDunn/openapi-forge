@@ -1,0 +1,26 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "security-oauth2-password", "version": "1" },
+  "servers": [{ "url": "https://api.example.com" }],
+  "paths": {
+    "/me": {
+      "get": {
+        "operationId": "getMe",
+        "responses": { "200": { "description": "ok" } }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "oauth2Auth": {
+        "type": "oauth2",
+        "flows": {
+          "password": {
+            "tokenUrl": "https://auth.example.com/token",
+            "scopes": { "read": "Read access" }
+          }
+        }
+      }
+    }
+  }
+}

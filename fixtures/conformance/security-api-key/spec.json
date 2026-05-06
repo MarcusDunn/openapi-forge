@@ -1,0 +1,36 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "security-api-key", "version": "1" },
+  "servers": [{ "url": "https://api.example.com" }],
+  "security": [{ "apiKeyAuth": [] }],
+  "paths": {
+    "/items": {
+      "get": {
+        "operationId": "listItems",
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "Static API key issued in the developer portal."
+      }
+    }
+  }
+}

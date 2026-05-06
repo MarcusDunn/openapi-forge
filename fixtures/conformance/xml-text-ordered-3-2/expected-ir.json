@@ -1,0 +1,65 @@
+{
+  "info": {
+    "title": "xml-text-ordered-3-2",
+    "version": "1"
+  },
+  "operations": [],
+  "types": [
+    {
+      "id": "Steps_items",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Steps/items",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Steps",
+      "original_name": "Steps",
+      "xml": {
+        "name": "steps",
+        "attribute": false,
+        "wrapped": true,
+        "text": false,
+        "ordered": true
+      },
+      "definition": {
+        "def": "array",
+        "items": "Steps_items",
+        "constraints": {
+          "unique_items": false
+        }
+      },
+      "location": {
+        "pointer": "/components/schemas/Steps",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Title",
+      "original_name": "Title",
+      "xml": {
+        "name": "title",
+        "attribute": false,
+        "wrapped": false,
+        "text": true,
+        "ordered": false
+      },
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Title",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": []
+}

@@ -1,0 +1,13 @@
+[package]
+name = "generator-debug-dump"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "OpenAPI Forge generator that emits the IR as a single JSON file."
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+forge-plugin-sdk = { workspace = true, features = ["generator"] }

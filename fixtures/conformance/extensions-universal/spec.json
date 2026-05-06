@@ -1,0 +1,75 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "extensions-universal",
+    "version": "1",
+    "x-info": "info-ext"
+  },
+  "servers": [
+    {
+      "url": "https://api.example.com/{tier}",
+      "x-server": "server-ext",
+      "variables": {
+        "tier": {
+          "default": "v1",
+          "x-var": "var-ext"
+        }
+      }
+    }
+  ],
+  "paths": {
+    "/things": {
+      "post": {
+        "operationId": "create",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": { "type": "string" },
+            "x-param": "param-ext"
+          }
+        ],
+        "requestBody": {
+          "x-body": "body-ext",
+          "content": {
+            "application/json": {
+              "x-content": "content-ext",
+              "schema": { "$ref": "#/components/schemas/Thing" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ok",
+            "x-response": "response-ext"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Thing": {
+        "type": "object",
+        "x-schema": "schema-ext",
+        "properties": {
+          "name": { "type": "string", "x-prop": "prop-ext" }
+        }
+      }
+    },
+    "securitySchemes": {
+      "OAuth": {
+        "type": "oauth2",
+        "x-scheme": "scheme-ext",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://a",
+            "tokenUrl": "https://t",
+            "scopes": {},
+            "x-flow": "flow-ext"
+          }
+        }
+      }
+    }
+  }
+}

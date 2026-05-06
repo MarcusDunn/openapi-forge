@@ -1,0 +1,11 @@
+[
+  {
+    "severity": "error",
+    "code": "parser/E-EXTERNAL-REF",
+    "message": "URL $ref `https://example.com/types.json#/components/schemas/Pet` is not yet supported (file-relative refs only)",
+    "location": {
+      "pointer": "/components/schemas/Bad/$ref",
+      "file": "spec.json"
+    }
+  }
+]

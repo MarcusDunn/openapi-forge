@@ -1,0 +1,23 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "schema-defaults", "version": "1.0.0" },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "PageSize": {
+        "type": "integer",
+        "format": "int32",
+        "default": 25
+      },
+      "Pet": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "default": "Rex" },
+          "tagged": { "type": "boolean", "default": false },
+          "score": { "type": "number", "default": 1.5 },
+          "missing": { "type": "string", "default": null }
+        }
+      }
+    }
+  }
+}

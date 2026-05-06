@@ -1,0 +1,96 @@
+{
+  "info": {
+    "title": "v3_2-item-schema-jsonl",
+    "version": "1.0.0"
+  },
+  "operations": [
+    {
+      "id": "streamEvents",
+      "original_id": "streamEvents",
+      "method": "get",
+      "path_template": "/events",
+      "responses": [
+        {
+          "status": {
+            "kind": "explicit",
+            "code": 200
+          },
+          "content": [
+            {
+              "media_type": "application/jsonl",
+              "type": "Event",
+              "item_schema": "Event"
+            }
+          ],
+          "documentation": "JSON-Lines stream of events."
+        }
+      ],
+      "deprecated": false,
+      "location": {
+        "pointer": "/paths/~1events/get",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "types": [
+    {
+      "id": "Event_property_id",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Event/properties/id",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Event_property_kind",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Event/properties/kind",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Event",
+      "original_name": "Event",
+      "definition": {
+        "def": "object",
+        "properties": [
+          {
+            "name": "id",
+            "type": "Event_property_id",
+            "required": true,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          },
+          {
+            "name": "kind",
+            "type": "Event_property_kind",
+            "required": true,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          }
+        ],
+        "additional_properties": {
+          "kind": "any"
+        },
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Event",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": []
+}

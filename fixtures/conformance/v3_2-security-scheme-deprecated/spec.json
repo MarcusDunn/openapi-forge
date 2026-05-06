@@ -1,0 +1,26 @@
+{
+  "openapi": "3.2.0",
+  "info": { "title": "security-scheme-deprecated", "version": "1" },
+  "security": [{ "legacyKey": [] }],
+  "paths": {
+    "/ping": {
+      "get": {
+        "operationId": "ping",
+        "responses": {
+          "204": { "description": "no content" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "legacyKey": {
+        "type": "apiKey",
+        "name": "X-Legacy-Key",
+        "in": "header",
+        "deprecated": true,
+        "description": "Phased out; migrate to bearerAuth"
+      }
+    }
+  }
+}

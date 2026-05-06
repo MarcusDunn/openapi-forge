@@ -1,0 +1,47 @@
+{
+  "info": {
+    "title": "security-scheme-deprecated",
+    "version": "1"
+  },
+  "operations": [
+    {
+      "id": "ping",
+      "original_id": "ping",
+      "method": "get",
+      "path_template": "/ping",
+      "responses": [
+        {
+          "status": {
+            "kind": "explicit",
+            "code": 204
+          },
+          "documentation": "no content"
+        }
+      ],
+      "security": [
+        {
+          "scheme_id": "legacyKey"
+        }
+      ],
+      "deprecated": false,
+      "location": {
+        "pointer": "/paths/~1ping/get",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "types": [],
+  "security_schemes": [
+    {
+      "id": "legacyKey",
+      "kind": {
+        "type": "api-key",
+        "name": "X-Legacy-Key",
+        "location": "header"
+      },
+      "documentation": "Phased out; migrate to bearerAuth",
+      "deprecated": true
+    }
+  ],
+  "servers": []
+}

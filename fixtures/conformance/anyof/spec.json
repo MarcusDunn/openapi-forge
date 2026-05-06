@@ -1,0 +1,25 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "anyof", "version": "1" },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "Cat": {
+        "type": "object",
+        "required": ["whiskers"],
+        "properties": { "whiskers": { "type": "integer" } }
+      },
+      "Dog": {
+        "type": "object",
+        "required": ["barks"],
+        "properties": { "barks": { "type": "boolean" } }
+      },
+      "Pet": {
+        "anyOf": [
+          { "$ref": "#/components/schemas/Cat" },
+          { "$ref": "#/components/schemas/Dog" }
+        ]
+      }
+    }
+  }
+}

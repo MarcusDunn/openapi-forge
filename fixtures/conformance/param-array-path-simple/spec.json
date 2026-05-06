@@ -1,0 +1,26 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "param-array-path-simple", "version": "1" },
+  "servers": [{ "url": "https://api.example.com" }],
+  "paths": {
+    "/users/{ids}": {
+      "get": {
+        "operationId": "getUsers",
+        "parameters": [
+          {
+            "name": "ids",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        ],
+        "responses": {
+          "204": { "description": "ok" }
+        }
+      }
+    }
+  }
+}

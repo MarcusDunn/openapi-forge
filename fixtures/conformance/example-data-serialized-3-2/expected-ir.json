@@ -1,0 +1,94 @@
+{
+  "info": {
+    "title": "example-data-serialized-3-2",
+    "version": "1"
+  },
+  "operations": [
+    {
+      "id": "create",
+      "original_id": "create",
+      "method": "post",
+      "path_template": "/things",
+      "request_body": {
+        "content": [
+          {
+            "media_type": "application/json",
+            "type": "Thing",
+            "examples": [
+              [
+                "alice",
+                {
+                  "summary": "Alice",
+                  "data_value": 0,
+                  "serialized_value": "{\"name\":\"alice\"}"
+                }
+              ]
+            ]
+          }
+        ],
+        "required": false
+      },
+      "responses": [
+        {
+          "status": {
+            "kind": "explicit",
+            "code": 200
+          },
+          "documentation": "ok"
+        }
+      ],
+      "deprecated": false,
+      "location": {
+        "pointer": "/paths/~1things/post",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "types": [
+    {
+      "id": "Thing_property_name",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Thing/properties/name",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Thing",
+      "original_name": "Thing",
+      "definition": {
+        "def": "object",
+        "properties": [
+          {
+            "name": "name",
+            "type": "Thing_property_name",
+            "required": false,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          }
+        ],
+        "additional_properties": {
+          "kind": "any"
+        },
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Thing",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": [],
+  "values": [
+    {
+      "kind": "string",
+      "value": "alice"
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "info": {
+    "title": "body-octet-stream",
+    "version": "1"
+  },
+  "operations": [
+    {
+      "id": "uploadBlob",
+      "original_id": "uploadBlob",
+      "method": "post",
+      "path_template": "/blobs",
+      "request_body": {
+        "content": [
+          {
+            "media_type": "application/octet-stream",
+            "type": "uploadBlob_request_body"
+          }
+        ],
+        "required": true
+      },
+      "responses": [
+        {
+          "status": {
+            "kind": "explicit",
+            "code": 204
+          },
+          "documentation": "ok"
+        }
+      ],
+      "deprecated": false,
+      "servers": [
+        {
+          "url": "https://api.example.com"
+        }
+      ],
+      "location": {
+        "pointer": "/paths/~1blobs/post",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "types": [
+    {
+      "id": "uploadBlob_request_body",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {
+          "format_extension": "binary"
+        }
+      },
+      "location": {
+        "pointer": "/paths/~1blobs/post/requestBody/content/application~1octet-stream/schema",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": [
+    {
+      "url": "https://api.example.com"
+    }
+  ]
+}

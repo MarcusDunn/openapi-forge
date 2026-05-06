@@ -1,0 +1,296 @@
+//! Type-system pieces of the IR.
+//!
+//! Every named type lives in [`crate::Ir::types`] keyed by its sanitized [`NamedType::id`].
+//! [`TypeRef`] is just that string. This makes recursion trivial across the WIT
+//! boundary (no recursive records) and keeps the structure flat.
+
+use serde::{Deserialize, Serialize};
+
+use crate::diagnostic::SpecLocation;
+use crate::value::ValueRef;
+
+/// String id into [`crate::Ir::types`].
+pub type TypeRef = String;
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct NamedType {
+    pub id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub original_name: Option<String>,
+    /// Long-form schema description (`description` in JSON Schema).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub documentation: Option<String>,
+    /// Short human label (`title` in JSON Schema). Doc generators and IDE
+    /// hover surface it; populated verbatim, never derived.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// JSON Schema `readOnly` at the schema level. Generators that
+    /// distinguish request from response shapes can opt to drop
+    /// `read_only` types from their request surface.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub read_only: bool,
+    /// JSON Schema `writeOnly` at the schema level. Generators that
+    /// distinguish request from response shapes can opt to drop
+    /// `write_only` types from their response surface.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub write_only: bool,
+    /// Per-schema `externalDocs` (OAS Schema Object).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub external_docs: Option<crate::ExternalDocs>,
+    /// JSON Schema `default` at the schema level. `ValueRef` indexes
+    /// into [`crate::Ir::values`]; compound defaults are pooled there.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default: Option<ValueRef>,
+    /// OAS `example` / `examples` on the schema. Named entries; 3.0
+    /// `example: <literal>` lands under the synthetic key `"_default"`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub examples: Vec<(String, crate::Example)>,
+    /// OAS `xml` block — name override, namespace, prefix, attribute
+    /// placement, array wrapping. None unless the spec declared one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub xml: Option<crate::XmlObject>,
+    pub definition: TypeDef,
+    /// `x-*` extensions declared on the schema. Each entry pairs a key
+    /// with a [`ValueRef`] into [`crate::Ir::values`]; compound values
+    /// are pooled there.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub extensions: Vec<(String, ValueRef)>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub location: Option<SpecLocation>,
+}
+
+fn is_false(b: &bool) -> bool {
+    !*b
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "def", rename_all = "kebab-case")]
+pub enum TypeDef {
+    Primitive(PrimitiveType),
+    Object(ObjectType),
+    Array(ArrayType),
+    EnumString(EnumStringType),
+    EnumInt(EnumIntType),
+    Union(UnionType),
+    /// JSON's `null` as a unit type. The canonical singleton lives in
+    /// [`crate::Ir::types`] under id [`NULL_ID`]; `T | null` is expressed
+    /// as a [`UnionType`] whose variants list contains a `Null` reference
+    /// (canonicalized to last). See issue #107.
+    Null,
+}
+
+/// Canonical pool id for the [`TypeDef::Null`] singleton. See issue #107.
+pub const NULL_ID: &str = "null";
+
+// ---- primitives ----
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PrimitiveType {
+    pub kind: PrimitiveKind,
+    pub constraints: PrimitiveConstraints,
+}
+
+/// JSON Schema's `type` keyword values, minus the variants that have
+/// their own IR shapes (`object` / `array` / `null`). The `format`
+/// keyword and any width/semantic refinement (`int32` / `int64` /
+/// `float` / `double` / `date` / `uuid` / `byte` / `decimal` / etc.)
+/// land on [`PrimitiveConstraints::format_extension`] verbatim.
+/// Plugins decide whether to produce a richer target-language type
+/// based on the format string. This keeps the IR uniform and
+/// orthogonal — adding new formats never requires an IR/WIT/bindgen
+/// roundtrip.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum PrimitiveKind {
+    /// JSON Schema `type: "string"`.
+    String,
+    /// JSON Schema `type: "integer"`. Width refinements
+    /// (`int32` / `int64`) live in `format_extension`.
+    Integer,
+    /// JSON Schema `type: "number"`. Width refinements
+    /// (`float` / `double`) and `decimal` live in `format_extension`.
+    Number,
+    /// JSON Schema `type: "boolean"`.
+    Bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+pub struct PrimitiveConstraints {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub minimum: Option<ValueRef>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub maximum: Option<ValueRef>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub exclusive_minimum: Option<ValueRef>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub exclusive_maximum: Option<ValueRef>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub multiple_of: Option<ValueRef>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub min_length: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_length: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pattern: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub format_extension: Option<String>,
+    /// JSON Schema 2020-12 `contentEncoding` (e.g. `base64`,
+    /// `base32`). Describes how the string value is encoded; the
+    /// decoded payload may have its own media type and schema.
+    /// String-only — populated for `PrimitiveKind::String` schemas.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub content_encoding: Option<String>,
+    /// JSON Schema 2020-12 `contentMediaType` (e.g. `image/png`,
+    /// `application/json`). The media type of the decoded payload.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub content_media_type: Option<String>,
+    /// OAS 3.2 / JSON Schema 2020-12 `contentSchema` — schema for the
+    /// decoded payload (after applying `contentEncoding`). Carries a
+    /// `TypeRef` into [`crate::Ir::types`] so generators that decode
+    /// `contentEncoding` content can validate / shape it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub content_schema: Option<TypeRef>,
+}
+
+// ---- arrays ----
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ArrayType {
+    pub items: TypeRef,
+    pub constraints: ArrayConstraints,
+}
+
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+pub struct ArrayConstraints {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub min_items: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_items: Option<u64>,
+    #[serde(default)]
+    pub unique_items: bool,
+}
+
+// ---- objects ----
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ObjectType {
+    pub properties: Vec<Property>,
+    pub additional_properties: AdditionalProperties,
+    pub constraints: ObjectConstraints,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Property {
+    pub name: String,
+    #[serde(rename = "type")]
+    pub r#type: TypeRef,
+    /// `true` when the spec lists this property name in the parent
+    /// schema's `required` array. Moved here from
+    /// `ObjectType.required` for a uniform spelling with
+    /// `Parameter.required`.
+    #[serde(default)]
+    pub required: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub documentation: Option<String>,
+    #[serde(default)]
+    pub deprecated: bool,
+    #[serde(default)]
+    pub read_only: bool,
+    #[serde(default)]
+    pub write_only: bool,
+    /// JSON Schema `default` for the property. `ValueRef` indexes
+    /// into [`crate::Ir::values`]; compound defaults are pooled there.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default: Option<ValueRef>,
+    /// `x-*` extensions declared on the property's schema. Each entry
+    /// pairs a key with a [`ValueRef`] into [`crate::Ir::values`];
+    /// compound values are pooled there.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub extensions: Vec<(String, ValueRef)>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "kebab-case")]
+pub enum AdditionalProperties {
+    Forbidden,
+    Any,
+    Typed { r#type: TypeRef },
+}
+
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+pub struct ObjectConstraints {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub min_properties: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_properties: Option<u64>,
+}
+
+// ---- enums ----
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct EnumStringType {
+    pub values: Vec<EnumStringValue>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct EnumStringValue {
+    pub value: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub documentation: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct EnumIntType {
+    pub values: Vec<EnumIntValue>,
+    pub kind: IntKind,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct EnumIntValue {
+    pub value: i64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub documentation: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum IntKind {
+    Int32,
+    Int64,
+}
+
+// ---- unions ----
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct UnionType {
+    pub variants: Vec<UnionVariant>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub discriminator: Option<Discriminator>,
+    pub kind: UnionKind,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct UnionVariant {
+    #[serde(rename = "type")]
+    pub r#type: TypeRef,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tag: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum UnionKind {
+    OneOf,
+    AnyOf,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Discriminator {
+    pub property_name: String,
+    pub mapping: Vec<(String, TypeRef)>,
+    /// `x-*` extensions declared on the discriminator object. Each
+    /// entry pairs a key with a [`ValueRef`] into [`crate::Ir::values`];
+    /// compound extension values are pooled there.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub extensions: Vec<(String, ValueRef)>,
+}

@@ -1,0 +1,45 @@
+{
+  "info": {
+    "title": "split-doc-security-schemes",
+    "version": "1"
+  },
+  "operations": [
+    {
+      "id": "listItems",
+      "original_id": "listItems",
+      "method": "get",
+      "path_template": "/items",
+      "responses": [
+        {
+          "status": {
+            "kind": "explicit",
+            "code": 204
+          },
+          "documentation": "ok"
+        }
+      ],
+      "security": [
+        {
+          "scheme_id": "apiKeyAuth"
+        }
+      ],
+      "deprecated": false,
+      "location": {
+        "pointer": "/paths/~1items/get",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "types": [],
+  "security_schemes": [
+    {
+      "id": "apiKeyAuth",
+      "kind": {
+        "type": "api-key",
+        "name": "X-API-Key",
+        "location": "header"
+      }
+    }
+  ],
+  "servers": []
+}

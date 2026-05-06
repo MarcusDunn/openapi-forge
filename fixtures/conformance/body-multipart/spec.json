@@ -1,0 +1,46 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "body-multipart", "version": "1" },
+  "servers": [{ "url": "https://api.example.com" }],
+  "paths": {
+    "/upload": {
+      "post": {
+        "operationId": "uploadFile",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["file"],
+                "properties": {
+                  "file": { "type": "string", "format": "binary" },
+                  "metadata": { "type": "string" }
+                }
+              },
+              "encoding": {
+                "file": {
+                  "contentType": "image/png"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "uploaded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["id"],
+                  "properties": { "id": { "type": "string" } }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

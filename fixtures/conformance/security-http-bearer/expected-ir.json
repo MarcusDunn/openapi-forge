@@ -1,0 +1,96 @@
+{
+  "info": {
+    "title": "security-http-bearer",
+    "version": "1"
+  },
+  "operations": [
+    {
+      "id": "getMe",
+      "original_id": "getMe",
+      "method": "get",
+      "path_template": "/me",
+      "responses": [
+        {
+          "status": {
+            "kind": "explicit",
+            "code": 200
+          },
+          "content": [
+            {
+              "media_type": "application/json",
+              "type": "getMe_response_200"
+            }
+          ],
+          "documentation": "ok"
+        }
+      ],
+      "security": [
+        {
+          "scheme_id": "bearerAuth"
+        }
+      ],
+      "deprecated": false,
+      "servers": [
+        {
+          "url": "https://api.example.com"
+        }
+      ],
+      "location": {
+        "pointer": "/paths/~1me/get",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "types": [
+    {
+      "id": "getMe_response_200_property_id",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/paths/~1me/get/responses/200/content/application~1json/schema/properties/id",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "getMe_response_200",
+      "definition": {
+        "def": "object",
+        "properties": [
+          {
+            "name": "id",
+            "type": "getMe_response_200_property_id",
+            "required": true,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          }
+        ],
+        "additional_properties": {
+          "kind": "any"
+        },
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/paths/~1me/get/responses/200/content/application~1json/schema",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [
+    {
+      "id": "bearerAuth",
+      "kind": {
+        "type": "http-bearer",
+        "bearer_format": "JWT"
+      }
+    }
+  ],
+  "servers": [
+    {
+      "url": "https://api.example.com"
+    }
+  ]
+}

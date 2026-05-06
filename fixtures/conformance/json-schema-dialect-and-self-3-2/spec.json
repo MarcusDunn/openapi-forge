@@ -1,0 +1,7 @@
+{
+  "openapi": "3.2.0",
+  "$self": "https://example.com/api.json",
+  "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
+  "info": { "title": "json-schema-dialect-and-self-3-2", "version": "1" },
+  "paths": {}
+}

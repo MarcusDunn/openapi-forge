@@ -1,0 +1,88 @@
+{
+  "info": {
+    "title": "allof-flatten",
+    "version": "1"
+  },
+  "operations": [],
+  "types": [
+    {
+      "id": "Cat_allof_part_0_property_id",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Cat/allOf/0/properties/id",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Cat_allof_part_0_property_name",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Cat/allOf/0/properties/name",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Cat_allof_part_1_property_whiskers",
+      "definition": {
+        "def": "primitive",
+        "kind": "integer",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Cat/allOf/1/properties/whiskers",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Cat",
+      "original_name": "Cat",
+      "definition": {
+        "def": "object",
+        "properties": [
+          {
+            "name": "id",
+            "type": "Cat_allof_part_0_property_id",
+            "required": true,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          },
+          {
+            "name": "name",
+            "type": "Cat_allof_part_0_property_name",
+            "required": false,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          },
+          {
+            "name": "whiskers",
+            "type": "Cat_allof_part_1_property_whiskers",
+            "required": true,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          }
+        ],
+        "additional_properties": {
+          "kind": "any"
+        },
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Cat",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": []
+}

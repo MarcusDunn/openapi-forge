@@ -1,0 +1,17 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "additional-properties-typed", "version": "1" },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "Headers": {
+        "type": "object",
+        "additionalProperties": { "type": "string" }
+      },
+      "Counts": {
+        "type": "object",
+        "additionalProperties": { "type": "integer", "format": "int64" }
+      }
+    }
+  }
+}

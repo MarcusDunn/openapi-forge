@@ -1,0 +1,88 @@
+{
+  "info": {
+    "title": "param-query-allow-empty-value",
+    "version": "1"
+  },
+  "operations": [
+    {
+      "id": "search",
+      "original_id": "search",
+      "method": "get",
+      "path_template": "/search",
+      "query_params": [
+        {
+          "name": "q",
+          "type": "search_param_query_q",
+          "required": false,
+          "deprecated": false,
+          "style": "form",
+          "explode": true,
+          "allow_empty_value": true,
+          "allow_reserved": false,
+          "location": {
+            "pointer": "/paths/~1search/get/parameters/0",
+            "file": "spec.json"
+          }
+        }
+      ],
+      "header_params": [
+        {
+          "name": "X-Trace",
+          "type": "search_param_header_X_Trace",
+          "required": false,
+          "deprecated": false,
+          "style": "simple",
+          "explode": false,
+          "allow_empty_value": false,
+          "allow_reserved": false,
+          "location": {
+            "pointer": "/paths/~1search/get/parameters/1",
+            "file": "spec.json"
+          }
+        }
+      ],
+      "responses": [
+        {
+          "status": {
+            "kind": "explicit",
+            "code": 204
+          },
+          "documentation": "no content"
+        }
+      ],
+      "deprecated": false,
+      "location": {
+        "pointer": "/paths/~1search/get",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "types": [
+    {
+      "id": "search_param_header_X_Trace",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/paths/~1search/get/parameters/1/schema",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "search_param_query_q",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/paths/~1search/get/parameters/0/schema",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": []
+}

@@ -1,0 +1,8 @@
+{
+  "openapi": "3.2.0",
+  "info": { "title": "tag-parent-dangling", "version": "1" },
+  "tags": [
+    { "name": "cats", "parent": "no-such-tag" }
+  ],
+  "paths": {}
+}

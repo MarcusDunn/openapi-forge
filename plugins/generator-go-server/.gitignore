@@ -1,0 +1,16 @@
+# Build artifact.
+plugin.wasm
+
+# Plugin-local Go module cache + wit-bindgen-go install. See build.sh.
+.gopath/
+
+# Staged WIT tree, regenerated each build by build.sh from
+# `wit-source/world.wit` + the shared `forge:plugin` package + TinyGo's
+# bundled wasi-cli WIT. The only checked-in piece is `wit-source/`.
+wit/
+
+# Generated Go bindings (wit-bindgen-go output).
+internal/bindings/
+
+# Build serialization lock (see build.sh).
+.build.lock

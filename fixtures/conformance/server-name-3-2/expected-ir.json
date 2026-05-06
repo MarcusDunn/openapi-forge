@@ -1,0 +1,20 @@
+{
+  "info": {
+    "title": "server-name-3-2",
+    "version": "1"
+  },
+  "operations": [],
+  "types": [],
+  "security_schemes": [],
+  "servers": [
+    {
+      "url": "https://api.example.com",
+      "description": "Live production server",
+      "name": "production"
+    },
+    {
+      "url": "https://staging.example.com",
+      "name": "staging"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "null-only", "version": "1" },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "Maybe": { "type": "null" }
+    }
+  }
+}

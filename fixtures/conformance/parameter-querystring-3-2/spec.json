@@ -1,0 +1,20 @@
+{
+  "openapi": "3.2.0",
+  "info": { "title": "parameter-querystring-3-2", "version": "1" },
+  "paths": {
+    "/search": {
+      "get": {
+        "operationId": "search",
+        "parameters": [
+          {
+            "name": "raw",
+            "in": "querystring",
+            "schema": { "type": "string" },
+            "description": "the entire URL query string is passed through verbatim"
+          }
+        ],
+        "responses": { "200": { "description": "ok" } }
+      }
+    }
+  }
+}

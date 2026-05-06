@@ -1,0 +1,30 @@
+/// Code-generator world: IR → files + diagnostics.
+interface generator-api {
+    use types.{ir, plugin-info, diagnostic};
+    use stage.{stage-error};
+
+    info: func() -> plugin-info;
+    config-schema: func() -> string;
+
+    generate: func(spec: ir, config: string) -> result<generation-output, stage-error>;
+
+    record generation-output {
+        files: list<output-file>,
+        diagnostics: list<diagnostic>,
+    }
+
+    record output-file {
+        /// Relative path. The host validates against traversal, absolute paths,
+        /// and duplicates.
+        path: string,
+        content: list<u8>,
+        mode: file-mode,
+    }
+
+    enum file-mode { text, binary, executable }
+}
+
+world code-generator {
+    import host-api;
+    export generator-api;
+}

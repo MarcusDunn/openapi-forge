@@ -1,0 +1,25 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "components-pathitems-shared", "version": "1.0.0" },
+  "paths": {
+    "/items": {
+      "$ref": "#/components/pathItems/ItemsPath"
+    }
+  },
+  "components": {
+    "pathItems": {
+      "ItemsPath": {
+        "get": {
+          "operationId": "listItems",
+          "responses": { "200": { "description": "ok" } }
+        }
+      },
+      "UnusedPath": {
+        "get": {
+          "operationId": "unusedItems",
+          "responses": { "200": { "description": "ok" } }
+        }
+      }
+    }
+  }
+}

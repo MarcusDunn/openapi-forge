@@ -1,0 +1,22 @@
+{
+  "openapi": "3.2.0",
+  "info": { "title": "v3_2-query-method", "version": "1" },
+  "paths": {
+    "/items": {
+      "get": {
+        "operationId": "listItems",
+        "responses": {
+          "204": { "description": "ok" }
+        }
+      },
+      "additionalOperations": {
+        "QUERY": {
+          "operationId": "queryItems",
+          "responses": {
+            "204": { "description": "ok" }
+          }
+        }
+      }
+    }
+  }
+}

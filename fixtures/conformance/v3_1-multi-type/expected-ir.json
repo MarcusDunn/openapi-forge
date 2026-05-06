@@ -1,0 +1,108 @@
+{
+  "info": {
+    "title": "v3_1-multi-type",
+    "version": "1"
+  },
+  "operations": [],
+  "types": [
+    {
+      "id": "MaybeStringOrInt_variant_0",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/MaybeStringOrInt/type/0",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "MaybeStringOrInt_variant_1",
+      "definition": {
+        "def": "primitive",
+        "kind": "integer",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/MaybeStringOrInt/type/1",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "StringOrInt_variant_0",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/StringOrInt/type/0",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "StringOrInt_variant_1",
+      "definition": {
+        "def": "primitive",
+        "kind": "integer",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/StringOrInt/type/1",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "StringOrInt",
+      "original_name": "StringOrInt",
+      "definition": {
+        "def": "union",
+        "variants": [
+          {
+            "type": "StringOrInt_variant_0"
+          },
+          {
+            "type": "StringOrInt_variant_1"
+          }
+        ],
+        "kind": "one-of"
+      },
+      "location": {
+        "pointer": "/components/schemas/StringOrInt",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "null",
+      "definition": {
+        "def": "null"
+      }
+    },
+    {
+      "id": "MaybeStringOrInt",
+      "original_name": "MaybeStringOrInt",
+      "definition": {
+        "def": "union",
+        "variants": [
+          {
+            "type": "MaybeStringOrInt_variant_0"
+          },
+          {
+            "type": "MaybeStringOrInt_variant_1"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "kind": "one-of"
+      },
+      "location": {
+        "pointer": "/components/schemas/MaybeStringOrInt",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": []
+}

@@ -1,0 +1,164 @@
+{
+  "info": {
+    "title": "recursive-mutual",
+    "version": "1"
+  },
+  "operations": [],
+  "types": [
+    {
+      "id": "File_property_name",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/File/properties/name",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "File_property_size",
+      "definition": {
+        "def": "primitive",
+        "kind": "integer",
+        "constraints": {
+          "format_extension": "int64"
+        }
+      },
+      "location": {
+        "pointer": "/components/schemas/File/properties/size",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "File",
+      "original_name": "File",
+      "definition": {
+        "def": "object",
+        "properties": [
+          {
+            "name": "name",
+            "type": "File_property_name",
+            "required": true,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          },
+          {
+            "name": "size",
+            "type": "File_property_size",
+            "required": true,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          }
+        ],
+        "additional_properties": {
+          "kind": "any"
+        },
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/File",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Folder_property_name",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Folder/properties/name",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Entry",
+      "original_name": "Entry",
+      "definition": {
+        "def": "union",
+        "variants": [
+          {
+            "type": "Folder",
+            "tag": "folder"
+          },
+          {
+            "type": "File",
+            "tag": "file"
+          }
+        ],
+        "discriminator": {
+          "property_name": "kind",
+          "mapping": [
+            [
+              "file",
+              "File"
+            ],
+            [
+              "folder",
+              "Folder"
+            ]
+          ]
+        },
+        "kind": "one-of"
+      },
+      "location": {
+        "pointer": "/components/schemas/Entry",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Folder",
+      "original_name": "Folder",
+      "definition": {
+        "def": "object",
+        "properties": [
+          {
+            "name": "children",
+            "type": "Folder_property_children",
+            "required": false,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          },
+          {
+            "name": "name",
+            "type": "Folder_property_name",
+            "required": true,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          }
+        ],
+        "additional_properties": {
+          "kind": "any"
+        },
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Folder",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Folder_property_children",
+      "definition": {
+        "def": "array",
+        "items": "Entry",
+        "constraints": {
+          "unique_items": false
+        }
+      },
+      "location": {
+        "pointer": "/components/schemas/Folder/properties/children",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": []
+}

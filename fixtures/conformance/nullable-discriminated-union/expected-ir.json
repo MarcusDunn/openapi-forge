@@ -1,0 +1,169 @@
+{
+  "info": {
+    "title": "nullable-discriminated-union",
+    "version": "1"
+  },
+  "operations": [],
+  "types": [
+    {
+      "id": "Cat_property_kind",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Cat/properties/kind",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Cat_property_purrs",
+      "definition": {
+        "def": "primitive",
+        "kind": "bool",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Cat/properties/purrs",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Cat",
+      "original_name": "Cat",
+      "definition": {
+        "def": "object",
+        "properties": [
+          {
+            "name": "kind",
+            "type": "Cat_property_kind",
+            "required": true,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          },
+          {
+            "name": "purrs",
+            "type": "Cat_property_purrs",
+            "required": false,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          }
+        ],
+        "additional_properties": {
+          "kind": "any"
+        },
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Cat",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Dog_property_barks",
+      "definition": {
+        "def": "primitive",
+        "kind": "bool",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Dog/properties/barks",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Dog_property_kind",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Dog/properties/kind",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Dog",
+      "original_name": "Dog",
+      "definition": {
+        "def": "object",
+        "properties": [
+          {
+            "name": "barks",
+            "type": "Dog_property_barks",
+            "required": false,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          },
+          {
+            "name": "kind",
+            "type": "Dog_property_kind",
+            "required": true,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          }
+        ],
+        "additional_properties": {
+          "kind": "any"
+        },
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Dog",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "null",
+      "definition": {
+        "def": "null"
+      }
+    },
+    {
+      "id": "Pet",
+      "original_name": "Pet",
+      "definition": {
+        "def": "union",
+        "variants": [
+          {
+            "type": "Cat",
+            "tag": "cat"
+          },
+          {
+            "type": "Dog",
+            "tag": "dog"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "discriminator": {
+          "property_name": "kind",
+          "mapping": [
+            [
+              "cat",
+              "Cat"
+            ],
+            [
+              "dog",
+              "Dog"
+            ]
+          ]
+        },
+        "kind": "one-of"
+      },
+      "location": {
+        "pointer": "/components/schemas/Pet",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": []
+}

@@ -1,0 +1,9 @@
+/target
+**/target/
+**/*.rs.bk
+*.swp
+.direnv/
+result
+result-*
+.DS_Store
+/.claude/

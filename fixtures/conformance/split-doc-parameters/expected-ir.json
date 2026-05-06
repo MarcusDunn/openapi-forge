@@ -1,0 +1,90 @@
+{
+  "info": {
+    "title": "split-doc-parameters",
+    "version": "1"
+  },
+  "operations": [
+    {
+      "id": "listItems",
+      "original_id": "listItems",
+      "method": "get",
+      "path_template": "/items",
+      "query_params": [
+        {
+          "name": "page",
+          "type": "listItems_param_query_page",
+          "required": false,
+          "deprecated": false,
+          "style": "form",
+          "explode": true,
+          "allow_empty_value": false,
+          "allow_reserved": false,
+          "location": {
+            "pointer": "/paths/~1items/get/parameters/0",
+            "file": "spec.json"
+          }
+        },
+        {
+          "name": "pageSize",
+          "type": "listItems_param_query_pageSize",
+          "required": false,
+          "deprecated": false,
+          "style": "form",
+          "explode": true,
+          "allow_empty_value": false,
+          "allow_reserved": false,
+          "location": {
+            "pointer": "/paths/~1items/get/parameters/1",
+            "file": "spec.json"
+          }
+        }
+      ],
+      "responses": [
+        {
+          "status": {
+            "kind": "explicit",
+            "code": 204
+          },
+          "documentation": "ok"
+        }
+      ],
+      "deprecated": false,
+      "location": {
+        "pointer": "/paths/~1items/get",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "types": [
+    {
+      "id": "listItems_param_query_page",
+      "definition": {
+        "def": "primitive",
+        "kind": "integer",
+        "constraints": {
+          "format_extension": "int32"
+        }
+      },
+      "location": {
+        "pointer": "/paths/~1items/get/parameters/0/schema",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "listItems_param_query_pageSize",
+      "definition": {
+        "def": "primitive",
+        "kind": "integer",
+        "constraints": {
+          "format_extension": "int32"
+        }
+      },
+      "location": {
+        "pointer": "/paths/~1items/get/parameters/1/schema",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": []
+}

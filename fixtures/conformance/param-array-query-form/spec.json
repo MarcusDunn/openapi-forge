@@ -1,0 +1,25 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "param-array-query-form", "version": "1" },
+  "servers": [{ "url": "https://api.example.com" }],
+  "paths": {
+    "/items": {
+      "get": {
+        "operationId": "listItems",
+        "parameters": [
+          {
+            "name": "ids",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": { "type": "integer", "format": "int32" }
+            }
+          }
+        ],
+        "responses": {
+          "204": { "description": "ok" }
+        }
+      }
+    }
+  }
+}

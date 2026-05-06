@@ -1,0 +1,18 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "nullable-primitive", "version": "1" },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "Profile": {
+        "type": "object",
+        "required": ["id", "nickname"],
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "nickname": { "type": "string", "nullable": true },
+          "bio": { "type": "string", "nullable": true }
+        }
+      }
+    }
+  }
+}

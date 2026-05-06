@@ -1,0 +1,11 @@
+[
+  {
+    "severity": "warning",
+    "code": "parser/W-REF-SIBLINGS-3-0",
+    "message": "schema declares `$ref` together with sibling keys (description); OAS 3.0 forbids siblings on `$ref`. Dropping siblings — promote to OpenAPI 3.1+ to keep them.",
+    "location": {
+      "pointer": "/components/schemas/Pet",
+      "file": "spec.json"
+    }
+  }
+]

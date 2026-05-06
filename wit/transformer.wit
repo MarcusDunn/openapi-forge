@@ -1,0 +1,28 @@
+/// IR-transformer world: IR → IR + diagnostics.
+///
+/// Validators are degenerate transformers that return their input unchanged
+/// and use diagnostics to communicate findings.
+interface transformer-api {
+    use types.{ir, plugin-info, diagnostic};
+    use stage.{stage-error};
+
+    /// Plugin metadata (name and version).
+    info: func() -> plugin-info;
+
+    /// JSON Schema string describing accepted plugin config.
+    config-schema: func() -> string;
+
+    /// Apply the transformation. `config` is JSON; the host has already
+    /// validated it against `config-schema`.
+    transform: func(spec: ir, config: string) -> result<transform-output, stage-error>;
+
+    record transform-output {
+        spec: ir,
+        diagnostics: list<diagnostic>,
+    }
+}
+
+world ir-transformer {
+    import host-api;
+    export transformer-api;
+}

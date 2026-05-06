@@ -1,0 +1,48 @@
+{
+  "info": {
+    "title": "security-mutual-tls",
+    "version": "1"
+  },
+  "operations": [
+    {
+      "id": "getMe",
+      "original_id": "getMe",
+      "method": "get",
+      "path_template": "/me",
+      "responses": [
+        {
+          "status": {
+            "kind": "explicit",
+            "code": 200
+          },
+          "documentation": "ok"
+        }
+      ],
+      "deprecated": false,
+      "servers": [
+        {
+          "url": "https://api.example.com"
+        }
+      ],
+      "location": {
+        "pointer": "/paths/~1me/get",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "types": [],
+  "security_schemes": [
+    {
+      "id": "mtls",
+      "kind": {
+        "type": "mutual-tls"
+      },
+      "documentation": "Client cert auth — provisioning lives at the transport layer."
+    }
+  ],
+  "servers": [
+    {
+      "url": "https://api.example.com"
+    }
+  ]
+}

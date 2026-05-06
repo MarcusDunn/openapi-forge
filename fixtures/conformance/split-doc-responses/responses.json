@@ -1,0 +1,17 @@
+{
+  "Error": {
+    "description": "An error occurred",
+    "content": {
+      "application/json": {
+        "schema": {
+          "type": "object",
+          "required": ["code", "message"],
+          "properties": {
+            "code": { "type": "integer" },
+            "message": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}

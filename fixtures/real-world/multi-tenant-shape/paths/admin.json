@@ -1,0 +1,41 @@
+{
+  "/api/org/{tenant}/v1/admin/users": {
+    "get": {
+      "operationId": "listUsers",
+      "parameters": [
+        { "$ref": "../components/parameters.json#/TenantSlug" },
+        { "$ref": "../components/parameters.json#/Limit" },
+        { "$ref": "../components/parameters.json#/Page" }
+      ],
+      "responses": {
+        "200": {
+          "description": "ok",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "../components/schemas.json#/UserList" }
+            }
+          }
+        },
+        "default": { "$ref": "../components/responses.json#/Error" }
+      }
+    },
+    "post": {
+      "operationId": "createUser",
+      "parameters": [
+        { "$ref": "../components/parameters.json#/TenantSlug" }
+      ],
+      "requestBody": { "$ref": "../components/requestBodies.json#/CreateUser" },
+      "responses": {
+        "201": {
+          "description": "created",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "../components/schemas.json#/User" }
+            }
+          }
+        },
+        "default": { "$ref": "../components/responses.json#/Error" }
+      }
+    }
+  }
+}

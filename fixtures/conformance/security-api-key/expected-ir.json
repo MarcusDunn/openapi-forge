@@ -1,0 +1,88 @@
+{
+  "info": {
+    "title": "security-api-key",
+    "version": "1"
+  },
+  "operations": [
+    {
+      "id": "listItems",
+      "original_id": "listItems",
+      "method": "get",
+      "path_template": "/items",
+      "responses": [
+        {
+          "status": {
+            "kind": "explicit",
+            "code": 200
+          },
+          "content": [
+            {
+              "media_type": "application/json",
+              "type": "listItems_response_200"
+            }
+          ],
+          "documentation": "ok"
+        }
+      ],
+      "security": [
+        {
+          "scheme_id": "apiKeyAuth"
+        }
+      ],
+      "deprecated": false,
+      "servers": [
+        {
+          "url": "https://api.example.com"
+        }
+      ],
+      "location": {
+        "pointer": "/paths/~1items/get",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "types": [
+    {
+      "id": "listItems_response_200_items",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/paths/~1items/get/responses/200/content/application~1json/schema/items",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "listItems_response_200",
+      "definition": {
+        "def": "array",
+        "items": "listItems_response_200_items",
+        "constraints": {
+          "unique_items": false
+        }
+      },
+      "location": {
+        "pointer": "/paths/~1items/get/responses/200/content/application~1json/schema",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [
+    {
+      "id": "apiKeyAuth",
+      "kind": {
+        "type": "api-key",
+        "name": "X-API-Key",
+        "location": "header"
+      },
+      "documentation": "Static API key issued in the developer portal."
+    }
+  ],
+  "servers": [
+    {
+      "url": "https://api.example.com"
+    }
+  ]
+}

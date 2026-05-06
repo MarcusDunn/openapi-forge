@@ -1,0 +1,48 @@
+{
+  "info": {
+    "title": "security-openid-connect",
+    "version": "1.0.0"
+  },
+  "operations": [
+    {
+      "id": "getMe",
+      "original_id": "getMe",
+      "method": "get",
+      "path_template": "/me",
+      "responses": [
+        {
+          "status": {
+            "kind": "explicit",
+            "code": 200
+          },
+          "documentation": "ok"
+        }
+      ],
+      "security": [
+        {
+          "scheme_id": "oidc",
+          "scopes": [
+            "openid",
+            "profile"
+          ]
+        }
+      ],
+      "deprecated": false,
+      "location": {
+        "pointer": "/paths/~1me/get",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "types": [],
+  "security_schemes": [
+    {
+      "id": "oidc",
+      "kind": {
+        "type": "open-id-connect",
+        "url": "https://auth.example.com/.well-known/openid-configuration"
+      }
+    }
+  ],
+  "servers": []
+}

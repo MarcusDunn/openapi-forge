@@ -1,0 +1,51 @@
+{
+  "info": {
+    "title": "split-doc-paths",
+    "version": "1"
+  },
+  "operations": [
+    {
+      "id": "createPet",
+      "original_id": "createPet",
+      "method": "post",
+      "path_template": "/pets",
+      "responses": [
+        {
+          "status": {
+            "kind": "explicit",
+            "code": 204
+          },
+          "documentation": "ok"
+        }
+      ],
+      "deprecated": false,
+      "location": {
+        "pointer": "/paths/~1pets/post",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "listPets",
+      "original_id": "listPets",
+      "method": "get",
+      "path_template": "/pets",
+      "responses": [
+        {
+          "status": {
+            "kind": "explicit",
+            "code": 204
+          },
+          "documentation": "ok"
+        }
+      ],
+      "deprecated": false,
+      "location": {
+        "pointer": "/paths/~1pets/get",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "types": [],
+  "security_schemes": [],
+  "servers": []
+}

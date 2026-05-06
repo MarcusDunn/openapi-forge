@@ -1,0 +1,29 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "allof-with-ref", "version": "1" },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "Animal": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" }
+        }
+      },
+      "Dog": {
+        "allOf": [
+          { "$ref": "#/components/schemas/Animal" },
+          {
+            "type": "object",
+            "required": ["breed"],
+            "properties": {
+              "breed": { "type": "string" }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

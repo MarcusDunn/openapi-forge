@@ -1,0 +1,27 @@
+[package]
+name = "forge-host"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "WASM plugin runtime for OpenAPI Forge"
+
+[lints]
+workspace = true
+
+[dependencies]
+forge-ir = { workspace = true }
+forge-ir-bindgen = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+wasmtime = { workspace = true }
+wasmtime-wasi = { workspace = true }
+indexmap = { workspace = true }
+
+[dev-dependencies]
+forge-ir = { workspace = true, features = ["proptest"] }
+proptest = { workspace = true }
+pretty_assertions = { workspace = true }

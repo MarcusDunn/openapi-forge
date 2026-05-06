@@ -1,0 +1,23 @@
+[package]
+name = "forge-ir-bindgen"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "WIT bindings for the forge plugin worlds, plus conversions to/from forge-ir"
+
+[lints]
+workspace = true
+
+[dependencies]
+forge-ir = { workspace = true }
+serde = { workspace = true }
+wasmtime = { workspace = true }
+indexmap = { workspace = true }
+
+[dev-dependencies]
+forge-ir = { workspace = true, features = ["proptest"] }
+proptest = { workspace = true }
+serde_json = { workspace = true }
+pretty_assertions = { workspace = true }

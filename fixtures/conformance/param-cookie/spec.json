@@ -1,0 +1,28 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "param-cookie", "version": "1" },
+  "servers": [{ "url": "https://api.example.com" }],
+  "paths": {
+    "/me": {
+      "get": {
+        "operationId": "getMe",
+        "parameters": [
+          {
+            "name": "session",
+            "in": "cookie",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "trace",
+            "in": "cookie",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "204": { "description": "ok" }
+        }
+      }
+    }
+  }
+}

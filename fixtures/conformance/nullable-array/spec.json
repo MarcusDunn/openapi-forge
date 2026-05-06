@@ -1,0 +1,14 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "nullable-array", "version": "1" },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "Tags": {
+        "type": "array",
+        "nullable": true,
+        "items": { "type": "string" }
+      }
+    }
+  }
+}

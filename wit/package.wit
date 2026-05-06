@@ -1,0 +1,6 @@
+/// OpenAPI Forge plugin contract.
+///
+/// Pre-1.0: this contract is unstable. Plugins must be built against a matching
+/// `forge-ir` / `forge-plugin-sdk` version. Mismatches surface as WIT type
+/// errors at component load time.
+package forge:plugin@0.1.0;

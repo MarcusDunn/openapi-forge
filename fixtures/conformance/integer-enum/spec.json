@@ -1,0 +1,19 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "integer-enum", "version": "1" },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "Priority": {
+        "type": "integer",
+        "format": "int32",
+        "enum": [1, 2, 3, 5, 8]
+      },
+      "BigPriority": {
+        "type": "integer",
+        "format": "int64",
+        "enum": [100, 200, 300]
+      }
+    }
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "split-doc-component-schema-ref", "version": "1" },
+  "paths": {
+    "/pets/{id}": {
+      "get": {
+        "operationId": "getPet",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Pet" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Pet": { "$ref": "schemas.json#/Pet" }
+    }
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "info": {
+    "title": "nullable-array",
+    "version": "1"
+  },
+  "operations": [],
+  "types": [
+    {
+      "id": "Tags_items",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Tags/items",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Tags_nonnull",
+      "definition": {
+        "def": "array",
+        "items": "Tags_items",
+        "constraints": {
+          "unique_items": false
+        }
+      },
+      "location": {
+        "pointer": "/components/schemas/Tags",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "null",
+      "definition": {
+        "def": "null"
+      }
+    },
+    {
+      "id": "Tags",
+      "original_name": "Tags",
+      "definition": {
+        "def": "union",
+        "variants": [
+          {
+            "type": "Tags_nonnull"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "kind": "one-of"
+      },
+      "location": {
+        "pointer": "/components/schemas/Tags",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": []
+}

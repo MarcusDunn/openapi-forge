@@ -1,0 +1,14 @@
+[package]
+name = "generator-strict-fixture"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Test fixture: rejects specs with multipart request bodies via StageError::Rejected. Not a production plugin."
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+forge-plugin-sdk = { workspace = true, features = ["generator"] }

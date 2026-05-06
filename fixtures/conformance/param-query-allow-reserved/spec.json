@@ -1,0 +1,23 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "param-query-allow-reserved", "version": "1" },
+  "paths": {
+    "/follow": {
+      "get": {
+        "operationId": "follow",
+        "parameters": [
+          {
+            "name": "redirect_uri",
+            "in": "query",
+            "required": true,
+            "allowReserved": true,
+            "schema": { "type": "string", "format": "uri" }
+          }
+        ],
+        "responses": {
+          "302": { "description": "redirected" }
+        }
+      }
+    }
+  }
+}

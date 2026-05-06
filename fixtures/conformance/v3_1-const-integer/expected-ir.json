@@ -1,0 +1,28 @@
+{
+  "info": {
+    "title": "v3_1-const-integer",
+    "version": "1"
+  },
+  "operations": [],
+  "types": [
+    {
+      "id": "ApiVersion",
+      "original_name": "ApiVersion",
+      "definition": {
+        "def": "enum-int",
+        "values": [
+          {
+            "value": 2
+          }
+        ],
+        "kind": "int32"
+      },
+      "location": {
+        "pointer": "/components/schemas/ApiVersion",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": []
+}

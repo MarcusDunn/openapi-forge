@@ -1,0 +1,41 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "recursive-mutual", "version": "1" },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "Folder": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string" },
+          "children": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Entry" }
+          }
+        }
+      },
+      "File": {
+        "type": "object",
+        "required": ["name", "size"],
+        "properties": {
+          "name": { "type": "string" },
+          "size": { "type": "integer", "format": "int64" }
+        }
+      },
+      "Entry": {
+        "oneOf": [
+          { "$ref": "#/components/schemas/Folder" },
+          { "$ref": "#/components/schemas/File" }
+        ],
+        "discriminator": {
+          "propertyName": "kind",
+          "mapping": {
+            "folder": "#/components/schemas/Folder",
+            "file": "#/components/schemas/File"
+          }
+        }
+      }
+    }
+  }
+}

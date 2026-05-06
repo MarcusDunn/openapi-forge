@@ -1,0 +1,27 @@
+[package]
+name = "forge-ir"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "OpenAPI Forge intermediate representation types"
+
+[lints]
+workspace = true
+
+[features]
+default = []
+# Exposes `proptest_util` strategies. Off by default so that downstream crates
+# that only need IR types do not pull `proptest` in.
+proptest = ["dep:proptest"]
+
+[dependencies]
+serde = { workspace = true }
+indexmap = { workspace = true }
+proptest = { workspace = true, optional = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+proptest = { workspace = true }
+pretty_assertions = { workspace = true }

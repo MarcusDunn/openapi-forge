@@ -1,0 +1,34 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "servers-override",
+    "version": "1.0.0"
+  },
+  "servers": [
+    { "url": "https://root.example.com" }
+  ],
+  "paths": {
+    "/inherits-root": {
+      "get": {
+        "operationId": "inheritsRoot",
+        "responses": { "204": { "description": "ok" } }
+      }
+    },
+    "/path-item-override": {
+      "servers": [
+        { "url": "https://path.example.com" }
+      ],
+      "get": {
+        "operationId": "inheritsPathItem",
+        "responses": { "204": { "description": "ok" } }
+      },
+      "post": {
+        "operationId": "operationOverride",
+        "servers": [
+          { "url": "https://op.example.com", "description": "Op-level override." }
+        ],
+        "responses": { "204": { "description": "ok" } }
+      }
+    }
+  }
+}

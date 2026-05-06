@@ -1,0 +1,58 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "response-links", "version": "1.0.0" },
+  "paths": {
+    "/users/{id}": {
+      "get": {
+        "operationId": "getUserById",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "links": {
+              "address": {
+                "operationId": "getAddressById",
+                "parameters": {
+                  "addressId": "$response.body#/addressId"
+                },
+                "description": "Look up the user's primary address."
+              },
+              "shared": {
+                "$ref": "#/components/links/SharedLink"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/addresses/{addressId}": {
+      "get": {
+        "operationId": "getAddressById",
+        "parameters": [
+          {
+            "name": "addressId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "ok" } }
+      }
+    }
+  },
+  "components": {
+    "links": {
+      "SharedLink": {
+        "operationRef": "#/paths/~1addresses~1{addressId}/get",
+        "description": "Shared link defined at components.links."
+      }
+    }
+  }
+}

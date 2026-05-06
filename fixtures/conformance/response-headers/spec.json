@@ -1,0 +1,43 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "response-headers",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/items": {
+      "get": {
+        "operationId": "listItems",
+        "responses": {
+          "200": {
+            "description": "ok",
+            "headers": {
+              "X-Rate-Limit-Remaining": {
+                "description": "Calls remaining in this window.",
+                "required": true,
+                "schema": { "type": "integer", "format": "int32" }
+              },
+              "X-Rate-Limit-Reset": { "$ref": "#/components/headers/RateLimitReset" }
+            }
+          },
+          "default": {
+            "description": "error",
+            "headers": {
+              "X-Request-Id": {
+                "schema": { "type": "string", "format": "uuid" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "headers": {
+      "RateLimitReset": {
+        "description": "Unix epoch seconds when the rate-limit window resets.",
+        "schema": { "type": "integer", "format": "int64" }
+      }
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "split-doc-security-schemes", "version": "1" },
+  "security": [{ "apiKeyAuth": [] }],
+  "paths": {
+    "/items": {
+      "get": {
+        "operationId": "listItems",
+        "responses": {
+          "204": { "description": "ok" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": { "$ref": "securitySchemes.json#/apiKeyAuth" }
+    }
+  }
+}

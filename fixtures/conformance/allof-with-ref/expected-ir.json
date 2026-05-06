@@ -1,0 +1,121 @@
+{
+  "info": {
+    "title": "allof-with-ref",
+    "version": "1"
+  },
+  "operations": [],
+  "types": [
+    {
+      "id": "Animal_property_id",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Animal/properties/id",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Animal_property_name",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Animal/properties/name",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Animal",
+      "original_name": "Animal",
+      "definition": {
+        "def": "object",
+        "properties": [
+          {
+            "name": "id",
+            "type": "Animal_property_id",
+            "required": true,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          },
+          {
+            "name": "name",
+            "type": "Animal_property_name",
+            "required": false,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          }
+        ],
+        "additional_properties": {
+          "kind": "any"
+        },
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Animal",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Dog_allof_part_1_property_breed",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Dog/allOf/1/properties/breed",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Dog",
+      "original_name": "Dog",
+      "definition": {
+        "def": "object",
+        "properties": [
+          {
+            "name": "id",
+            "type": "Animal_property_id",
+            "required": true,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          },
+          {
+            "name": "name",
+            "type": "Animal_property_name",
+            "required": false,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          },
+          {
+            "name": "breed",
+            "type": "Dog_allof_part_1_property_breed",
+            "required": true,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          }
+        ],
+        "additional_properties": {
+          "kind": "any"
+        },
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Dog",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": []
+}

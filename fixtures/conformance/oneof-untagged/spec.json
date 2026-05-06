@@ -1,0 +1,16 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "oneof-untagged", "version": "1" },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "StringOrInt": {
+        "description": "Either a string or an integer.",
+        "oneOf": [
+          { "type": "string" },
+          { "type": "integer" }
+        ]
+      }
+    }
+  }
+}

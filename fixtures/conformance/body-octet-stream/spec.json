@@ -1,0 +1,23 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "body-octet-stream", "version": "1" },
+  "servers": [{ "url": "https://api.example.com" }],
+  "paths": {
+    "/blobs": {
+      "post": {
+        "operationId": "uploadBlob",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": { "type": "string", "format": "binary" }
+            }
+          }
+        },
+        "responses": {
+          "204": { "description": "ok" }
+        }
+      }
+    }
+  }
+}

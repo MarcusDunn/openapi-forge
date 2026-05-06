@@ -1,0 +1,13 @@
+{
+  "info": {
+    "title": "v3_1-info-summary-license",
+    "version": "1",
+    "summary": "Short description for the API.",
+    "license_name": "Apache-2.0",
+    "license_identifier": "Apache-2.0"
+  },
+  "operations": [],
+  "types": [],
+  "security_schemes": [],
+  "servers": []
+}

@@ -1,0 +1,51 @@
+name: Fuzz (nightly)
+
+# Deeper fuzz pass than the per-PR smoke job in ci.yml. Runs every parser
+# fuzz target for several minutes; uploads any artifacts cargo-fuzz emits
+# (crash inputs, leaks) so a maintainer can triage them and commit the
+# minimized samples into `crates/forge-parser/tests/fuzz_regressions/`.
+#
+# See docs/fuzzing.md.
+
+on:
+  schedule:
+    # 06:00 UTC daily. Adjust if it collides with another scheduled job.
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [parse_str_bytes, parse_str_structured, transformer_output_ir]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: fuzz
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-fuzz
+      - name: Seed corpus from in-tree fixtures
+        if: matrix.target != 'parse_str_structured'
+        run: bash fuzz/seed-corpus.sh ${{ matrix.target }}
+      - name: Fuzz ${{ matrix.target }} (10 min)
+        working-directory: fuzz
+        run: cargo fuzz run ${{ matrix.target }} -- -max_total_time=600
+      - name: Upload artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-artifacts-${{ matrix.target }}
+          path: |
+            fuzz/artifacts/${{ matrix.target }}/
+            fuzz/corpus/${{ matrix.target }}/
+          if-no-files-found: ignore
+          retention-days: 14

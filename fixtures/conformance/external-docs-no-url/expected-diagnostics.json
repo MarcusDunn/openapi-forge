@@ -1,0 +1,11 @@
+[
+  {
+    "severity": "warning",
+    "code": "parser/W-EXTERNAL-DOCS-NO-URL",
+    "message": "externalDocs is missing required `url`; dropping the block.",
+    "location": {
+      "pointer": "/externalDocs",
+      "file": "spec.json"
+    }
+  }
+]

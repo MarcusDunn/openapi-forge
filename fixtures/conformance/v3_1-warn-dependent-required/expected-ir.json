@@ -1,0 +1,27 @@
+{
+  "info": {
+    "title": "v3_1-error-dependent-required",
+    "version": "1"
+  },
+  "operations": [],
+  "types": [
+    {
+      "id": "Bad",
+      "original_name": "Bad",
+      "definition": {
+        "def": "object",
+        "properties": [],
+        "additional_properties": {
+          "kind": "any"
+        },
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Bad",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": []
+}

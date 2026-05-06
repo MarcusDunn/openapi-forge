@@ -1,0 +1,47 @@
+[package]
+name = "forge-plugin-itests"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Integration tests for in-tree OpenAPI Forge plugins, exercised through the WIT boundary via forge-test-harness."
+publish = false
+
+[lints]
+workspace = true
+
+# This crate is tests-only. The library is empty — every assertion lives in
+# `tests/<plugin>.rs` and goes through `forge_test_harness::PluginRunner`.
+# See ADR-0004 and `docs/plugin-authoring.md` for the rationale.
+
+[features]
+# Real-world smoke tests against trimmed Stripe / GitHub fixtures. Off by
+# default because the test invokes `tsc` and `cargo check` on generated
+# output (slow, requires those tools on PATH). CI runs them via the
+# dedicated `real-world` job; see `.github/workflows/ci.yml`.
+real-world = []
+# Integration test for the Go-language reference plugin
+# (plugins/generator-go-server). Off by default because the test invokes
+# build.sh — which needs `tinygo` + `go` + a one-time
+# `go install go.bytecodealliance.org/cmd/wit-bindgen-go` — and shells out
+# to `go build` on the generated output. CI runs them via the dedicated
+# `plugin-go-server` job. Tracking issue: #58.
+go-server = []
+# Integration test for the TypeScript-language reference plugin
+# (plugins/generator-typescript-cli). Off by default because the test
+# invokes build.sh — which needs `node` + `npm` and pulls jco /
+# componentize-js / esbuild / typescript into a plugin-local
+# node_modules. The acceptance subtests also `npm install` and `tsc` the
+# generated output. CI runs them via the dedicated `plugin-typescript-cli`
+# job. Tracking issue: #58.
+typescript-cli = []
+
+[dev-dependencies]
+forge-parser = { workspace = true }
+forge-ir = { workspace = true }
+forge-host = { workspace = true }
+forge-test-harness = { workspace = true }
+serde_json = { workspace = true }
+pretty_assertions = { workspace = true }
+tempfile = { workspace = true }

@@ -1,0 +1,157 @@
+{
+  "info": {
+    "title": "callbacks",
+    "version": "1.0.0"
+  },
+  "operations": [
+    {
+      "id": "newEventCallback",
+      "original_id": "newEventCallback",
+      "method": "post",
+      "path_template": "{$request.body#/callbackUrl}",
+      "request_body": {
+        "content": [
+          {
+            "media_type": "application/json",
+            "type": "newEventCallback_request_body"
+          }
+        ],
+        "required": true
+      },
+      "responses": [
+        {
+          "status": {
+            "kind": "explicit",
+            "code": 200
+          },
+          "documentation": "callback ack"
+        }
+      ],
+      "deprecated": false,
+      "location": {
+        "pointer": "/paths/~1subscribe/post/callbacks/newEvent/{$request.body#~1callbackUrl}/post",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "sharedCallback",
+      "original_id": "sharedCallback",
+      "method": "post",
+      "path_template": "{$request.body#/sharedUrl}",
+      "responses": [
+        {
+          "status": {
+            "kind": "explicit",
+            "code": 200
+          },
+          "documentation": "ack"
+        }
+      ],
+      "deprecated": false,
+      "location": {
+        "pointer": "/paths/~1subscribe/post/callbacks/shared/{$request.body#~1sharedUrl}/post",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "subscribe",
+      "original_id": "subscribe",
+      "method": "post",
+      "path_template": "/subscribe",
+      "request_body": {
+        "content": [
+          {
+            "media_type": "application/json",
+            "type": "subscribe_request_body"
+          }
+        ],
+        "required": true
+      },
+      "responses": [
+        {
+          "status": {
+            "kind": "explicit",
+            "code": 200
+          },
+          "documentation": "subscribed"
+        }
+      ],
+      "deprecated": false,
+      "callbacks": [
+        {
+          "name": "newEvent",
+          "expression": "{$request.body#/callbackUrl}",
+          "operation_ids": [
+            "newEventCallback"
+          ]
+        },
+        {
+          "name": "shared",
+          "expression": "{$request.body#/sharedUrl}",
+          "operation_ids": [
+            "sharedCallback"
+          ]
+        }
+      ],
+      "location": {
+        "pointer": "/paths/~1subscribe/post",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "types": [
+    {
+      "id": "newEventCallback_request_body",
+      "definition": {
+        "def": "object",
+        "properties": [],
+        "additional_properties": {
+          "kind": "any"
+        },
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/paths/~1subscribe/post/callbacks/newEvent/{$request.body#~1callbackUrl}/post/requestBody/content/application~1json/schema",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "subscribe_request_body_property_callbackUrl",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/paths/~1subscribe/post/requestBody/content/application~1json/schema/properties/callbackUrl",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "subscribe_request_body",
+      "definition": {
+        "def": "object",
+        "properties": [
+          {
+            "name": "callbackUrl",
+            "type": "subscribe_request_body_property_callbackUrl",
+            "required": true,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          }
+        ],
+        "additional_properties": {
+          "kind": "any"
+        },
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/paths/~1subscribe/post/requestBody/content/application~1json/schema",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": []
+}

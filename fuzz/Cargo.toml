@@ -1,0 +1,43 @@
+[package]
+name = "forge-fuzz"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+# Stand alone — the host workspace at the repo root excludes `fuzz/` (see
+# the comment in the root Cargo.toml). Declaring an empty `[workspace]`
+# table here also makes cargo-fuzz work cleanly when the repo is checked
+# out inside another workspace (e.g. as a git worktree under `.claude/`).
+[workspace]
+
+[dependencies]
+libfuzzer-sys = "0.4"
+arbitrary = { version = "1", features = ["derive"] }
+serde_json = "1"
+forge-parser = { path = "../crates/forge-parser" }
+forge-ir = { path = "../crates/forge-ir" }
+forge-ir-bindgen = { path = "../crates/forge-ir-bindgen" }
+
+[[bin]]
+name = "parse_str_bytes"
+path = "fuzz_targets/parse_str_bytes.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "parse_str_structured"
+path = "fuzz_targets/parse_str_structured.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "transformer_output_ir"
+path = "fuzz_targets/transformer_output_ir.rs"
+test = false
+doc = false
+bench = false

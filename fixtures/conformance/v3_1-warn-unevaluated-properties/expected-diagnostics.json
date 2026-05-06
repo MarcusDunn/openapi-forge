@@ -1,0 +1,11 @@
+[
+  {
+    "severity": "warning",
+    "code": "parser/W-UNEVALUATED-PROPERTIES-DROPPED",
+    "message": "`unevaluatedProperties` (JSON Schema 2020-12) is not yet surfaced; dropping",
+    "location": {
+      "pointer": "/components/schemas/Bad/unevaluatedProperties",
+      "file": "spec.json"
+    }
+  }
+]

@@ -1,0 +1,24 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "security-http-basic", "version": "1" },
+  "servers": [{ "url": "https://api.example.com" }],
+  "security": [{ "basicAuth": [] }],
+  "paths": {
+    "/admin/health": {
+      "get": {
+        "operationId": "adminHealth",
+        "responses": {
+          "204": { "description": "ok" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "basicAuth": {
+        "type": "http",
+        "scheme": "basic"
+      }
+    }
+  }
+}

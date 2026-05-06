@@ -1,0 +1,12 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "v3_1-nullable-type-array", "version": "1" },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "MaybeName": {
+        "type": ["string", "null"]
+      }
+    }
+  }
+}

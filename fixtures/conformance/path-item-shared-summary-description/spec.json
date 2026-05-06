@@ -1,0 +1,26 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "path-item-shared-summary-description",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/widgets": {
+      "summary": "Widget collection",
+      "description": "All widgets the caller can see.",
+      "get": {
+        "operationId": "listWidgets",
+        "responses": {
+          "200": { "description": "ok" }
+        }
+      },
+      "post": {
+        "operationId": "createWidget",
+        "description": "Create one widget. Operation-level description wins.",
+        "responses": {
+          "201": { "description": "created" }
+        }
+      }
+    }
+  }
+}

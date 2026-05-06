@@ -1,0 +1,60 @@
+{
+  "info": {
+    "title": "allof-conflict",
+    "version": "1"
+  },
+  "operations": [],
+  "types": [
+    {
+      "id": "Conflict_allof_part_0_property_value",
+      "definition": {
+        "def": "primitive",
+        "kind": "string",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Conflict/allOf/0/properties/value",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Conflict_allof_part_1_property_value",
+      "definition": {
+        "def": "primitive",
+        "kind": "integer",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Conflict/allOf/1/properties/value",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Conflict",
+      "original_name": "Conflict",
+      "definition": {
+        "def": "object",
+        "properties": [
+          {
+            "name": "value",
+            "type": "Conflict_allof_part_1_property_value",
+            "required": false,
+            "deprecated": false,
+            "read_only": false,
+            "write_only": false
+          }
+        ],
+        "additional_properties": {
+          "kind": "any"
+        },
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Conflict",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": []
+}

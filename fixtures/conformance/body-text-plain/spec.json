@@ -1,0 +1,23 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "body-text-plain", "version": "1" },
+  "servers": [{ "url": "https://api.example.com" }],
+  "paths": {
+    "/notes": {
+      "post": {
+        "operationId": "writeNote",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "text/plain": {
+              "schema": { "type": "string" }
+            }
+          }
+        },
+        "responses": {
+          "204": { "description": "ok" }
+        }
+      }
+    }
+  }
+}
