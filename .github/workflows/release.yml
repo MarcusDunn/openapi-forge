@@ -35,7 +35,7 @@ env:
     forge-host
     forge-pipeline
     forge-test-harness
-    forge-cli
+    openapi-forge-cli
 
 jobs:
   # ----------------------------------------------------------------------
@@ -180,10 +180,13 @@ jobs:
           dry_run: ${{ env.DRY_RUN }}
           cargo_token: ${{ steps.cargo_auth.outputs.token }}
 
-      - name: Package, attest, and publish forge-cli
+      # The `forge-cli` package name was taken on crates.io (Aptos Move
+      # tooling), so this crate ships as `openapi-forge-cli`. The installed
+      # binary is still `forge`. Directory remains crates/forge-cli.
+      - name: Package, attest, and publish openapi-forge-cli
         uses: ./.github/actions/publish-crate
         with:
-          crate: forge-cli
+          crate: openapi-forge-cli
           version: ${{ env.VERSION }}
           dry_run: ${{ env.DRY_RUN }}
           cargo_token: ${{ steps.cargo_auth.outputs.token }}
