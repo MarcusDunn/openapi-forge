@@ -81,25 +81,15 @@ jobs:
   # via .github/workflows/fuzz.yml. See docs/fuzzing.md.
   fuzz-smoke:
     runs-on: ubuntu-latest
-    # cargo-fuzz ≥ 0.13 builds against `x86_64-unknown-linux-musl` so
-    # libFuzzer's sanitizer runtime can dynamic-link cleanly. The musl
-    # target defaults to `crt-static`, which AddressSanitizer rejects —
-    # override RUSTFLAGS to disable it. The C compiler for that target
-    # is `musl-gcc` (from the `musl-tools` apt package); cc-rs looks up
-    # `x86_64-linux-musl-gcc` by default, so point it at `musl-gcc`
-    # explicitly via the per-target CC env var.
-    env:
-      RUSTFLAGS: -C target-feature=-crt-static -D warnings
-      CC_x86_64_unknown_linux_musl: musl-gcc
+    # cargo-fuzz ≥ 0.13 defaults to `x86_64-unknown-linux-musl`, which
+    # would need both `musl-gcc` and `musl-g++` (libfuzzer-sys's build
+    # script compiles C++) — Ubuntu only ships the C half via the
+    # `musl-tools` package. The gnu target works out-of-the-box for
+    # libFuzzer + AddressSanitizer here, so pin `--target` explicitly
+    # on every `cargo fuzz run` call below.
     steps:
       - uses: actions/checkout@v4
-      - name: Install musl toolchain
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y musl-tools
       - uses: dtolnay/rust-toolchain@nightly
-        with:
-          targets: x86_64-unknown-linux-musl
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: fuzz
@@ -110,13 +100,13 @@ jobs:
         run: bash fuzz/seed-corpus.sh
       - name: Fuzz parse_str_bytes (60s)
         working-directory: fuzz
-        run: cargo fuzz run parse_str_bytes -- -runs=10000 -max_total_time=60
+        run: cargo fuzz run --target x86_64-unknown-linux-gnu parse_str_bytes -- -runs=10000 -max_total_time=60
       - name: Fuzz parse_str_structured (60s)
         working-directory: fuzz
-        run: cargo fuzz run parse_str_structured -- -runs=10000 -max_total_time=60
+        run: cargo fuzz run --target x86_64-unknown-linux-gnu parse_str_structured -- -runs=10000 -max_total_time=60
       - name: Fuzz transformer_output_ir (60s)
         working-directory: fuzz
-        run: cargo fuzz run transformer_output_ir -- -runs=10000 -max_total_time=60
+        run: cargo fuzz run --target x86_64-unknown-linux-gnu transformer_output_ir -- -runs=10000 -max_total_time=60
 
   # MVP-gate smoke tests. For each fixture under `fixtures/real-world/`,
   # parse the spec and run it through both generators, then assert the
