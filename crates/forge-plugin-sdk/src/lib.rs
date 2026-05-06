@@ -148,7 +148,7 @@ pub mod transformer {
     //! call [`export!`] with their type.
     wit_bindgen::generate!({
         world: "ir-transformer",
-        path: "../../wit",
+        path: "wit",
         pub_export_macro: true,
         export_macro_name: "export",
     });
@@ -160,7 +160,7 @@ pub mod generator {
     //! call [`export!`] with their type.
     wit_bindgen::generate!({
         world: "code-generator",
-        path: "../../wit",
+        path: "wit",
         pub_export_macro: true,
         export_macro_name: "export",
     });
