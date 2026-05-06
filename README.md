@@ -59,6 +59,26 @@ dir = "out"
 Anonymous registries only in v1; see `docs/adr/0010-oci-plugin-distribution.md`
 for the cache layout, accepted layer media types, and roadmap.
 
+### Config-less invocation
+
+For one-off runs (CI scripts, ad-hoc generation), pass the pipeline shape
+directly on the command line and skip `forge.toml` entirely:
+
+```sh
+forge generate \
+  -i openapi.json \
+  --transformer ./plugins/my-transformer.wasm \
+  --transformer ghcr.io/example/redact:1.2.0 \
+  --generator  ghcr.io/marcusdunn/typescript-fetch:0.1.0 \
+  -o out
+```
+
+`--transformer` is repeatable and runs in order. Each `--transformer` /
+`--generator` value is auto-detected as a filesystem path or an OCI ref
+(if it ends in `.wasm` or names an existing file, it's a path).
+Per-plugin config defaults to `{}`; reach for `forge.toml` when you need
+to pass `config = { ... }` blocks.
+
 The full project plan lives in the issue tracker / project documentation;
 this README intentionally summarises rather than duplicates.
 

@@ -1,13 +1,20 @@
 //! `forge` CLI.
 //!
-//! Two input modes:
+//! Two configuration modes:
 //!
-//! - `[input] spec = "openapi.json"` — parse an OpenAPI 3.0 JSON spec
-//!   through `forge-parser`, then run the pipeline.
-//! - `[input] ir = "ir.json"` — load a canonical `forge_ir::Ir` directly
-//!   (debugging escape hatch; bypasses the parser).
+//! - **Project mode** — read `forge.toml` from the project directory.
+//!   Supports per-plugin config blocks and is the recommended layout
+//!   for repeatable runs.
+//! - **Config-less mode** — pass `--input`/`--ir`, `--transformer`,
+//!   `--generator`, and `--out` directly on the command line. Useful
+//!   for one-off runs and shell scripting; per-plugin config defaults
+//!   to `{}`. Triggered when `--input` or `--ir` is set.
 //!
-//! Configuration lives in `forge.toml` next to the project.
+//! Two input modes (orthogonal to the above):
+//!
+//! - spec — parse an OpenAPI 3.0 JSON document through `forge-parser`.
+//! - ir — load a canonical `forge_ir::Ir` directly (debugging escape
+//!   hatch; bypasses the parser).
 
 use std::path::{Path, PathBuf};
 
@@ -27,13 +34,31 @@ struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Cmd {
-    /// Run the configured pipeline against a project directory.
+    /// Run the configured pipeline.
+    ///
+    /// Without `--input`, reads `forge.toml` from `<project>` (project
+    /// mode). With `--input`, builds the config from CLI flags and
+    /// ignores `forge.toml` (config-less mode). The pre-parsed IR input
+    /// form is reachable via `[input] ir = "..."` in `forge.toml`.
     Generate {
-        /// Project directory containing `forge.toml`.
+        /// Project directory containing `forge.toml`. Used as the path
+        /// resolution base in project mode. Ignored in config-less mode.
         #[arg(default_value = ".")]
         project: PathBuf,
-        /// Override `[output] dir` from `forge.toml`.
-        #[arg(long)]
+        /// OpenAPI 3.0 JSON spec. Triggers config-less mode.
+        #[arg(short = 'i', long = "input", value_name = "SPEC")]
+        input: Option<PathBuf>,
+        /// Transformer plugin (`.wasm` path or OCI ref). Repeat to chain.
+        /// Config-less mode only.
+        #[arg(long = "transformer", value_name = "REF")]
+        transformer: Vec<String>,
+        /// Generator plugin (`.wasm` path or OCI ref). Required in
+        /// config-less mode.
+        #[arg(long = "generator", value_name = "REF")]
+        generator: Option<String>,
+        /// Output directory. Required in config-less mode; overrides
+        /// `[output] dir` from `forge.toml` in project mode.
+        #[arg(short = 'o', long = "out")]
         out: Option<PathBuf>,
     },
     /// Print the version of the IR contract this CLI was built against.
@@ -130,6 +155,10 @@ enum CliError {
     Output(#[from] forge_host::filesystem::OutputError),
     #[error("io: {0}")]
     Io(#[from] std::io::Error),
+    #[error("--generator is required in config-less mode (when --input or --ir is set)")]
+    MissingGenerator,
+    #[error("--out is required in config-less mode (when --input or --ir is set)")]
+    MissingOut,
 }
 
 fn main() {
@@ -143,7 +172,21 @@ fn main() {
 
     let cli = Cli::parse();
     let result = match cli.command {
-        Cmd::Generate { project, out } => generate(&project, out.as_deref()),
+        Cmd::Generate {
+            project,
+            input,
+            transformer,
+            generator,
+            out,
+        } => match input {
+            Some(spec) => generate_from_args(
+                spec,
+                &transformer,
+                generator.as_deref(),
+                out.as_deref(),
+            ),
+            None => generate_from_project(&project, out.as_deref()),
+        },
         Cmd::IrVersion => {
             println!("{}", env!("CARGO_PKG_VERSION"));
             Ok(())
@@ -160,14 +203,69 @@ fn main() {
     }
 }
 
-fn generate(project: &Path, out_override: Option<&Path>) -> Result<(), CliError> {
+/// Project mode: read `forge.toml` from `project`, then run.
+fn generate_from_project(project: &Path, out_override: Option<&Path>) -> Result<(), CliError> {
     let manifest_path = project.join("forge.toml");
     let manifest_str = std::fs::read_to_string(&manifest_path).map_err(|e| CliError::Read {
         path: manifest_path.clone(),
         source: e,
     })?;
     let cfg: Project = toml::from_str(&manifest_str)?;
+    run_generate(project, &cfg, out_override)
+}
 
+/// Config-less mode: build a `Project` from CLI flags. Plugin paths
+/// are resolved relative to the current working directory.
+fn generate_from_args(
+    spec: PathBuf,
+    transformer: &[String],
+    generator: Option<&str>,
+    out_override: Option<&Path>,
+) -> Result<(), CliError> {
+    let generator = generator.ok_or(CliError::MissingGenerator)?;
+    let out_dir = out_override.ok_or(CliError::MissingOut)?.to_path_buf();
+
+    let cfg = Project {
+        input: Input::Spec { spec },
+        transformers: transformer
+            .iter()
+            .map(|s| PluginRef {
+                source: parse_plugin_arg(s),
+                config: empty_config(),
+            })
+            .collect(),
+        generator: PluginRef {
+            source: parse_plugin_arg(generator),
+            config: empty_config(),
+        },
+        output: Output {
+            dir: out_dir.clone(),
+        },
+    };
+
+    // In config-less mode, paths in CLI args are relative to CWD; pass
+    // `.` as the resolution base. The output dir is already absolute or
+    // CWD-relative, so we forward it as the override too.
+    run_generate(Path::new("."), &cfg, Some(&out_dir))
+}
+
+/// `s` is either a `.wasm` path on disk or an OCI reference. Heuristic:
+/// if it ends in `.wasm` or names an existing file, treat as a path;
+/// otherwise treat as an OCI ref. The OCI puller will surface a parse
+/// error if the string is neither.
+fn parse_plugin_arg(s: &str) -> PluginSource {
+    let path = Path::new(s);
+    let looks_like_wasm = s.ends_with(".wasm") || path.is_file();
+    if looks_like_wasm {
+        PluginSource::Wasm {
+            wasm: path.to_path_buf(),
+        }
+    } else {
+        PluginSource::Oci { oci: s.to_owned() }
+    }
+}
+
+fn run_generate(project: &Path, cfg: &Project, out_override: Option<&Path>) -> Result<(), CliError> {
     let ir = load_ir(project, &cfg.input)?;
 
     let engine = Engine::new().map_err(|e| CliError::Engine(e.to_string()))?;
