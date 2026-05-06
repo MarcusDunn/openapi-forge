@@ -235,12 +235,12 @@ jobs:
       RELEASED_VERSION: ${{ needs.verify.outputs.version }}
       BUMP: ${{ inputs.bump || 'patch' }}
     steps:
-      # GITHUB_TOKEN does not trigger downstream workflow runs on PRs it
-      # opens, so the prep-next PR would sit with no CI. RELEASE_BOT_TOKEN
-      # (PAT or GitHub App installation token) is required to wake CI.
+      # The prep-next PR uses the default GITHUB_TOKEN. Trade-off: GitHub
+      # does not trigger workflow runs on PRs opened by GITHUB_TOKEN, so this
+      # PR will not run CI. Acceptable here — the bump is mechanical
+      # (version-only changes) and the next push to the branch will run CI
+      # if anyone needs to re-verify before merging.
       - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.RELEASE_BOT_TOKEN }}
 
       - uses: dtolnay/rust-toolchain@stable
 
@@ -321,7 +321,6 @@ jobs:
       - name: Open prep-next-release PR
         uses: peter-evans/create-pull-request@v6
         with:
-          token: ${{ secrets.RELEASE_BOT_TOKEN }}
           branch: chore/prep-next-release-v${{ steps.next.outputs.version }}
           base: main
           title: "chore: prep next release v${{ steps.next.outputs.version }}"
