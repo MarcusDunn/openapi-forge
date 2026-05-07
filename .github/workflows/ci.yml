@@ -25,7 +25,7 @@ jobs:
   fmt:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
@@ -38,7 +38,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
@@ -52,7 +52,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       # The reqwest acceptance test (`generated_petstore_crate_cargo_checks`)
       # writes a generated crate to a tempdir and runs `cargo check` on it.
       # By default that creates a fresh `target/` inside the tempdir, so
@@ -67,7 +67,7 @@ jobs:
           targets: wasm32-wasip2
       - uses: Swatinem/rust-cache@v2
       - name: Cache itest cargo-check target dir
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/forge-itest-target
           key: forge-itest-target-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
@@ -85,7 +85,7 @@ jobs:
     env:
       RUSTDOCFLAGS: -D warnings
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - run: cargo doc --workspace --no-deps
@@ -93,7 +93,7 @@ jobs:
   wit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: taiki-e/install-action@v2
         with:
           tool: wasm-tools
@@ -113,7 +113,7 @@ jobs:
     # libFuzzer + AddressSanitizer here, so pin `--target` explicitly
     # on every `cargo fuzz run` call below.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@nightly
       - uses: Swatinem/rust-cache@v2
         with:
@@ -141,7 +141,7 @@ jobs:
   real-world:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       # See note in the `test` job — same `cargo check` per-tempdir pattern,
       # same redirect to a cached path so reqwest+tokio+serde build once.
       - name: Set itest target dir
@@ -151,13 +151,13 @@ jobs:
           targets: wasm32-wasip2
       - uses: Swatinem/rust-cache@v2
       - name: Cache itest cargo-check target dir
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/forge-itest-target
           key: forge-itest-target-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
           restore-keys: forge-itest-target-${{ runner.os }}-
       - uses: taiki-e/install-action@nextest
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: "20"
       - run: npm install -g typescript@5
@@ -173,7 +173,7 @@ jobs:
   plugin-go-server:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       # `tinygo build -target=wasip2` shells out to `wasm-tools component
@@ -181,12 +181,12 @@ jobs:
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-nextest,wasm-tools
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: "1.24"
       - name: Cache TinyGo install
         id: tinygo-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             /usr/local/lib/tinygo
@@ -210,7 +210,7 @@ jobs:
   plugin-typescript-cli:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - uses: taiki-e/install-action@nextest
@@ -219,7 +219,7 @@ jobs:
       # subtest installs the generated CLI's deps in a fresh tempdir) inherit
       # the same cacache directory, so they hit cached tarballs instead of
       # re-downloading on every run.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: "22"
           cache: "npm"
@@ -234,7 +234,7 @@ jobs:
   determinism:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-wasip2
