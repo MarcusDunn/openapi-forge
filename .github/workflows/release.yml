@@ -47,7 +47,7 @@ jobs:
     outputs:
       version: ${{ steps.versions.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Resolve target version
         id: versions
@@ -117,7 +117,7 @@ jobs:
       VERSION: ${{ needs.verify.outputs.version }}
       DRY_RUN: ${{ inputs.dry_run && 'true' || 'false' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -257,7 +257,7 @@ jobs:
       VERSION: ${{ needs.verify.outputs.version }}
       MEDIA_TYPE: application/vnd.bytecodealliance.wasm.component.layer.v0+wasm
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       # OCI repository names must be lowercase, but ${{ github.repository_owner }}
       # preserves the literal case (e.g. "MarcusDunn"), which oras rejects as
@@ -279,7 +279,7 @@ jobs:
           cargo build --release --target wasm32-wasip2 \
             --manifest-path plugins/${{ matrix.plugin }}/Cargo.toml
 
-      - uses: oras-project/setup-oras@v1
+      - uses: oras-project/setup-oras@v2
 
       - name: Login to GHCR
         env:
@@ -322,7 +322,7 @@ jobs:
       # would hash the local wasm file — that's the layer-blob digest, not
       # the manifest digest, and the action's referrer write would 404 at
       # the registry.
-      - uses: actions/attest-build-provenance@v2
+      - uses: actions/attest-build-provenance@v4
         with:
           subject-name: ${{ env.IMAGE }}
           subject-digest: ${{ steps.push.outputs.digest }}
@@ -349,7 +349,7 @@ jobs:
       # PR will not run CI. Acceptable here — the bump is mechanical
       # (version-only changes) and the next push to the branch will run CI
       # if anyone needs to re-verify before merging.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: dtolnay/rust-toolchain@stable
 
@@ -439,7 +439,7 @@ jobs:
           echo "version=$new_version" >>"$GITHUB_OUTPUT"
 
       - name: Open prep-next-release PR
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v8
         with:
           branch: chore/prep-next-release-v${{ steps.next.outputs.version }}
           base: main
