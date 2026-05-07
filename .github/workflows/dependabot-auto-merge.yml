@@ -1,0 +1,36 @@
+name: Dependabot auto-merge
+
+# Auto-merge Dependabot PRs once required CI checks pass. The actual
+# "wait for CI" gate is enforced by GitHub auto-merge, which requires:
+#   1. Repo setting "Allow auto-merge" enabled.
+#   2. Branch protection (or a ruleset) on `main` requiring CI checks
+#      (fmt, clippy, test, doc, wit, real-world, determinism, etc.).
+# Without (2), auto-merge will merge as soon as the PR is mergeable —
+# i.e. without waiting on CI. With both in place, the PR sits until the
+# required checks go green.
+#
+# Major-version bumps are intentionally left for manual review.
+
+on: pull_request
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  dependabot:
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]'
+    steps:
+      - name: Fetch Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enable auto-merge for minor and patch updates
+        if: steps.metadata.outputs.update-type == 'version-update:semver-patch' || steps.metadata.outputs.update-type == 'version-update:semver-minor'
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
