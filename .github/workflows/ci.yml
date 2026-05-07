@@ -47,19 +47,21 @@ jobs:
 
   test:
     runs-on: ${{ matrix.os }}
-    # The reqwest acceptance test (`generated_petstore_crate_cargo_checks`)
-    # writes a generated crate to a tempdir and runs `cargo check` on it.
-    # By default that creates a fresh `target/` inside the tempdir, so
-    # reqwest+tokio+serde compile from scratch every run. Redirect via this
-    # env so the test code can pass `--target-dir` to a cacheable path.
-    env:
-      FORGE_ITEST_CARGO_TARGET_DIR: ${{ runner.temp }}/forge-itest-target
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
+      # The reqwest acceptance test (`generated_petstore_crate_cargo_checks`)
+      # writes a generated crate to a tempdir and runs `cargo check` on it.
+      # By default that creates a fresh `target/` inside the tempdir, so
+      # reqwest+tokio+serde compile from scratch every run. Redirect via this
+      # env so the test code can pass `--target-dir` to a cacheable path.
+      # Set in a step (not job-level env) because the `runner` context is
+      # only available inside steps.
+      - name: Set itest target dir
+        run: echo "FORGE_ITEST_CARGO_TARGET_DIR=$HOME/.cache/forge-itest-target" >> "$GITHUB_ENV"
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-wasip2
@@ -67,7 +69,7 @@ jobs:
       - name: Cache itest cargo-check target dir
         uses: actions/cache@v4
         with:
-          path: ${{ runner.temp }}/forge-itest-target
+          path: ~/.cache/forge-itest-target
           key: forge-itest-target-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
           restore-keys: forge-itest-target-${{ runner.os }}-
       - uses: taiki-e/install-action@nextest
@@ -138,12 +140,12 @@ jobs:
   # heavyweight (pulls reqwest and friends through cargo check).
   real-world:
     runs-on: ubuntu-latest
-    # See note in the `test` job — same `cargo check` per-tempdir pattern,
-    # same redirect to a cached path so reqwest+tokio+serde build once.
-    env:
-      FORGE_ITEST_CARGO_TARGET_DIR: ${{ runner.temp }}/forge-itest-target
     steps:
       - uses: actions/checkout@v4
+      # See note in the `test` job — same `cargo check` per-tempdir pattern,
+      # same redirect to a cached path so reqwest+tokio+serde build once.
+      - name: Set itest target dir
+        run: echo "FORGE_ITEST_CARGO_TARGET_DIR=$HOME/.cache/forge-itest-target" >> "$GITHUB_ENV"
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-wasip2
@@ -151,7 +153,7 @@ jobs:
       - name: Cache itest cargo-check target dir
         uses: actions/cache@v4
         with:
-          path: ${{ runner.temp }}/forge-itest-target
+          path: ~/.cache/forge-itest-target
           key: forge-itest-target-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
           restore-keys: forge-itest-target-${{ runner.os }}-
       - uses: taiki-e/install-action@nextest
