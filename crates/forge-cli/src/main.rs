@@ -420,7 +420,7 @@ fn validate_config(
         })?;
     let errors: Vec<String> = validator
         .iter_errors(config)
-        .map(|e| format!("{} (at {})", e, e.instance_path))
+        .map(|e| format!("{} (at {})", e, e.instance_path()))
         .collect();
     if !errors.is_empty() {
         return Err(CliError::ConfigValidation {
