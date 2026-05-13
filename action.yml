@@ -1,9 +1,5 @@
 name: 'Setup openapi-forge'
-description: >-
-  Download, verify, and cache the openapi-forge CLI. Requires the gh CLI
-  (pre-installed on all GitHub-hosted runners). Supported platforms:
-  Linux x86_64 (ubuntu-latest) and macOS ARM64 (macos-latest). Other
-  runner/architecture combinations will fail with an explicit error.
+description: 'Download, verify, and cache the openapi-forge CLI from GitHub Releases via gh.'
 
 branding:
   icon: 'package'
