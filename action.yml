@@ -1,5 +1,8 @@
 name: 'Setup openapi-forge'
-description: 'Download, verify, and cache the openapi-forge CLI.'
+description: >-
+  Download, verify, and cache the openapi-forge CLI. Supported platforms:
+  Linux x86_64 (ubuntu-latest) and macOS ARM64 (macos-latest). Other
+  runner/architecture combinations will fail with an explicit error.
 
 branding:
   icon: 'package'
@@ -7,27 +10,36 @@ branding:
 
 inputs:
   version:
-    description: 'Forge version to install (e.g. "0.1.11"). Default: latest release.'
+    description: >-
+      Forge version to install (e.g. "0.1.11" or "v0.1.11"; the leading v
+      is stripped automatically). Default: latest release.
     required: false
     default: 'latest'
   github-token:
-    description: 'Token for GitHub API requests (avoids rate limits when resolving "latest").'
+    description: >-
+      Token for GitHub API requests and attestation verification. Defaults
+      to the calling workflow's automatic GITHUB_TOKEN (not
+      secrets.GITHUB_TOKEN — the two are equivalent but the expression
+      form works in action input defaults).
     required: false
     default: ${{ github.token }}
 
 outputs:
   version:
     description: 'The exact version that was installed.'
-    value: ${{ steps.install.outputs.version }}
+    value: ${{ steps.resolve.outputs.version }}
   cache-hit:
-    description: 'Whether the binary was found in the tool cache.'
-    value: ${{ steps.install.outputs.cache-hit }}
+    description: 'Whether the binary was restored from the GitHub Actions cache.'
+    value: ${{ steps.cache.outputs.cache-hit }}
 
 runs:
   using: 'composite'
   steps:
-    - name: Install forge
-      id: install
+    # ------------------------------------------------------------------
+    # 1. Resolve the target version and detect the runner platform.
+    # ------------------------------------------------------------------
+    - name: Resolve version and platform
+      id: resolve
       shell: bash
       env:
         FORGE_VERSION: ${{ inputs.version }}
@@ -37,71 +49,122 @@ runs:
 
         repo="MarcusDunn/openapi-forge"
 
-        # Resolve version
         if [ "$FORGE_VERSION" = "latest" ]; then
-          version=$(gh api "repos/$repo/releases/latest" --jq '.tag_name | ltrimstr("v")')
+          if command -v gh >/dev/null 2>&1; then
+            version=$(gh api "repos/$repo/releases/latest" --jq '.tag_name | ltrimstr("v")')
+          else
+            version=$(curl -fsSL --retry 3 --connect-timeout 10 \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/$repo/releases/latest" \
+              | sed -n 's/.*"tag_name": *"v\{0,1\}\([^"]*\)".*/\1/p')
+          fi
+          [ -n "$version" ] || { echo "::error::Failed to resolve latest forge version"; exit 1; }
         else
           version="${FORGE_VERSION#v}"
         fi
-        echo "version=$version" >>"$GITHUB_OUTPUT"
 
-        # Detect platform
         case "$RUNNER_OS" in
           Linux)
             case "$RUNNER_ARCH" in
               X64) target="x86_64-unknown-linux-gnu" ;;
-              *)   echo "::error::Unsupported architecture on Linux: $RUNNER_ARCH"; exit 1 ;;
+              *)   echo "::error::Unsupported Linux architecture: $RUNNER_ARCH (only X64 has release binaries)"; exit 1 ;;
             esac ;;
           macOS)
             case "$RUNNER_ARCH" in
               ARM64) target="aarch64-apple-darwin" ;;
-              *)     echo "::error::Unsupported architecture on macOS: $RUNNER_ARCH"; exit 1 ;;
+              *)     echo "::error::Unsupported macOS architecture: $RUNNER_ARCH (only ARM64 has release binaries)"; exit 1 ;;
             esac ;;
           *)
-            echo "::error::Unsupported OS: $RUNNER_OS"
+            echo "::error::Unsupported OS: $RUNNER_OS (only Linux and macOS have release binaries)"
             exit 1 ;;
         esac
 
-        # Check tool cache
-        cache_dir="$RUNNER_TOOL_CACHE/forge/$version/$RUNNER_ARCH"
-        if [ -x "$cache_dir/forge" ]; then
-          echo "cache-hit=true" >>"$GITHUB_OUTPUT"
-          echo "$cache_dir" >>"$GITHUB_PATH"
-          echo "::notice::forge v${version} (cached)"
-          exit 0
-        fi
-        echo "cache-hit=false" >>"$GITHUB_OUTPUT"
+        cache_dir="$RUNNER_TOOL_CACHE/forge/$version/$target"
 
-        # Download
-        base_url="https://github.com/$repo/releases/download/v${version}"
-        archive="forge-v${version}-${target}.tar.gz"
-        checksums="forge-v${version}-SHA256SUMS"
+        echo "version=$version"     >>"$GITHUB_OUTPUT"
+        echo "target=$target"       >>"$GITHUB_OUTPUT"
+        echo "cache-dir=$cache_dir" >>"$GITHUB_OUTPUT"
+        echo "cache-key=forge-${version}-${target}" >>"$GITHUB_OUTPUT"
+
+    # ------------------------------------------------------------------
+    # 2. Restore from the cross-run GitHub Actions cache.
+    # ------------------------------------------------------------------
+    - name: Restore cached binary
+      id: cache
+      uses: actions/cache@v4
+      with:
+        path: ${{ steps.resolve.outputs.cache-dir }}
+        key: ${{ steps.resolve.outputs.cache-key }}
+
+    # ------------------------------------------------------------------
+    # 3. On cache miss: download, verify checksum + attestation, install.
+    # ------------------------------------------------------------------
+    - name: Download, verify, and install
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        VERSION: ${{ steps.resolve.outputs.version }}
+        TARGET: ${{ steps.resolve.outputs.target }}
+        CACHE_DIR: ${{ steps.resolve.outputs.cache-dir }}
+      run: |
+        set -euo pipefail
+
+        repo="MarcusDunn/openapi-forge"
+        base_url="https://github.com/$repo/releases/download/v${VERSION}"
+        archive="forge-v${VERSION}-${TARGET}.tar.gz"
+        checksums="forge-v${VERSION}-SHA256SUMS"
 
         tmp=$(mktemp -d)
         trap 'rm -rf "$tmp"' EXIT
 
-        echo "::group::Download forge v${version} (${target})"
+        echo "::group::Download forge v${VERSION} (${TARGET})"
         curl -fsSL --retry 3 --retry-connrefused --connect-timeout 10 \
           -o "$tmp/$archive" "$base_url/$archive"
         curl -fsSL --retry 3 --retry-connrefused --connect-timeout 10 \
           -o "$tmp/$checksums" "$base_url/$checksums"
         echo "::endgroup::"
 
-        # Verify checksum
+        # Fixed-string match with the two-space prefix from GNU coreutils
+        # SHA256SUMS format (<hash>␣␣<filename>) to avoid regex wildcards
+        # in the archive name and anchor the match to the filename field.
         echo "::group::Verify SHA-256 checksum"
         cd "$tmp"
         if command -v sha256sum >/dev/null 2>&1; then
-          grep "$archive" "$checksums" | sha256sum -c -
+          grep -F "  $archive" "$checksums" | sha256sum -c -
         else
-          grep "$archive" "$checksums" | shasum -a 256 -c -
+          grep -F "  $archive" "$checksums" | shasum -a 256 -c -
         fi
         echo "::endgroup::"
 
-        # Extract and cache
-        tar xzf "$archive"
-        mkdir -p "$cache_dir"
-        cp "forge-v${version}-${target}/forge" "$cache_dir/forge"
-        chmod 755 "$cache_dir/forge"
+        echo "::group::Verify SLSA build attestation"
+        if command -v gh >/dev/null 2>&1; then
+          gh attestation verify "$tmp/$archive" --repo "$repo"
+        else
+          echo "::warning::gh CLI not found — skipping SLSA attestation verification. Install gh (https://cli.github.com) to verify build provenance."
+        fi
+        echo "::endgroup::"
 
-        echo "$cache_dir" >>"$GITHUB_PATH"
-        echo "::notice::Installed forge v${version}"
+        # Stage into the target directory then atomic-rename so concurrent
+        # jobs on a shared self-hosted runner never see a partial binary.
+        tar xzf "$archive"
+        mkdir -p "$CACHE_DIR"
+        cp "forge-v${VERSION}-${TARGET}/forge" "$CACHE_DIR/.forge.tmp.$$"
+        chmod 755 "$CACHE_DIR/.forge.tmp.$$"
+        mv "$CACHE_DIR/.forge.tmp.$$" "$CACHE_DIR/forge"
+
+        echo "::notice::Installed forge v${VERSION}"
+
+    # ------------------------------------------------------------------
+    # 4. Wire up PATH and sanity-check the binary (covers both fresh
+    #    install and cache-hit paths).
+    # ------------------------------------------------------------------
+    - name: Add to PATH and verify
+      shell: bash
+      env:
+        CACHE_DIR: ${{ steps.resolve.outputs.cache-dir }}
+        VERSION: ${{ steps.resolve.outputs.version }}
+      run: |
+        echo "$CACHE_DIR" >>"$GITHUB_PATH"
+        "$CACHE_DIR/forge" --version >/dev/null
