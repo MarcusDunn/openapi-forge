@@ -499,6 +499,13 @@ jobs:
               sys.exit("No forge-* version pins found to update; manifest layout changed?")
           PY
 
+      - name: Sync action.yml example version
+        run: |
+          set -euo pipefail
+          new_version=$(awk -F'"' '/^version *=/{print $2; exit}' Cargo.toml)
+          sed -i "s/e\.g\. \"[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\"/e.g. \"${new_version}\"/" action.yml
+          sed -i "s/\"v[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\"/\"v${new_version}\"/" action.yml
+
       - name: Roll CHANGELOG [Unreleased] -> [<released>]
         env:
           RELEASE_DATE: ${{ github.event.release.published_at }}
@@ -548,6 +555,7 @@ jobs:
             - Bumped workspace + `forge-plugin-sdk` versions to **${{ steps.next.outputs.version }}** (`${{ env.BUMP }}` bump).
             - Re-pinned `[workspace.dependencies] forge-*` versions and the SDK's `forge-ir` pin.
             - Rolled over `CHANGELOG.md` `[Unreleased]` to `[${{ env.RELEASED_VERSION }}]`.
+            - Synced `action.yml` example version.
             - Refreshed `Cargo.lock`.
 
             Merge once CI is green to start landing changes for the next release.
