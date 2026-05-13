@@ -1,6 +1,7 @@
 name: 'Setup openapi-forge'
 description: >-
-  Download, verify, and cache the openapi-forge CLI. Supported platforms:
+  Download, verify, and cache the openapi-forge CLI. Requires the gh CLI
+  (pre-installed on all GitHub-hosted runners). Supported platforms:
   Linux x86_64 (ubuntu-latest) and macOS ARM64 (macos-latest). Other
   runner/architecture combinations will fail with an explicit error.
 
@@ -49,17 +50,12 @@ runs:
 
         repo="MarcusDunn/openapi-forge"
 
+        command -v gh >/dev/null 2>&1 \
+          || { echo "::error::gh CLI is required but not found. It is pre-installed on GitHub-hosted runners; for self-hosted runners see https://cli.github.com"; exit 1; }
+
         if [ "$FORGE_VERSION" = "latest" ]; then
-          if command -v gh >/dev/null 2>&1; then
-            version=$(gh api "repos/$repo/releases/latest" --jq '.tag_name | ltrimstr("v")')
-          else
-            version=$(curl -fsSL --retry 3 --connect-timeout 10 \
-              -H "Authorization: Bearer $GH_TOKEN" \
-              -H "Accept: application/vnd.github+json" \
-              "https://api.github.com/repos/$repo/releases/latest" \
-              | sed -n 's/.*"tag_name": *"v\{0,1\}\([^"]*\)".*/\1/p')
-          fi
-          [ -n "$version" ] || { echo "::error::Failed to resolve latest forge version"; exit 1; }
+          version=$(gh api "repos/$repo/releases/latest" --jq '.tag_name | ltrimstr("v")') \
+            || { echo "::error::Failed to resolve latest forge version"; exit 1; }
         else
           version="${FORGE_VERSION#v}"
         fi
@@ -139,11 +135,7 @@ runs:
         echo "::endgroup::"
 
         echo "::group::Verify SLSA build attestation"
-        if command -v gh >/dev/null 2>&1; then
-          gh attestation verify "$tmp/$archive" --repo "$repo"
-        else
-          echo "::warning::gh CLI not found — skipping SLSA attestation verification. Install gh (https://cli.github.com) to verify build provenance."
-        fi
+        gh attestation verify "$tmp/$archive" --repo "$repo"
         echo "::endgroup::"
 
         # Stage into the target directory then atomic-rename so concurrent
