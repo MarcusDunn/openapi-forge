@@ -12,6 +12,29 @@ memory.
 > are in place. The parser and runtime land in subsequent phases. There is
 > no working CLI yet.
 
+## Install
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/MarcusDunn/openapi-forge/main/install.sh | sh
+```
+
+Downloads the right binary for your platform, verifies SHA-256 checksums,
+and checks [SLSA build provenance](https://slsa.dev) if `gh` is installed.
+Installs to `~/.local/bin` by default.
+
+Pin a version or change the install directory:
+
+```sh
+FORGE_VERSION=0.1.11 FORGE_INSTALL_DIR=/usr/local/bin \
+  curl -fsSL https://raw.githubusercontent.com/MarcusDunn/openapi-forge/main/install.sh | sh
+```
+
+Or install from source via crates.io:
+
+```sh
+cargo install openapi-forge-cli
+```
+
 ## Why
 
 `openapi-generator` (the Swagger project) requires generators to ship in-tree.
