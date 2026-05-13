@@ -255,3 +255,16 @@ jobs:
           ./target/release/forge generate fixtures/e2e/petstore --out /tmp/forge-a
           ./target/release/forge generate fixtures/e2e/petstore --out /tmp/forge-b
           diff -r /tmp/forge-a /tmp/forge-b
+
+  # Smoke-test the setup action on both supported platforms. Installs the
+  # latest published release via `uses: ./` and verifies the binary runs.
+  test-action:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: ./
+      - run: forge --version
