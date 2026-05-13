@@ -1,0 +1,31 @@
+name: Update Action Tag
+
+# After each stable release, move the floating `v1` tag so that
+# `uses: MarcusDunn/openapi-forge@v1` always resolves to the latest release.
+# The action interface version (v1) is independent of the forge version —
+# users control which forge version is installed via the `version` input.
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  update-tag:
+    if: >-
+      !github.event.release.prerelease
+      && !github.event.release.draft
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Move v1 tag to this release
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -fa v1 "$GITHUB_SHA" -m "Update v1 action tag -> $RELEASE_TAG"
+          git push origin v1 --force
