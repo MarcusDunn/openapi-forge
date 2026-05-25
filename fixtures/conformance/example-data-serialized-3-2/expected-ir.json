@@ -34,10 +34,9 @@
             "kind": "explicit",
             "code": 200
           },
-          "documentation": "ok"
+          "description": "ok"
         }
       ],
-      "deprecated": false,
       "location": {
         "pointer": "/paths/~1things/post",
         "file": "spec.json"

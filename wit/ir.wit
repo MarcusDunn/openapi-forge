@@ -22,8 +22,8 @@ interface types {
     record api-info {
         title: string,
         version: string,
+        summary: option<string>,                 // OAS 3.1+
         description: option<string>,
-        summary: option<string>,                 // OpenAPI 3.1 only
         terms-of-service: option<string>,        // URL
         contact: option<contact>,
         license-name: option<string>,            // OAS license.name
@@ -111,6 +111,8 @@ interface types {
 
     record webhook {
         name: string,                        // routing key from `webhooks.<name>`
+        summary: option<string>,             // PathItem-level §4.9
+        description: option<string>,         // PathItem-level §4.9
         operations: list<operation>,
     }
 
@@ -131,8 +133,9 @@ interface types {
     record named-type {
         id: string,                          // unique, sanitized; this is the ref key
         original-name: option<string>,
-        documentation: option<string>,       // JSON Schema `description`
-        title: option<string>,               // JSON Schema `title` (short label)
+        title: option<string>,               // JSON Schema short label
+        description: option<string>,         // JSON Schema description (CommonMark)
+        deprecated: bool,                    // JSON Schema 2020-12 deprecated
         read-only: bool,                     // JSON Schema readOnly at schema level
         write-only: bool,                    // JSON Schema writeOnly at schema level
         external-docs: option<external-docs>,
@@ -223,11 +226,14 @@ interface types {
         name: string,                        // original name; sanitized variant elsewhere
         %type: type-ref,
         required: bool,                      // moved from object-type.required (#110)
-        documentation: option<string>,
+        title: option<string>,
+        description: option<string>,
         deprecated: bool,
         read-only: bool,
         write-only: bool,
+        external-docs: option<external-docs>,
         %default: option<value-ref>,         // JSON Schema default; pool index
+        examples: list<tuple<string, example>>,
         extensions: list<tuple<string, value-ref>>,
     }
 
@@ -250,7 +256,6 @@ interface types {
 
     record enum-string-value {
         value: string,
-        documentation: option<string>,
     }
 
     record enum-int-type {
@@ -260,7 +265,6 @@ interface types {
 
     record enum-int-value {
         value: s64,
-        documentation: option<string>,
     }
 
     enum int-kind { int32, int64 }
@@ -304,10 +308,11 @@ interface types {
         responses: list<response>,
         security: list<security-requirement>,
         tags: list<string>,
-        documentation: option<string>,
+        summary: option<string>,             // OAS §4.10
+        description: option<string>,         // OAS §4.10
         deprecated: bool,
-        extensions: list<tuple<string, value-ref>>,
         external-docs: option<external-docs>,
+        extensions: list<tuple<string, value-ref>>,
         servers: list<server>,               // effective list, with §4.8.10 inheritance applied
         callbacks: list<callback>,
         location: option<spec-location>,
@@ -329,13 +334,13 @@ interface types {
         name: string,                        // original name
         %type: type-ref,
         required: bool,
-        documentation: option<string>,
+        description: option<string>,
         deprecated: bool,
+        examples: list<tuple<string, example>>,
         style: option<parameter-style>,
         explode: bool,
         allow-empty-value: bool,             // query-only; warn elsewhere
         allow-reserved: bool,                // raw RFC 3986 reserved chars
-        examples: list<tuple<string, example>>,
         extensions: list<tuple<string, value-ref>>,
         location: option<spec-location>,
     }
@@ -353,7 +358,7 @@ interface types {
     record body {
         content: list<body-content>,         // at least one entry
         required: bool,
-        documentation: option<string>,
+        description: option<string>,
         extensions: list<tuple<string, value-ref>>,
     }
 
@@ -362,7 +367,7 @@ interface types {
         %type: type-ref,
         encoding: list<tuple<string, encoding>>,
         item-schema: option<type-ref>,       // OAS 3.2 sequence-of-items per-item shape
-        examples: list<tuple<string, example>>,
+        examples: list<tuple<string, example>>, // Media Type Object has no description per spec
         extensions: list<tuple<string, value-ref>>,
     }
 
@@ -378,8 +383,8 @@ interface types {
     record header {
         %type: type-ref,
         required: bool,                      // for response headers: "always present"
+        description: option<string>,
         deprecated: bool,
-        documentation: option<string>,
         examples: list<tuple<string, example>>,
         // Header serialization fields (spec fixes style to `simple`,
         // but values are captured verbatim for spec-strict consumers).
@@ -394,7 +399,8 @@ interface types {
         status: response-status,
         content: list<body-content>,         // may be empty
         headers: list<tuple<string, header>>,
-        documentation: option<string>,
+        summary: option<string>,             // OAS 3.2 §4.17 (new in 3.2)
+        description: option<string>,         // optional in 3.2 (required in 3.0/3.1)
         links: list<tuple<string, link>>,
         extensions: list<tuple<string, value-ref>>,
     }
@@ -412,7 +418,7 @@ interface types {
     record security-scheme {
         id: string,
         kind: security-scheme-kind,
-        documentation: option<string>,
+        description: option<string>,
         deprecated: bool,                    // OAS 3.2; defaults to false
         extensions: list<tuple<string, value-ref>>,
     }

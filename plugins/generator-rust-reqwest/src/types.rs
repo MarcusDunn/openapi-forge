@@ -118,7 +118,7 @@ pub fn render_named_type(spec: &ir::Ir, nt: &ir::NamedType) -> Option<String> {
     if let Some(inner) = peel_nullable(&spec.types, &nt.id) {
         let name = named_ref(nt);
         let inner_ts = render_type_ref(spec, inner);
-        let mut s = doc_comment(nt.documentation.as_deref());
+        let mut s = doc_comment(nt.description.as_deref());
         s.push_str(&format!("pub type {name} = Option<{inner_ts}>;\n"));
         return Some(s);
     }
@@ -146,7 +146,7 @@ pub fn render_named_type(spec: &ir::Ir, nt: &ir::NamedType) -> Option<String> {
                 None
             } else {
                 let name = named_ref(nt);
-                let mut s = doc_comment(nt.documentation.as_deref());
+                let mut s = doc_comment(nt.description.as_deref());
                 s.push_str(&format!("pub type {name} = ();\n"));
                 Some(s)
             }
@@ -170,13 +170,13 @@ fn doc_comment(doc: Option<&str>) -> String {
 fn render_object(spec: &ir::Ir, nt: &ir::NamedType, o: &ir::ObjectType) -> String {
     let name = named_ref(nt);
     let mut s = String::new();
-    s.push_str(&doc_comment(nt.documentation.as_deref()));
+    s.push_str(&doc_comment(nt.description.as_deref()));
     s.push_str("#[derive(Debug, Clone, Serialize, Deserialize)]\n");
     s.push_str(&format!("pub struct {name} {{\n"));
     let mut used_field_idents: std::collections::HashSet<String> =
         std::collections::HashSet::new();
     for prop in &o.properties {
-        s.push_str(&doc_comment(prop.documentation.as_deref()));
+        s.push_str(&doc_comment(prop.description.as_deref()));
         let raw_name = &prop.name;
         let sanitised = rust_ident_snake(raw_name);
         // Disambiguate against earlier fields in the same struct. Two raw
@@ -230,7 +230,7 @@ fn render_object(spec: &ir::Ir, nt: &ir::NamedType, o: &ir::ObjectType) -> Strin
 fn render_array_alias(spec: &ir::Ir, nt: &ir::NamedType, a: &ir::ArrayType) -> String {
     let name = named_ref(nt);
     let inner = render_type_ref(spec, &a.items);
-    let mut s = doc_comment(nt.documentation.as_deref());
+    let mut s = doc_comment(nt.description.as_deref());
     s.push_str(&format!("pub type {name} = Vec<{inner}>;\n"));
     s
 }
@@ -252,7 +252,7 @@ fn as_map(o: &ir::ObjectType) -> Option<&ir::TypeRef> {
 fn render_map_alias(spec: &ir::Ir, nt: &ir::NamedType, values: &ir::TypeRef) -> String {
     let name = named_ref(nt);
     let inner = render_type_ref(spec, values);
-    let mut s = doc_comment(nt.documentation.as_deref());
+    let mut s = doc_comment(nt.description.as_deref());
     s.push_str(&format!(
         "pub type {name} = std::collections::HashMap<String, {inner}>;\n"
     ));
@@ -261,14 +261,15 @@ fn render_map_alias(spec: &ir::Ir, nt: &ir::NamedType, values: &ir::TypeRef) -> 
 
 fn render_enum_string(nt: &ir::NamedType, e: &ir::EnumStringType) -> String {
     let name = named_ref(nt);
-    let mut s = doc_comment(nt.documentation.as_deref());
+    let mut s = doc_comment(nt.description.as_deref());
     s.push_str("#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]\n");
     s.push_str(&format!("pub enum {name} {{\n"));
     let mut used: std::collections::HashSet<String> = std::collections::HashSet::new();
     // (variant_ident, wire_value) pairs — needed below for the Display impl.
     let mut variants: Vec<(String, String)> = Vec::with_capacity(e.values.len());
     for v in &e.values {
-        s.push_str(&doc_comment(v.documentation.as_deref()));
+        // OAS / JSON Schema does not define per-enum-value docs. The
+        // variant gets no /// comment.
         let sanitised = rust_ident_pascal(&v.value);
         let variant = disambiguate(&sanitised, &mut used);
         // Always emit the rename so the on-the-wire string is preserved
@@ -310,13 +311,14 @@ fn render_enum_int(nt: &ir::NamedType, e: &ir::EnumIntType) -> String {
         ir::IntKind::Int32 => "i32",
         ir::IntKind::Int64 => "i64",
     };
-    let mut s = doc_comment(nt.documentation.as_deref());
+    let mut s = doc_comment(nt.description.as_deref());
     s.push_str("#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]\n");
     s.push_str(&format!("#[repr({repr})]\n"));
     s.push_str(&format!("pub enum {name} {{\n"));
     let mut used: std::collections::HashSet<String> = std::collections::HashSet::new();
     for v in &e.values {
-        s.push_str(&doc_comment(v.documentation.as_deref()));
+        // OAS / JSON Schema does not define per-enum-value docs. The
+        // variant gets no /// comment.
         // Variant name like `V42` for 42 — legal Rust ident, prefixed so
         // negatives stay parseable.
         let raw = if v.value < 0 {
@@ -342,7 +344,7 @@ fn render_enum_int(nt: &ir::NamedType, e: &ir::EnumIntType) -> String {
 
 fn render_union(spec: &ir::Ir, nt: &ir::NamedType, u: &ir::UnionType) -> String {
     let name = named_ref(nt);
-    let mut s = doc_comment(nt.documentation.as_deref());
+    let mut s = doc_comment(nt.description.as_deref());
     // Multi-variant unions containing Null render the enum body without
     // the Null arm; consumers of the named type wrap with `Option<>` via
     // [`render_type_ref`]'s `union_has_null` check. Issue #107.

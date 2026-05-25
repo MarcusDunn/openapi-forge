@@ -66,9 +66,9 @@ fn parse_scheme(ctx: &mut Ctx, name: &str, value: &J, ptr: &mut Ptr) -> Option<S
             return None;
         }
     };
-    let documentation = map.get("description").and_then(J::as_str).map(String::from);
-    // OAS 3.2 added `deprecated` on Security Scheme. Default is false.
-    let deprecated = map.get("deprecated").and_then(J::as_bool).unwrap_or(false);
+    // OAS §4.27: SecurityScheme carries description, deprecated (3.2).
+    let description = crate::schema::description(map);
+    let deprecated = crate::schema::deprecated(map);
     let extensions = crate::operations::collect_extensions(ctx, map, ptr);
 
     let kind = match ty {
@@ -90,7 +90,7 @@ fn parse_scheme(ctx: &mut Ctx, name: &str, value: &J, ptr: &mut Ptr) -> Option<S
     Some(SecurityScheme {
         id: crate::sanitize::ident(name),
         kind,
-        documentation,
+        description,
         deprecated,
         extensions,
     })

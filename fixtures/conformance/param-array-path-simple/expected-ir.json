@@ -14,7 +14,6 @@
           "name": "ids",
           "type": "getUsers_param_path_ids",
           "required": true,
-          "deprecated": false,
           "style": "simple",
           "explode": false,
           "allow_empty_value": false,
@@ -31,10 +30,9 @@
             "kind": "explicit",
             "code": 204
           },
-          "documentation": "ok"
+          "description": "ok"
         }
       ],
-      "deprecated": false,
       "servers": [
         {
           "url": "https://api.example.com"

@@ -14,7 +14,6 @@
           "name": "addressId",
           "type": "getAddressById_param_path_addressId",
           "required": true,
-          "deprecated": false,
           "style": "simple",
           "explode": false,
           "allow_empty_value": false,
@@ -31,10 +30,9 @@
             "kind": "explicit",
             "code": 200
           },
-          "documentation": "ok"
+          "description": "ok"
         }
       ],
-      "deprecated": false,
       "location": {
         "pointer": "/paths/~1addresses~1{addressId}/get",
         "file": "spec.json"
@@ -50,7 +48,6 @@
           "name": "id",
           "type": "getUserById_param_path_id",
           "required": true,
-          "deprecated": false,
           "style": "simple",
           "explode": false,
           "allow_empty_value": false,
@@ -67,7 +64,7 @@
             "kind": "explicit",
             "code": 200
           },
-          "documentation": "ok",
+          "description": "ok",
           "links": [
             [
               "address",
@@ -92,7 +89,6 @@
           ]
         }
       ],
-      "deprecated": false,
       "location": {
         "pointer": "/paths/~1users~1{id}/get",
         "file": "spec.json"

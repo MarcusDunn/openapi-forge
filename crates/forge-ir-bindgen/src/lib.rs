@@ -134,8 +134,8 @@ mod tests {
             info: ir::ApiInfo {
                 title: "x".into(),
                 version: "0".into(),
-                description: None,
                 summary: None,
+                description: None,
                 terms_of_service: None,
                 contact: None,
                 license_name: None,
@@ -147,8 +147,9 @@ mod tests {
             types: vec![ir::NamedType {
                 id: "Wrap".into(),
                 original_name: None,
-                documentation: None,
                 title: None,
+                description: None,
+                deprecated: false,
                 read_only: false,
                 write_only: false,
                 external_docs: None,

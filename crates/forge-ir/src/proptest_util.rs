@@ -140,11 +140,14 @@ pub fn property() -> impl Strategy<Value = Property> {
             name,
             r#type: ty,
             required,
-            documentation: None,
+            title: None,
+            description: None,
             deprecated,
             read_only: ro,
             write_only: wo,
+            external_docs: None,
             default: None,
+            examples: vec![],
             extensions: vec![],
         })
 }
@@ -197,8 +200,9 @@ pub fn named_type() -> impl Strategy<Value = NamedType> {
     (ident(), type_def()).prop_map(|(id, definition)| NamedType {
         id,
         original_name: None,
-        documentation: None,
         title: None,
+        description: None,
+        deprecated: false,
         read_only: false,
         write_only: false,
         external_docs: None,
@@ -245,8 +249,8 @@ pub fn small_ir() -> impl Strategy<Value = Ir> {
             info: ApiInfo {
                 title,
                 version,
-                description: None,
                 summary: None,
+                description: None,
                 terms_of_service: None,
                 contact: None,
                 license_name: None,

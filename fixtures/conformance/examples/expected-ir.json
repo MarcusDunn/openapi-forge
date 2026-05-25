@@ -14,11 +14,6 @@
           "name": "id",
           "type": "getItem_param_path_id",
           "required": true,
-          "deprecated": false,
-          "style": "simple",
-          "explode": false,
-          "allow_empty_value": false,
-          "allow_reserved": false,
           "examples": [
             [
               "shortId",
@@ -35,6 +30,10 @@
               }
             ]
           ],
+          "style": "simple",
+          "explode": false,
+          "allow_empty_value": false,
+          "allow_reserved": false,
           "location": {
             "pointer": "/paths/~1items~1{id}/get/parameters/0",
             "file": "spec.json"
@@ -61,10 +60,9 @@
               ]
             }
           ],
-          "documentation": "ok"
+          "description": "ok"
         }
       ],
-      "deprecated": false,
       "location": {
         "pointer": "/paths/~1items~1{id}/get",
         "file": "spec.json"

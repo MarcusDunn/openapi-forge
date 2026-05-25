@@ -15,7 +15,7 @@
             "kind": "explicit",
             "code": 200
           },
-          "documentation": "ok"
+          "description": "ok"
         }
       ],
       "security": [
@@ -27,7 +27,6 @@
           ]
         }
       ],
-      "deprecated": false,
       "location": {
         "pointer": "/paths/~1me/get",
         "file": "spec.json"

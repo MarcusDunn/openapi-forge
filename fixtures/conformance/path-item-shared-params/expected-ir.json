@@ -14,7 +14,6 @@
           "name": "petId",
           "type": "path__pets__petId__param_path_petId",
           "required": true,
-          "deprecated": false,
           "style": "simple",
           "explode": false,
           "allow_empty_value": false,
@@ -30,8 +29,7 @@
           "name": "pageSize",
           "type": "deletePet_param_query_pageSize",
           "required": true,
-          "documentation": "operation-level override of the shared param",
-          "deprecated": false,
+          "description": "operation-level override of the shared param",
           "style": "form",
           "explode": true,
           "allow_empty_value": false,
@@ -48,10 +46,9 @@
             "kind": "explicit",
             "code": 204
           },
-          "documentation": "deleted"
+          "description": "deleted"
         }
       ],
-      "deprecated": false,
       "location": {
         "pointer": "/paths/~1pets~1{petId}/delete",
         "file": "spec.json"
@@ -67,7 +64,6 @@
           "name": "petId",
           "type": "path__pets__petId__param_path_petId",
           "required": true,
-          "deprecated": false,
           "style": "simple",
           "explode": false,
           "allow_empty_value": false,
@@ -83,7 +79,6 @@
           "name": "pageSize",
           "type": "path__pets__petId__param_query_pageSize",
           "required": false,
-          "deprecated": false,
           "style": "form",
           "explode": true,
           "allow_empty_value": false,
@@ -100,10 +95,9 @@
             "kind": "explicit",
             "code": 200
           },
-          "documentation": "ok"
+          "description": "ok"
         }
       ],
-      "deprecated": false,
       "location": {
         "pointer": "/paths/~1pets~1{petId}/get",
         "file": "spec.json"

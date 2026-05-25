@@ -25,7 +25,7 @@
             "kind": "explicit",
             "code": 201
           },
-          "documentation": "Created"
+          "description": "Created"
         },
         {
           "status": {
@@ -37,14 +37,13 @@
               "type": "Error"
             }
           ],
-          "documentation": "Unexpected error"
+          "description": "Unexpected error"
         }
       ],
       "tags": [
         "pets"
       ],
-      "documentation": "Create a pet",
-      "deprecated": false,
+      "summary": "Create a pet",
       "servers": [
         {
           "url": "https://petstore.example.com/v1"
@@ -65,7 +64,6 @@
           "name": "limit",
           "type": "listPets_param_query_limit",
           "required": false,
-          "deprecated": false,
           "style": "form",
           "explode": true,
           "allow_empty_value": false,
@@ -88,7 +86,7 @@
               "type": "Pets"
             }
           ],
-          "documentation": "A page of pets"
+          "description": "A page of pets"
         },
         {
           "status": {
@@ -100,14 +98,13 @@
               "type": "Error"
             }
           ],
-          "documentation": "Unexpected error"
+          "description": "Unexpected error"
         }
       ],
       "tags": [
         "pets"
       ],
-      "documentation": "List all pets",
-      "deprecated": false,
+      "summary": "List all pets",
       "servers": [
         {
           "url": "https://petstore.example.com/v1"
@@ -128,7 +125,6 @@
           "name": "petId",
           "type": "showPetById_param_path_petId",
           "required": true,
-          "deprecated": false,
           "style": "simple",
           "explode": false,
           "allow_empty_value": false,
@@ -151,7 +147,7 @@
               "type": "Pet"
             }
           ],
-          "documentation": "Expected response to a valid request"
+          "description": "Expected response to a valid request"
         },
         {
           "status": {
@@ -163,14 +159,13 @@
               "type": "Error"
             }
           ],
-          "documentation": "Unexpected error"
+          "description": "Unexpected error"
         }
       ],
       "tags": [
         "pets"
       ],
-      "documentation": "Get a pet by id",
-      "deprecated": false,
+      "summary": "Get a pet by id",
       "servers": [
         {
           "url": "https://petstore.example.com/v1"
@@ -300,6 +295,7 @@
             "name": "name",
             "type": "Pet_property_name",
             "required": true,
+            "title": "Display name",
             "deprecated": false,
             "read_only": false,
             "write_only": false

@@ -21,7 +21,7 @@
               "type": "getMe_response_200"
             }
           ],
-          "documentation": "ok"
+          "description": "ok"
         }
       ],
       "security": [
@@ -33,7 +33,6 @@
           ]
         }
       ],
-      "deprecated": false,
       "servers": [
         {
           "url": "https://api.example.com"
@@ -111,7 +110,7 @@
           }
         ]
       },
-      "documentation": "OAuth 2.0 Authorization Code Flow with PKCE."
+      "description": "OAuth 2.0 Authorization Code Flow with PKCE."
     }
   ],
   "servers": [

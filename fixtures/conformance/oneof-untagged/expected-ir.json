@@ -32,7 +32,7 @@
     {
       "id": "StringOrInt",
       "original_name": "StringOrInt",
-      "documentation": "Either a string or an integer.",
+      "description": "Either a string or an integer.",
       "definition": {
         "def": "union",
         "variants": [

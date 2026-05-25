@@ -8,21 +8,17 @@ use crate::value::ValueRef;
 pub struct SecurityScheme {
     pub id: String,
     pub kind: SecuritySchemeKind,
+    /// OAS §4.27 `description` (CommonMark).
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub documentation: Option<String>,
-    /// OAS 3.2 `deprecated` flag. Generators should surface this as a
-    /// deprecation hint (doc comment, `@deprecated`, etc.) so consumers
-    /// migrate off the scheme. Defaults to `false`.
-    #[serde(default, skip_serializing_if = "is_false")]
+    pub description: Option<String>,
+    /// OAS 3.2 §4.27 `deprecated` flag. Generators should surface this
+    /// as a deprecation hint so consumers migrate off the scheme.
+    #[serde(default, skip_serializing_if = "crate::is_false")]
     pub deprecated: bool,
     /// `x-*` extensions declared on the security scheme object. Compound
     /// extensions drop with `parser/W-EXTENSION-DROPPED`.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub extensions: Vec<(String, ValueRef)>,
-}
-
-fn is_false(b: &bool) -> bool {
-    !*b
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

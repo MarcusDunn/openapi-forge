@@ -14,7 +14,6 @@
           "name": "id",
           "type": "getPet_param_path_id",
           "required": true,
-          "deprecated": false,
           "style": "simple",
           "explode": false,
           "allow_empty_value": false,
@@ -37,10 +36,9 @@
               "type": "Pet"
             }
           ],
-          "documentation": "ok"
+          "description": "ok"
         }
       ],
-      "deprecated": false,
       "location": {
         "pointer": "/paths/~1pets~1{id}/get",
         "file": "spec.json"

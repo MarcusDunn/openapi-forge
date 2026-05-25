@@ -17,7 +17,7 @@ use crate::ctx::Ctx;
 use crate::diag;
 use crate::pointer::Ptr;
 use crate::schema::{
-    alloc_id, description, maybe_wrap_nullable, original_name, parse_schema, title, NameHint,
+    alloc_id, maybe_wrap_nullable, original_name, parse_schema, NameHint,
 };
 
 #[derive(Debug)]
@@ -132,8 +132,9 @@ pub(crate) fn parse_all_of(
     let nt = NamedType {
         id,
         original_name: original_name(&hint),
-        documentation: description(map),
-        title: title(map),
+        title: crate::schema::title(map),
+        description: crate::schema::description(map),
+        deprecated: crate::schema::deprecated(map),
         read_only,
         write_only,
         external_docs: crate::parse_external_docs(ctx, map.get("externalDocs"), ptr),
@@ -229,15 +230,27 @@ fn merge_inline_object_fields(
                     if let Some(t) =
                         parse_schema(ctx, schema, ptr, NameHint::inline(owner_id, &role))
                     {
-                        let (doc, deprecated, read_only, write_only, default) = match schema {
+                        let (
+                            prop_title,
+                            prop_desc,
+                            prop_dep,
+                            prop_ro,
+                            prop_wo,
+                            prop_extdocs,
+                            prop_default,
+                            prop_examples,
+                        ) = match schema {
                             J::Object(m) => (
-                                description(m),
-                                m.get("deprecated").and_then(J::as_bool).unwrap_or(false),
+                                crate::schema::title(m),
+                                crate::schema::description(m),
+                                crate::schema::deprecated(m),
                                 m.get("readOnly").and_then(J::as_bool).unwrap_or(false),
                                 m.get("writeOnly").and_then(J::as_bool).unwrap_or(false),
+                                crate::parse_external_docs(ctx, m.get("externalDocs"), ptr),
                                 crate::parse_default(ctx, m, ptr, "property"),
+                                crate::parse_examples(ctx, m, ptr),
                             ),
-                            _ => (None, false, false, false, None),
+                            _ => (None, None, false, false, false, None, None, vec![]),
                         };
                         if let Some(existing) = acc.properties.get(name) {
                             if existing.r#type != t {
@@ -261,11 +274,14 @@ fn merge_inline_object_fields(
                                 name: name.clone(),
                                 r#type: t,
                                 required: false, // patched from acc.required at merge end
-                                documentation: doc,
-                                deprecated,
-                                read_only,
-                                write_only,
-                                default,
+                                title: prop_title,
+                                description: prop_desc,
+                                deprecated: prop_dep,
+                                read_only: prop_ro,
+                                write_only: prop_wo,
+                                external_docs: prop_extdocs,
+                                default: prop_default,
+                                examples: prop_examples,
                                 extensions,
                             },
                         );

@@ -15,7 +15,7 @@
             "kind": "explicit",
             "code": 204
           },
-          "documentation": "ok"
+          "description": "ok"
         }
       ],
       "security": [
@@ -23,7 +23,6 @@
           "scheme_id": "apiKeyAuth"
         }
       ],
-      "deprecated": false,
       "servers": [
         {
           "url": "https://api.example.com"
@@ -51,7 +50,7 @@
               "type": "getMe_response_200"
             }
           ],
-          "documentation": "ok"
+          "description": "ok"
         }
       ],
       "security": [
@@ -59,7 +58,6 @@
           "scheme_id": "bearerAuth"
         }
       ],
-      "deprecated": false,
       "servers": [
         {
           "url": "https://api.example.com"
@@ -81,10 +79,9 @@
             "kind": "explicit",
             "code": 204
           },
-          "documentation": "ok"
+          "description": "ok"
         }
       ],
-      "deprecated": false,
       "servers": [
         {
           "url": "https://api.example.com"

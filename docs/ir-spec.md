@@ -139,7 +139,81 @@ the amendment in ADR-0007.
 - `responses` — by status: `Explicit { code }`, `Default`, or
   `Range { class }` for `2XX`/`3XX`/etc.
 - `security` — list of requirements (any-of); each lists scheme ids and scopes
-- `tags`, `documentation`, `deprecated`, `extensions`, `location`
+- `tags`, `docs`, `extensions`, `location`
+
+## Documentation
+
+The IR carries documentation fields inline per node, matching the
+OAS 3.2 spec exactly — no uniform `Docs` struct. Each node type
+exposes only the doc surfaces the spec defines for it; nodes the
+spec doesn't grant a particular doc field simply don't have a slot
+for it.
+
+OAS 3.2 defines `description` as CommonMark 0.27. Other text fields
+(`title`, `summary`) are plain strings. Generators are responsible for
+escaping or rendering CommonMark per their target language; the IR
+carries the spec text verbatim.
+
+| Node                | Doc fields (per OAS 3.2)                                                          |
+| ------------------- | --------------------------------------------------------------------------------- |
+| `ApiInfo`           | `summary`, `description`                                                          |
+| `Tag`               | `summary`, `description`, `external_docs`                                         |
+| `Server`            | `description`                                                                     |
+| `ServerVariable`    | `description`                                                                     |
+| `Webhook`           | `summary`, `description` (PathItem-level)                                         |
+| `Operation`         | `summary`, `description`, `deprecated`, `external_docs`                           |
+| `Parameter`         | `description`, `deprecated`, `examples`                                           |
+| `Body` (RequestBody)| `description`                                                                     |
+| `BodyContent` (MediaType) | `examples` only (no description per §4.14)                                  |
+| `Header`            | `description`, `deprecated`, `examples`                                           |
+| `Response`          | `summary` (3.2 new), `description`                                                |
+| `NamedType` (Schema)| `title`, `description`, `deprecated`, `external_docs`, `examples`                 |
+| `Property` (Schema) | `title`, `description`, `deprecated`, `external_docs`, `examples`                 |
+| `Link`              | `description`                                                                     |
+| `SecurityScheme`    | `description`, `deprecated` (3.2)                                                 |
+| `Ir` (root)         | `external_docs` (root-level only)                                                 |
+
+Nodes with no spec-defined doc fields: `Callback`, `Encoding`,
+`OAuth2Flow`, `Discriminator`, `UnionVariant`, `EnumStringValue`,
+`EnumIntValue`, `ApiKeyScheme`, `OAuth2Scheme`,
+`SecurityRequirement`, `XmlObject`, all constraint structs. `Example`
+and `ExternalDocs` are leaf doc types and carry their own fields.
+
+**PathItem-level fallback (Operation only).** OAS §4.9 permits
+`summary` and `description` on PathItem. The parser fills
+`Operation.summary` / `Operation.description` from the surrounding
+PathItem when the operation has none. The two fields are
+independent — they don't collapse into a single slot.
+
+**Examples in 3.2** have a parsed/serialized split: `Example.value` is
+retained for 3.0/3.1 compatibility, but `Example.data_value` (the parsed
+form, as a `ValueRef` into `Ir.values`) and `Example.serialized_value`
+(the wire form, as a string) are the preferred fields per OAS 3.2 §4.19.
+
+### Reference Object `$ref` override (OAS 3.2 §4.23)
+
+For non-schema Reference Objects (Parameter, RequestBody, Response,
+Header, Example, Link, Callback, SecurityScheme, MediaType, PathItem
+refs), §4.23 permits only `summary` and `description` as siblings of
+`$ref`. The parser's `with_resolved_object` helper:
+
+1. Snapshots the ref-site `summary` and `description` before walking
+   the chain.
+2. Overlays them onto the resolved target's JSON so the target's
+   parser reads the override.
+3. Emits `parser/W-REF-SIBLINGS-INVALID` for any other sibling
+   (including `x-*`) per §4.23: "any properties added SHALL be ignored."
+
+When the target's object-type doesn't define `summary` (e.g.
+Parameter, Header, Link, RequestBody) or `description` (e.g.
+MediaType), the override naturally has no effect — the IR has no
+slot for that field on that node, and the parser doesn't read it.
+This is the type-level enforcement of §4.23's "this field has no
+effect" clause.
+
+In OAS 3.0 the parser drops all ref siblings silently
+(`parser/W-REF-SIBLINGS-3-0` covers the schema-side path). 3.1 and
+3.2 follow the rule above.
 
 ## Diagnostics
 

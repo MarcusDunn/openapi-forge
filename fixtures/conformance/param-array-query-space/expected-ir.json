@@ -14,7 +14,6 @@
           "name": "ids",
           "type": "listItems_param_query_ids",
           "required": false,
-          "deprecated": false,
           "style": "space-delimited",
           "explode": false,
           "allow_empty_value": false,
@@ -31,10 +30,9 @@
             "kind": "explicit",
             "code": 204
           },
-          "documentation": "ok"
+          "description": "ok"
         }
       ],
-      "deprecated": false,
       "servers": [
         {
           "url": "https://api.example.com"

@@ -21,10 +21,9 @@
               "type": "schemas__Pet"
             }
           ],
-          "documentation": "ok"
+          "description": "ok"
         }
       ],
-      "deprecated": false,
       "location": {
         "pointer": "/paths/~1pets/get",
         "file": "spec.json"

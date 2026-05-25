@@ -108,7 +108,7 @@ pub fn render_named_type(spec: &ir::Ir, nt: &ir::NamedType) -> Option<String> {
     if peel_nullable(&spec.types, &nt.id).is_some() {
         let name = named_ref(nt);
         let mut s = String::new();
-        if let Some(d) = &nt.documentation {
+        if let Some(d) = &nt.description {
             s.push_str(&jsdoc(d, ""));
         }
         let body = render_type_ref(spec, &nt.id, None);
@@ -140,7 +140,7 @@ pub fn render_named_type(spec: &ir::Ir, nt: &ir::NamedType) -> Option<String> {
             } else {
                 let name = named_ref(nt);
                 let mut s = String::new();
-                if let Some(d) = &nt.documentation {
+                if let Some(d) = &nt.description {
                     s.push_str(&jsdoc(d, ""));
                 }
                 s.push_str(&format!("export type {name} = null;\n"));
@@ -153,14 +153,14 @@ pub fn render_named_type(spec: &ir::Ir, nt: &ir::NamedType) -> Option<String> {
 fn render_object(spec: &ir::Ir, nt: &ir::NamedType, obj: &ir::ObjectType) -> String {
     let name = named_ref(nt);
     let mut s = String::new();
-    if let Some(d) = &nt.documentation {
+    if let Some(d) = &nt.description {
         s.push_str(&jsdoc(d, ""));
     }
     s.push_str(&format!("export interface {name} {{\n"));
     for prop in &obj.properties {
         let optional = !prop.required;
         let ts_type = render_type_ref(spec, &prop.r#type, None);
-        if let Some(d) = &prop.documentation {
+        if let Some(d) = &prop.description {
             s.push_str(&jsdoc(d, "  "));
         }
         if is_int64_named(spec, &prop.r#type) {
@@ -188,7 +188,7 @@ fn render_array_alias(spec: &ir::Ir, nt: &ir::NamedType, a: &ir::ArrayType) -> S
     let name = named_ref(nt);
     let item = render_type_ref(spec, &a.items, None);
     let mut s = String::new();
-    if let Some(d) = &nt.documentation {
+    if let Some(d) = &nt.description {
         s.push_str(&jsdoc(d, ""));
     }
     s.push_str(&format!("export type {name} = Array<{item}>;\n"));
@@ -199,7 +199,7 @@ fn render_map_alias(spec: &ir::Ir, nt: &ir::NamedType, values: &ir::TypeRef) -> 
     let name = named_ref(nt);
     let v = render_type_ref(spec, values, None);
     let mut s = String::new();
-    if let Some(d) = &nt.documentation {
+    if let Some(d) = &nt.description {
         s.push_str(&jsdoc(d, ""));
     }
     s.push_str(&format!("export type {name} = {{ [key: string]: {v} }};\n"));
@@ -224,7 +224,7 @@ fn as_map(o: &ir::ObjectType) -> Option<&ir::TypeRef> {
 fn render_enum_string(nt: &ir::NamedType, e: &ir::EnumStringType) -> String {
     let name = named_ref(nt);
     let mut s = String::new();
-    if let Some(d) = &nt.documentation {
+    if let Some(d) = &nt.description {
         s.push_str(&jsdoc(d, ""));
     }
     let parts: Vec<String> = e
@@ -243,7 +243,7 @@ fn render_enum_string(nt: &ir::NamedType, e: &ir::EnumStringType) -> String {
 fn render_enum_int(nt: &ir::NamedType, e: &ir::EnumIntType) -> String {
     let name = named_ref(nt);
     let mut s = String::new();
-    if let Some(d) = &nt.documentation {
+    if let Some(d) = &nt.description {
         s.push_str(&jsdoc(d, ""));
     }
     let parts: Vec<String> = e.values.iter().map(|v| v.value.to_string()).collect();
@@ -258,7 +258,7 @@ fn render_enum_int(nt: &ir::NamedType, e: &ir::EnumIntType) -> String {
 fn render_union(spec: &ir::Ir, nt: &ir::NamedType, u: &ir::UnionType) -> String {
     let name = named_ref(nt);
     let mut s = String::new();
-    if let Some(d) = &nt.documentation {
+    if let Some(d) = &nt.description {
         s.push_str(&jsdoc(d, ""));
     }
     // Variants pointing at the Null singleton render as the literal `null`

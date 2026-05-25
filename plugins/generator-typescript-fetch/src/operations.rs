@@ -113,7 +113,7 @@ pub fn render_operation(spec: &ir::Ir, op: &ir::Operation) -> String {
     let body_pick = pick_body(spec, op);
     let response_pick = pick_response(spec, op);
 
-    let docs = op.documentation.as_deref();
+    let docs = op.description.as_deref();
     let error_responses: Vec<(String, String)> = collect_error_response_types(spec, op);
     let needs_jsdoc = docs.is_some()
         || !op.tags.is_empty()

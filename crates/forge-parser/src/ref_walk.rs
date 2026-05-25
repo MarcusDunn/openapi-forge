@@ -37,25 +37,47 @@ where
     let mut pushed: Vec<(PathBuf, String)> = Vec::new();
     let prev_doc = ctx.current_doc.clone();
     let mut ok = true;
-    // OAS 3.1+ allows sibling keywords on `$ref` (and OAS 3.2 codifies
-    // it for non-schema Reference Objects: `summary` / `description`).
-    // Snapshot the immediate parent object's siblings *before* chain-
-    // walking so we can overlay them onto the final resolved value.
-    // 3.0 specs drop siblings with `parser/W-REF-SIBLINGS-3-0` (handled
-    // below).
+    // OAS 3.2 §4.23: a non-schema Reference Object MAY carry `summary`
+    // and `description` siblings that override the target's. All other
+    // siblings (including `x-*`) "SHALL be ignored". We snapshot the
+    // valid overrides here and emit `W-REF-SIBLINGS-INVALID` for any
+    // others so spec authors know they're being dropped. OAS 3.1's
+    // Reference Object was stricter (`$ref` only) but tools accepted
+    // siblings de-facto; we apply the 3.2 rule across 3.1+ for
+    // consistency. OAS 3.0 didn't permit siblings at all — the
+    // schema-side path emits `W-REF-SIBLINGS-3-0`; the non-schema path
+    // here drops them silently in 3.0.
     let initial_siblings: Option<serde_json::Map<String, J>> = if !ctx.is_oas_3_0 {
         cursor.as_object().and_then(|m| {
             if !m.contains_key("$ref") {
                 return None;
             }
-            let mut sibs = serde_json::Map::new();
+            let mut overrides = serde_json::Map::new();
+            let mut invalid: Vec<String> = Vec::new();
             for (k, v) in m {
-                if k == "$ref" || k.starts_with("x-") {
+                if k == "$ref" {
                     continue;
                 }
-                sibs.insert(k.clone(), v.clone());
+                if k == "summary" || k == "description" {
+                    overrides.insert(k.clone(), v.clone());
+                    continue;
+                }
+                invalid.push(k.clone());
             }
-            (!sibs.is_empty()).then_some(sibs)
+            if !invalid.is_empty() {
+                invalid.sort();
+                ctx.push_diag(diag::warn(
+                    crate::diag::W_REF_SIBLINGS_INVALID,
+                    format!(
+                        "Reference Object carries sibling field(s) `{}`; OAS 3.2 §4.23 \
+                         only permits `summary` and `description` alongside `$ref`. \
+                         Dropping the extras.",
+                        invalid.join("`, `")
+                    ),
+                    ptr.loc(ctx.file),
+                ));
+            }
+            (!overrides.is_empty()).then_some(overrides)
         })
     } else {
         // 3.0: warn-and-drop. Existing W_REF_SIBLINGS_3_0 path lives
@@ -152,9 +174,11 @@ where
         cursor = target.clone();
     }
 
-    // 3.1+ sibling merge: siblings on the `$ref` source object win
-    // over the resolved target's same-keyed fields. Spec ref:
-    // OAS 3.2 §3.5, JSON Schema 2020-12 §8.2.3.
+    // OAS 3.2 §4.23 override: the Reference Object's `summary` /
+    // `description` SHOULD override the target's. If the target's
+    // object-type doesn't define that field, the parser at the call
+    // site simply doesn't read it from the overlaid JSON — naturally
+    // matching the spec's "this field has no effect" clause.
     let merged = if ok && initial_siblings.is_some() && cursor.is_object() {
         let mut m = cursor.as_object().cloned().unwrap_or_default();
         if let Some(sibs) = initial_siblings {

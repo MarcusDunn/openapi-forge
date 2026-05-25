@@ -17,22 +17,24 @@ pub struct NamedType {
     pub id: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub original_name: Option<String>,
-    /// Long-form schema description (`description` in JSON Schema).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub documentation: Option<String>,
-    /// Short human label (`title` in JSON Schema). Doc generators and IDE
-    /// hover surface it; populated verbatim, never derived.
+    /// JSON Schema `title` — short human label.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
+    /// JSON Schema / OAS `description` (CommonMark).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// JSON Schema 2020-12 `deprecated`.
+    #[serde(default, skip_serializing_if = "crate::is_false")]
+    pub deprecated: bool,
     /// JSON Schema `readOnly` at the schema level. Generators that
     /// distinguish request from response shapes can opt to drop
     /// `read_only` types from their request surface.
-    #[serde(default, skip_serializing_if = "is_false")]
+    #[serde(default, skip_serializing_if = "crate::is_false")]
     pub read_only: bool,
     /// JSON Schema `writeOnly` at the schema level. Generators that
     /// distinguish request from response shapes can opt to drop
     /// `write_only` types from their response surface.
-    #[serde(default, skip_serializing_if = "is_false")]
+    #[serde(default, skip_serializing_if = "crate::is_false")]
     pub write_only: bool,
     /// Per-schema `externalDocs` (OAS Schema Object).
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -57,10 +59,6 @@ pub struct NamedType {
     pub extensions: Vec<(String, ValueRef)>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub location: Option<SpecLocation>,
-}
-
-fn is_false(b: &bool) -> bool {
-    !*b
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -190,18 +188,31 @@ pub struct Property {
     /// `Parameter.required`.
     #[serde(default)]
     pub required: bool,
+    /// JSON Schema `title` — short human label.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub documentation: Option<String>,
+    pub title: Option<String>,
+    /// JSON Schema / OAS `description` (CommonMark).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// JSON Schema 2020-12 `deprecated`.
     #[serde(default)]
     pub deprecated: bool,
     #[serde(default)]
     pub read_only: bool,
     #[serde(default)]
     pub write_only: bool,
+    /// Per-schema `externalDocs` (OAS Schema Object).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub external_docs: Option<crate::ExternalDocs>,
     /// JSON Schema `default` for the property. `ValueRef` indexes
     /// into [`crate::Ir::values`]; compound defaults are pooled there.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub default: Option<ValueRef>,
+    /// OAS `example` / `examples` for this property. Named entries;
+    /// 3.0 `example: <literal>` lands under the synthetic key
+    /// `"_default"`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub examples: Vec<(String, crate::Example)>,
     /// `x-*` extensions declared on the property's schema. Each entry
     /// pairs a key with a [`ValueRef`] into [`crate::Ir::values`];
     /// compound values are pooled there.
@@ -232,11 +243,12 @@ pub struct EnumStringType {
     pub values: Vec<EnumStringValue>,
 }
 
+/// One value in a string-typed enum. OAS / JSON Schema does not define
+/// per-value documentation, so this is a bare value. Per-value docs
+/// would have to come from a vendor extension and are out of scope.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct EnumStringValue {
     pub value: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub documentation: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -245,11 +257,11 @@ pub struct EnumIntType {
     pub kind: IntKind,
 }
 
+/// One value in an integer-typed enum. OAS / JSON Schema does not
+/// define per-value documentation; see [`EnumStringValue`].
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct EnumIntValue {
     pub value: i64,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub documentation: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

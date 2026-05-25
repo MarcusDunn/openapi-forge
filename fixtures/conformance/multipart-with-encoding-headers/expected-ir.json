@@ -27,8 +27,7 @@
                       {
                         "type": "uploadFile_header_Content_Disposition",
                         "required": false,
-                        "deprecated": false,
-                        "documentation": "Per-part Content-Disposition override.",
+                        "description": "Per-part Content-Disposition override.",
                         "explode": false,
                         "allow_reserved": false,
                         "allow_empty_value": false,
@@ -43,8 +42,7 @@
                       {
                         "type": "uploadFile_header_X_File_Hash",
                         "required": false,
-                        "deprecated": false,
-                        "documentation": "SHA-256 of the file contents.",
+                        "description": "SHA-256 of the file contents.",
                         "explode": false,
                         "allow_reserved": false,
                         "allow_empty_value": false,
@@ -68,10 +66,9 @@
             "kind": "explicit",
             "code": 204
           },
-          "documentation": "uploaded"
+          "description": "uploaded"
         }
       ],
-      "deprecated": false,
       "location": {
         "pointer": "/paths/~1upload/post",
         "file": "spec.json"

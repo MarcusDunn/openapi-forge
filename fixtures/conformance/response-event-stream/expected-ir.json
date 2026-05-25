@@ -21,10 +21,9 @@
               "type": "streamEvents_response_200"
             }
           ],
-          "documentation": "server-sent events"
+          "description": "server-sent events"
         }
       ],
-      "deprecated": false,
       "servers": [
         {
           "url": "https://api.example.com"

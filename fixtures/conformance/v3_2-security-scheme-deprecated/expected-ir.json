@@ -15,7 +15,7 @@
             "kind": "explicit",
             "code": 204
           },
-          "documentation": "no content"
+          "description": "no content"
         }
       ],
       "security": [
@@ -23,7 +23,6 @@
           "scheme_id": "legacyKey"
         }
       ],
-      "deprecated": false,
       "location": {
         "pointer": "/paths/~1ping/get",
         "file": "spec.json"
@@ -39,7 +38,7 @@
         "name": "X-Legacy-Key",
         "location": "header"
       },
-      "documentation": "Phased out; migrate to bearerAuth",
+      "description": "Phased out; migrate to bearerAuth",
       "deprecated": true
     }
   ],

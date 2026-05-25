@@ -15,7 +15,7 @@
             "kind": "explicit",
             "code": 204
           },
-          "documentation": "ok"
+          "description": "ok"
         }
       ],
       "security": [
@@ -23,7 +23,6 @@
           "scheme_id": "basicAuth"
         }
       ],
-      "deprecated": false,
       "servers": [
         {
           "url": "https://api.example.com"

@@ -178,8 +178,9 @@ mod tests {
         NamedType {
             id: id.to_string(),
             original_name: None,
-            documentation: None,
             title: None,
+            description: None,
+            deprecated: false,
             read_only: false,
             write_only: false,
             external_docs: None,
