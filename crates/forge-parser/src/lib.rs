@@ -615,10 +615,8 @@ pub(crate) fn parse_links(ctx: &mut Ctx, value: Option<&J>, ptr: &mut Ptr) -> Ve
                     let server = lmap.get("server").and_then(|s| {
                         s.as_object().and_then(|m| {
                             let url = m.get("url").and_then(J::as_str)?;
-                            let server_desc = m
-                                .get("description")
-                                .and_then(J::as_str)
-                                .map(String::from);
+                            let server_desc =
+                                m.get("description").and_then(J::as_str).map(String::from);
                             let server_name = m.get("name").and_then(J::as_str).map(String::from);
                             Some(Server {
                                 url: url.to_string(),
@@ -1234,10 +1232,7 @@ mod tests {
         assert!(op_docs.description.is_none());
 
         let foo = ir.types.iter().find(|t| t.id == "Foo").expect("Foo type");
-        let schema_docs = foo
-            .external_docs
-            .as_ref()
-            .expect("schema externalDocs");
+        let schema_docs = foo.external_docs.as_ref().expect("schema externalDocs");
         assert_eq!(schema_docs.url, "https://example.com/foo");
         assert_eq!(schema_docs.description.as_deref(), Some("d"));
     }

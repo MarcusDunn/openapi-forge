@@ -16,9 +16,7 @@ use serde_json::Value as J;
 use crate::ctx::Ctx;
 use crate::diag;
 use crate::pointer::Ptr;
-use crate::schema::{
-    alloc_id, maybe_wrap_nullable, original_name, parse_schema, NameHint,
-};
+use crate::schema::{alloc_id, maybe_wrap_nullable, original_name, parse_schema, NameHint};
 
 #[derive(Debug)]
 struct Acc {

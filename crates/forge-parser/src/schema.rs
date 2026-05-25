@@ -914,20 +914,28 @@ fn parse_object(
                 ptr.with_token(name, |ptr| {
                     let role = format!("property_{}", crate::sanitize::ident(name));
                     if let Some(t) = parse_schema(ctx, schema, ptr, NameHint::inline(&id, &role)) {
-                        let (prop_title, prop_desc, prop_dep, prop_ro, prop_wo, prop_extdocs, prop_default, prop_examples) =
-                            match schema {
-                                J::Object(m) => (
-                                    title(m),
-                                    description(m),
-                                    deprecated(m),
-                                    m.get("readOnly").and_then(J::as_bool).unwrap_or(false),
-                                    m.get("writeOnly").and_then(J::as_bool).unwrap_or(false),
-                                    crate::parse_external_docs(ctx, m.get("externalDocs"), ptr),
-                                    crate::parse_default(ctx, m, ptr, "property"),
-                                    crate::parse_examples(ctx, m, ptr),
-                                ),
-                                _ => (None, None, false, false, false, None, None, vec![]),
-                            };
+                        let (
+                            prop_title,
+                            prop_desc,
+                            prop_dep,
+                            prop_ro,
+                            prop_wo,
+                            prop_extdocs,
+                            prop_default,
+                            prop_examples,
+                        ) = match schema {
+                            J::Object(m) => (
+                                title(m),
+                                description(m),
+                                deprecated(m),
+                                m.get("readOnly").and_then(J::as_bool).unwrap_or(false),
+                                m.get("writeOnly").and_then(J::as_bool).unwrap_or(false),
+                                crate::parse_external_docs(ctx, m.get("externalDocs"), ptr),
+                                crate::parse_default(ctx, m, ptr, "property"),
+                                crate::parse_examples(ctx, m, ptr),
+                            ),
+                            _ => (None, None, false, false, false, None, None, vec![]),
+                        };
                         let extensions = match schema {
                             J::Object(m) => crate::operations::collect_extensions(ctx, m, ptr),
                             _ => Vec::new(),
@@ -1348,7 +1356,11 @@ fn parse_const(
                         deprecated: deprecated(map),
                         read_only: read_write_only(map).0,
                         write_only: read_write_only(map).1,
-                        external_docs: crate::parse_external_docs(ctx, map.get("externalDocs"), ptr),
+                        external_docs: crate::parse_external_docs(
+                            ctx,
+                            map.get("externalDocs"),
+                            ptr,
+                        ),
                         default: crate::parse_default(ctx, map, ptr, "schema"),
                         examples: crate::parse_examples(ctx, map, ptr),
                         xml: crate::parse_xml(ctx, map, ptr),

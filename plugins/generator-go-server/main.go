@@ -125,7 +125,7 @@ func irToSpec(spec generatorapi.Ir) emit.Spec {
 			Method:     methodToString(op.Method),
 			Path:       op.PathTemplate,
 			PathParams: convertPathParams(op.PathParams.Slice(), typeKinds),
-			Doc:        optString(op.Documentation),
+			Doc:        optString(op.Description),
 		})
 	}
 	return out
