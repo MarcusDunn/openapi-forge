@@ -15,10 +15,9 @@
             "kind": "explicit",
             "code": 200
           },
-          "documentation": "ok"
+          "description": "ok"
         }
       ],
-      "deprecated": false,
       "servers": [
         {
           "url": "https://api.example.com"
@@ -37,7 +36,7 @@
       "kind": {
         "type": "mutual-tls"
       },
-      "documentation": "Client cert auth — provisioning lives at the transport layer."
+      "description": "Client cert auth — provisioning lives at the transport layer."
     }
   ],
   "servers": [

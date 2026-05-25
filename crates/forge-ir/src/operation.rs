@@ -37,15 +37,22 @@ pub struct Operation {
     pub security: Vec<SecurityRequirement>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tags: Vec<String>,
+    /// OAS §4.10 `summary` — short one-line label. PathItem-level
+    /// `summary` fallback is applied at parse time.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub documentation: Option<String>,
-    #[serde(default)]
+    pub summary: Option<String>,
+    /// OAS §4.10 `description` — long-form CommonMark. PathItem-level
+    /// `description` fallback is applied at parse time.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// OAS §4.10 `deprecated`.
+    #[serde(default, skip_serializing_if = "crate::is_false")]
     pub deprecated: bool,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub extensions: Vec<(String, ValueRef)>,
-    /// Per-operation `externalDocs` (OAS Operation Object).
+    /// Per-operation `externalDocs` (OAS §4.10).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub external_docs: Option<crate::ExternalDocs>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub extensions: Vec<(String, ValueRef)>,
     /// Effective `servers` list for this operation. The parser
     /// resolves OAS §4.8.10 inheritance — operation-level entries win
     /// over path-item entries, which win over the root list — and
@@ -109,10 +116,16 @@ pub struct Parameter {
     #[serde(rename = "type")]
     pub r#type: TypeRef,
     pub required: bool,
+    /// OAS §4.12 `description` (CommonMark).
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub documentation: Option<String>,
-    #[serde(default)]
+    pub description: Option<String>,
+    /// OAS §4.12 `deprecated`.
+    #[serde(default, skip_serializing_if = "crate::is_false")]
     pub deprecated: bool,
+    /// OAS §4.12 `example` / `examples`. Named entries; 3.0 bare
+    /// `example` lands under the synthetic key `"_default"`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub examples: Vec<(String, crate::Example)>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub style: Option<ParameterStyle>,
     #[serde(default)]
@@ -126,11 +139,6 @@ pub struct Parameter {
     /// rendered query string. Defaults to `false`.
     #[serde(default)]
     pub allow_reserved: bool,
-    /// OAS `example` / `examples` for this parameter. Named entries;
-    /// 3.0 `example: <literal>` lands under the synthetic key
-    /// `"_default"`.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub examples: Vec<(String, crate::Example)>,
     /// `x-*` extensions declared on the parameter. Compound extensions
     /// drop with `parser/W-EXTENSION-DROPPED`.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -155,8 +163,9 @@ pub enum ParameterStyle {
 pub struct Body {
     pub content: Vec<BodyContent>,
     pub required: bool,
+    /// OAS §4.13 `description` (CommonMark).
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub documentation: Option<String>,
+    pub description: Option<String>,
     /// `x-*` extensions declared on the request-body object. Compound
     /// extensions drop with `parser/W-EXTENSION-DROPPED`.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -179,9 +188,9 @@ pub struct BodyContent {
     /// record at a time.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub item_schema: Option<TypeRef>,
-    /// OAS `example` / `examples` for this media-type entry. Named
-    /// entries; 3.0 `example: <literal>` lands under the synthetic
-    /// key `"_default"`.
+    /// OAS §4.14 `example` / `examples`. The Media Type Object has no
+    /// `description` or `summary` field per spec — body-level prose
+    /// belongs on the surrounding RequestBody / Response.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub examples: Vec<(String, crate::Example)>,
     /// `x-*` extensions declared on the media-type object. Compound
@@ -226,10 +235,13 @@ pub struct Header {
     pub r#type: TypeRef,
     #[serde(default)]
     pub required: bool,
-    #[serde(default)]
-    pub deprecated: bool,
+    /// OAS §4.21 `description` (CommonMark).
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub documentation: Option<String>,
+    pub description: Option<String>,
+    /// OAS §4.21 `deprecated`.
+    #[serde(default, skip_serializing_if = "crate::is_false")]
+    pub deprecated: bool,
+    /// OAS §4.21 `example` / `examples`.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub examples: Vec<(String, crate::Example)>,
     /// OAS Header Object inherits the Parameter Object's serialization
@@ -260,8 +272,13 @@ pub struct Response {
     pub content: Vec<BodyContent>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub headers: Vec<(String, Header)>,
+    /// OAS 3.2 §4.17 `summary` — short label, new in 3.2.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub documentation: Option<String>,
+    pub summary: Option<String>,
+    /// OAS §4.17 `description` (CommonMark). Required in 3.0 / 3.1;
+    /// optional in 3.2.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
     /// OAS `links` — HATEOAS follow-ups. Named entries; order is
     /// preserved.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]

@@ -40,6 +40,19 @@ pub use types::{
 pub use types::{Discriminator, UnionKind, UnionType, UnionVariant};
 pub use value::{Value, ValueRef};
 
+// Documentation fields are inlined per node, matching the OAS 3.2 spec
+// exactly: each node type carries only the doc surfaces the spec
+// defines for it. Strict spec conformance — no uniform `Docs` slot.
+// Nodes that the spec doesn't grant a `description` / `summary` / etc.
+// simply don't have those fields. Reference Object `$ref` siblings
+// override the target's same-keyed fields where applicable, and have
+// "no effect" elsewhere because the target's parser doesn't read what
+// the spec doesn't grant.
+
+pub(crate) fn is_false(b: &bool) -> bool {
+    !*b
+}
+
 /// Top-level IR document.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Ir {
@@ -58,7 +71,7 @@ pub struct Ir {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub webhooks: Vec<Webhook>,
     /// Root-level `externalDocs`. Per-operation and per-schema slots
-    /// live on `Operation` / `NamedType` respectively.
+    /// live on `Operation.external_docs` / `NamedType.external_docs`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub external_docs: Option<ExternalDocs>,
     /// Top-level `tags` array, walked into structured records. Sorted
@@ -96,6 +109,7 @@ pub struct Tag {
     /// OAS 3.2 `summary` — short single-line label.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub summary: Option<String>,
+    /// OAS `description` — CommonMark prose.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -130,6 +144,13 @@ pub struct ExternalDocs {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Webhook {
     pub name: String,
+    /// PathItem-level `summary` (OAS §4.9). Applies to all operations
+    /// the path item declares unless an operation overrides it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub summary: Option<String>,
+    /// PathItem-level `description` (OAS §4.9).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
     /// Operations declared on the path item. Walked through the same
     /// `parse_path_item` machinery used for top-level `paths`.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -186,6 +207,7 @@ pub struct Link {
     pub parameters: Vec<(String, ValueRef)>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub request_body: Option<ValueRef>,
+    /// OAS §4.20: Link Object's `description` (CommonMark).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     /// Per-link `server` override (rare).
@@ -267,11 +289,12 @@ pub struct Example {
 pub struct ApiInfo {
     pub title: String,
     pub version: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-    /// Short OpenAPI-3.1 summary line, distinct from `description`.
+    /// OAS 3.1+ `summary` — single-line API synopsis.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub summary: Option<String>,
+    /// OAS `description` — long-form prose (CommonMark).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
     /// URL pointing to the API's terms of service.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub terms_of_service: Option<String>,
@@ -361,8 +384,8 @@ mod tests {
             info: ApiInfo {
                 title: "test".into(),
                 version: "0".into(),
-                description: None,
                 summary: None,
+                description: None,
                 terms_of_service: None,
                 contact: None,
                 license_name: None,

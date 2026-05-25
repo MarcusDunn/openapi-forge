@@ -15,7 +15,7 @@
             "kind": "explicit",
             "code": 204
           },
-          "documentation": "ok"
+          "description": "ok"
         }
       ],
       "security": [
@@ -23,7 +23,6 @@
           "scheme_id": "apiKeyAuth"
         }
       ],
-      "deprecated": false,
       "location": {
         "pointer": "/paths/~1items/get",
         "file": "spec.json"

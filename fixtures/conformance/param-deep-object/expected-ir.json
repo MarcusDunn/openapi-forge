@@ -14,7 +14,6 @@
           "name": "filter",
           "type": "searchItems_param_query_filter",
           "required": false,
-          "deprecated": false,
           "style": "deep-object",
           "explode": true,
           "allow_empty_value": false,
@@ -31,10 +30,9 @@
             "kind": "explicit",
             "code": 204
           },
-          "documentation": "ok"
+          "description": "ok"
         }
       ],
-      "deprecated": false,
       "servers": [
         {
           "url": "https://api.example.com"

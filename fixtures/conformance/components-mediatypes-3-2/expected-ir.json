@@ -24,10 +24,9 @@
             "kind": "explicit",
             "code": 204
           },
-          "documentation": "created"
+          "description": "created"
         }
       ],
-      "deprecated": false,
       "location": {
         "pointer": "/paths/~1things/post",
         "file": "spec.json"
@@ -50,10 +49,9 @@
               "type": "Thing"
             }
           ],
-          "documentation": "ok"
+          "description": "ok"
         }
       ],
-      "deprecated": false,
       "location": {
         "pointer": "/paths/~1things/get",
         "file": "spec.json"

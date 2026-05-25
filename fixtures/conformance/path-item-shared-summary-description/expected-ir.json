@@ -15,11 +15,11 @@
             "kind": "explicit",
             "code": 201
           },
-          "documentation": "created"
+          "description": "created"
         }
       ],
-      "documentation": "Create one widget. Operation-level description wins.",
-      "deprecated": false,
+      "summary": "Widget collection",
+      "description": "Create one widget. Operation-level description wins.",
       "location": {
         "pointer": "/paths/~1widgets/post",
         "file": "spec.json"
@@ -36,11 +36,11 @@
             "kind": "explicit",
             "code": 200
           },
-          "documentation": "ok"
+          "description": "ok"
         }
       ],
-      "documentation": "All widgets the caller can see.",
-      "deprecated": false,
+      "summary": "Widget collection",
+      "description": "All widgets the caller can see.",
       "location": {
         "pointer": "/paths/~1widgets/get",
         "file": "spec.json"

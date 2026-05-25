@@ -92,6 +92,14 @@ pub const W_COMPONENT_MEDIA_TYPE_UNUSED: &str = "parser/W-COMPONENT-MEDIA-TYPE-U
 /// this warning, though sibling-merging is not yet implemented
 /// (tracked at #74 follow-up).
 pub const W_REF_SIBLINGS_3_0: &str = "parser/W-REF-SIBLINGS-3-0";
+/// A non-schema Reference Object carried a sibling other than `$ref`,
+/// `summary`, or `description`. OAS 3.2 §4.23 says: "The Reference
+/// Object cannot be extended with additional properties, and any
+/// properties added SHALL be ignored." The parser drops the extra
+/// siblings and emits this warning. Schema Object `$ref` is *not*
+/// affected — JSON Schema 2020-12 allows arbitrary annotations there
+/// and that path goes through a different walker.
+pub const W_REF_SIBLINGS_INVALID: &str = "parser/W-REF-SIBLINGS-INVALID";
 
 // Builders ------------------------------------------------------------------
 

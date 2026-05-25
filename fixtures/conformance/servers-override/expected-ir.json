@@ -15,10 +15,9 @@
             "kind": "explicit",
             "code": 204
           },
-          "documentation": "ok"
+          "description": "ok"
         }
       ],
-      "deprecated": false,
       "servers": [
         {
           "url": "https://path.example.com"
@@ -40,10 +39,9 @@
             "kind": "explicit",
             "code": 204
           },
-          "documentation": "ok"
+          "description": "ok"
         }
       ],
-      "deprecated": false,
       "servers": [
         {
           "url": "https://root.example.com"
@@ -65,10 +63,9 @@
             "kind": "explicit",
             "code": 204
           },
-          "documentation": "ok"
+          "description": "ok"
         }
       ],
-      "deprecated": false,
       "servers": [
         {
           "url": "https://op.example.com",

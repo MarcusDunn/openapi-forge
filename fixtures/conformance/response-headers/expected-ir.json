@@ -21,8 +21,7 @@
               {
                 "type": "listItems_header_X_Rate_Limit_Remaining",
                 "required": true,
-                "deprecated": false,
-                "documentation": "Calls remaining in this window.",
+                "description": "Calls remaining in this window.",
                 "explode": false,
                 "allow_reserved": false,
                 "allow_empty_value": false,
@@ -37,8 +36,7 @@
               {
                 "type": "listItems_header_X_Rate_Limit_Reset",
                 "required": false,
-                "deprecated": false,
-                "documentation": "Unix epoch seconds when the rate-limit window resets.",
+                "description": "Unix epoch seconds when the rate-limit window resets.",
                 "explode": false,
                 "allow_reserved": false,
                 "allow_empty_value": false,
@@ -49,7 +47,7 @@
               }
             ]
           ],
-          "documentation": "ok"
+          "description": "ok"
         },
         {
           "status": {
@@ -61,7 +59,6 @@
               {
                 "type": "listItems_header_X_Request_Id",
                 "required": false,
-                "deprecated": false,
                 "explode": false,
                 "allow_reserved": false,
                 "allow_empty_value": false,
@@ -72,10 +69,9 @@
               }
             ]
           ],
-          "documentation": "error"
+          "description": "error"
         }
       ],
-      "deprecated": false,
       "location": {
         "pointer": "/paths/~1items/get",
         "file": "spec.json"

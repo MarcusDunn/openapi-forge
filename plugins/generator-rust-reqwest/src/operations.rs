@@ -195,7 +195,7 @@ fn render_operation(spec: &ir::Ir, op: &ir::Operation, has_auth: bool) -> String
 
     // Signature.
     let mut sig = String::new();
-    if let Some(doc) = &op.documentation {
+    if let Some(doc) = &op.description {
         for line in doc.lines() {
             sig.push_str("    /// ");
             sig.push_str(line);

@@ -21,8 +21,7 @@
               {
                 "type": "list_header_X_Rate_Limit",
                 "required": true,
-                "deprecated": false,
-                "documentation": "remaining requests",
+                "description": "remaining requests",
                 "style": "simple",
                 "explode": false,
                 "allow_reserved": false,
@@ -34,10 +33,9 @@
               }
             ]
           ],
-          "documentation": "ok"
+          "description": "ok"
         }
       ],
-      "deprecated": false,
       "location": {
         "pointer": "/paths/~1things/get",
         "file": "spec.json"

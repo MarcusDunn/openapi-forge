@@ -177,7 +177,8 @@ fn parse_with_resolver(
 
     // 7. Root-level `externalDocs`. Reads here rather than in
     //    `parse_info` because OAS puts it on the root, not nested under
-    //    `info`.
+    //    `info`. Carried on `Ir.external_docs`; the rest of
+    //    `Ir.docs` stays empty (root-level prose lives on `info.docs`).
     let root_external_docs = parse_external_docs(&mut ctx, root_map.get("externalDocs"), &mut ptr);
 
     // 7b. Surface unused `components.pathItems` declarations. They
@@ -200,8 +201,8 @@ fn parse_with_resolver(
         info: ctx.info.take().unwrap_or(ApiInfo {
             title: String::new(),
             version: String::new(),
-            description: None,
             summary: None,
+            description: None,
             terms_of_service: None,
             contact: None,
             license_name: None,
@@ -270,8 +271,10 @@ fn parse_tags(ctx: &mut Ctx, root: &serde_json::Map<String, J>, ptr: &mut Ptr) -
                     ));
                     return;
                 };
-                let summary = map.get("summary").and_then(J::as_str).map(String::from);
-                let description = map.get("description").and_then(J::as_str).map(String::from);
+                // OAS §4.22: Tag carries summary (3.2), description,
+                // externalDocs.
+                let summary = crate::schema::summary(map);
+                let description = crate::schema::description(map);
                 let external_docs = parse_external_docs(ctx, map.get("externalDocs"), ptr);
                 let kind = map.get("kind").and_then(J::as_str).map(String::from);
                 let parent_raw = map.get("parent").and_then(J::as_str).map(String::from);
@@ -607,19 +610,17 @@ pub(crate) fn parse_links(ctx: &mut Ctx, value: Option<&J>, ptr: &mut Ptr) -> Ve
                     let request_body = lmap
                         .get("requestBody")
                         .map(|raw| ctx.values.intern_json(raw));
-                    let description = lmap
-                        .get("description")
-                        .and_then(J::as_str)
-                        .map(String::from);
+                    // OAS §4.20: Link Object carries only `description`.
+                    let description = crate::schema::description(lmap);
                     let server = lmap.get("server").and_then(|s| {
                         s.as_object().and_then(|m| {
                             let url = m.get("url").and_then(J::as_str)?;
-                            let description =
+                            let server_desc =
                                 m.get("description").and_then(J::as_str).map(String::from);
                             let server_name = m.get("name").and_then(J::as_str).map(String::from);
                             Some(Server {
                                 url: url.to_string(),
-                                description,
+                                description: server_desc,
                                 name: server_name,
                                 variables: Vec::new(),
                                 extensions: Vec::new(),
@@ -808,11 +809,9 @@ fn parse_info(ctx: &mut Ctx, root: &serde_json::Map<String, J>, ptr: &mut Ptr) {
             ));
             ""
         });
-        let description = info
-            .get("description")
-            .and_then(J::as_str)
-            .map(String::from);
-        let summary = info.get("summary").and_then(J::as_str).map(String::from);
+        // OAS §4.2: Info Object carries summary (3.1+) and description.
+        let summary = crate::schema::summary(info);
+        let description = crate::schema::description(info);
         let terms_of_service = info
             .get("termsOfService")
             .and_then(J::as_str)
@@ -847,8 +846,8 @@ fn parse_info(ctx: &mut Ctx, root: &serde_json::Map<String, J>, ptr: &mut Ptr) {
         ctx.info = Some(ApiInfo {
             title: title.to_string(),
             version: version.to_string(),
-            description,
             summary,
+            description,
             terms_of_service,
             contact,
             license_name,
@@ -892,7 +891,8 @@ pub(crate) fn parse_servers_array(ctx: &mut Ctx, value: Option<&J>, ptr: &mut Pt
                     ));
                     return;
                 };
-                let description = map.get("description").and_then(J::as_str).map(String::from);
+                // OAS §4.5: Server carries `description` only (+ name).
+                let description = crate::schema::description(map);
                 let server_name = map.get("name").and_then(J::as_str).map(String::from);
                 let mut variables: Vec<(String, ServerVariable)> = Vec::new();
                 if let Some(J::Object(vars)) = map.get("variables") {
@@ -904,6 +904,8 @@ pub(crate) fn parse_servers_array(ctx: &mut Ctx, value: Option<&J>, ptr: &mut Pt
                                     return;
                                 };
                                 let var_extensions = operations::collect_extensions(ctx, vmap, ptr);
+                                // OAS §4.6: ServerVariable carries `description` only.
+                                let var_description = crate::schema::description(vmap);
                                 variables.push((
                                     name.clone(),
                                     ServerVariable {
@@ -915,10 +917,7 @@ pub(crate) fn parse_servers_array(ctx: &mut Ctx, value: Option<&J>, ptr: &mut Pt
                                                     .collect()
                                             })
                                         }),
-                                        description: vmap
-                                            .get("description")
-                                            .and_then(J::as_str)
-                                            .map(String::from),
+                                        description: var_description,
                                         extensions: var_extensions,
                                     },
                                 ));
@@ -1332,7 +1331,7 @@ mod tests {
         let (name, header) = &resp.headers[0];
         assert_eq!(name, "X-Trace");
         assert!(header.required);
-        assert_eq!(header.documentation.as_deref(), Some("trace id"));
+        assert_eq!(header.description.as_deref(), Some("trace id"));
         // No `name`, `style`, `explode`, etc. — Header struct doesn't
         // carry those (they don't apply to OAS headers).
     }
@@ -2607,7 +2606,7 @@ mod tests {
         let scheme = &ir.security_schemes[0];
         assert_eq!(scheme.id, "mtls");
         assert!(matches!(scheme.kind, SecuritySchemeKind::MutualTls));
-        assert_eq!(scheme.documentation.as_deref(), Some("client-cert auth"));
+        assert_eq!(scheme.description.as_deref(), Some("client-cert auth"));
     }
 
     #[test]
@@ -2907,10 +2906,727 @@ mod tests {
         let ir = parse_str(src).unwrap().spec.unwrap();
         let resp = &ir.operations[0].responses[0];
         assert_eq!(
-            resp.documentation.as_deref(),
+            resp.description.as_deref(),
             Some("per-call override"),
             "the sibling `description` wins over the shared default"
         );
+    }
+
+    /// OAS 3.2 §4.23: Response now carries `summary` as well as
+    /// `description`. A Reference Object's `summary` override should
+    /// land on `Response.summary`.
+    #[test]
+    fn ref_summary_override_on_response_3_2() {
+        let src = r##"{
+            "openapi":"3.2.0",
+            "info":{"title":"t","version":"1"},
+            "paths":{"/x":{"get":{
+                "operationId":"x",
+                "responses":{"200":{
+                    "$ref":"#/components/responses/Shared",
+                    "summary":"per-call summary",
+                    "description":"per-call desc"
+                }}
+            }}},
+            "components":{"responses":{
+                "Shared":{
+                    "summary":"shared summary",
+                    "description":"shared desc"
+                }
+            }}
+        }"##;
+        let ir = parse_str(src).unwrap().spec.unwrap();
+        let resp = &ir.operations[0].responses[0];
+        assert_eq!(resp.summary.as_deref(), Some("per-call summary"));
+        assert_eq!(resp.description.as_deref(), Some("per-call desc"));
+    }
+
+    /// Parameter Object (§4.12) only carries `description`. The
+    /// Reference Object's `summary` should silently have no effect —
+    /// the target type doesn't read it. `description` overrides.
+    #[test]
+    fn ref_override_on_parameter_summary_has_no_effect() {
+        let src = r##"{
+            "openapi":"3.2.0",
+            "info":{"title":"t","version":"1"},
+            "paths":{"/x/{id}":{
+                "parameters":[{
+                    "$ref":"#/components/parameters/Id",
+                    "summary":"override summary",
+                    "description":"override desc"
+                }],
+                "get":{"operationId":"x","responses":{"200":{"description":"ok"}}}
+            }},
+            "components":{"parameters":{
+                "Id":{"name":"id","in":"path","required":true,"schema":{"type":"string"},
+                      "description":"shared desc"}
+            }}
+        }"##;
+        let ir = parse_str(src).unwrap().spec.unwrap();
+        let param = &ir.operations[0].path_params[0];
+        // description on Parameter: ref-site value wins.
+        assert_eq!(param.description.as_deref(), Some("override desc"));
+        // summary on Parameter: OAS §4.12 doesn't define summary on
+        // Parameter, so the IR has no slot for it — type-level
+        // enforcement of "this field has no effect" per §4.23. The
+        // override value lands nowhere visible.
+    }
+
+    /// Header Object (§4.21) only carries `description`. Same
+    /// no-effect rule for `summary` as Parameter.
+    #[test]
+    fn ref_description_override_on_header() {
+        let src = r##"{
+            "openapi":"3.2.0",
+            "info":{"title":"t","version":"1"},
+            "paths":{"/x":{"get":{
+                "operationId":"x",
+                "responses":{"200":{
+                    "description":"ok",
+                    "headers":{
+                        "X-Trace":{
+                            "$ref":"#/components/headers/Trace",
+                            "description":"override"
+                        }
+                    }
+                }}
+            }}},
+            "components":{"headers":{
+                "Trace":{"schema":{"type":"string"},"description":"shared"}
+            }}
+        }"##;
+        let ir = parse_str(src).unwrap().spec.unwrap();
+        let (_n, h) = &ir.operations[0].responses[0].headers[0];
+        assert_eq!(h.description.as_deref(), Some("override"));
+    }
+
+    /// Example Object (§4.19) carries `summary` and `description`.
+    /// Both must override the target's values.
+    #[test]
+    fn ref_override_on_example_summary_and_description() {
+        let src = r##"{
+            "openapi":"3.2.0",
+            "info":{"title":"t","version":"1"},
+            "paths":{},
+            "components":{
+                "examples":{
+                    "Shared":{"summary":"shared sum","description":"shared d","value":"v"}
+                },
+                "schemas":{
+                    "Foo":{
+                        "type":"string",
+                        "examples":{
+                            "ref":{
+                                "$ref":"#/components/examples/Shared",
+                                "summary":"call sum",
+                                "description":"call d"
+                            }
+                        }
+                    }
+                }
+            }
+        }"##;
+        let ir = parse_str(src).unwrap().spec.unwrap();
+        let foo = ir.types.iter().find(|t| t.id == "Foo").unwrap();
+        let ex = &foo.examples[0].1;
+        assert_eq!(ex.summary.as_deref(), Some("call sum"));
+        assert_eq!(ex.description.as_deref(), Some("call d"));
+    }
+
+    /// Link Object (§4.20) only carries `description`. The current
+    /// Reference Object override path supplies it. Covered alongside
+    /// the broader sibling-merge test, but called out explicitly.
+    #[test]
+    fn ref_description_override_on_link() {
+        let src = r##"{
+            "openapi":"3.2.0",
+            "info":{"title":"t","version":"1"},
+            "paths":{"/x":{"get":{
+                "operationId":"x",
+                "responses":{"200":{
+                    "description":"ok",
+                    "links":{"next":{
+                        "$ref":"#/components/links/Shared",
+                        "description":"per-call link doc"
+                    }}
+                }}
+            }}},
+            "components":{"links":{
+                "Shared":{"operationId":"x","description":"shared link doc"}
+            }}
+        }"##;
+        let ir = parse_str(src).unwrap().spec.unwrap();
+        let link = &ir.operations[0].responses[0].links[0].1;
+        assert_eq!(link.description.as_deref(), Some("per-call link doc"));
+    }
+
+    /// RequestBody (§4.13) only carries `description`. Override
+    /// applies via the Reference Object path.
+    #[test]
+    fn ref_description_override_on_request_body() {
+        let src = r##"{
+            "openapi":"3.2.0",
+            "info":{"title":"t","version":"1"},
+            "paths":{"/x":{"post":{
+                "operationId":"x",
+                "requestBody":{
+                    "$ref":"#/components/requestBodies/Shared",
+                    "description":"per-call"
+                },
+                "responses":{"200":{"description":"ok"}}
+            }}},
+            "components":{"requestBodies":{
+                "Shared":{
+                    "description":"shared",
+                    "content":{"application/json":{"schema":{"type":"string"}}}
+                }
+            }}
+        }"##;
+        let ir = parse_str(src).unwrap().spec.unwrap();
+        let body = ir.operations[0].request_body.as_ref().unwrap();
+        assert_eq!(body.description.as_deref(), Some("per-call"));
+    }
+
+    /// SecurityScheme (§4.27) carries `description`. Reference Object
+    /// override applies. Tests the `securitySchemes` ref path.
+    #[test]
+    fn ref_description_override_on_security_scheme() {
+        let src = r##"{
+            "openapi":"3.2.0",
+            "info":{"title":"t","version":"1"},
+            "paths":{},
+            "components":{"securitySchemes":{
+                "Wrap":{
+                    "$ref":"#/components/securitySchemes/Shared",
+                    "description":"per-call"
+                },
+                "Shared":{"type":"http","scheme":"bearer","description":"shared"}
+            }}
+        }"##;
+        let ir = parse_str(src).unwrap().spec.unwrap();
+        let scheme = ir
+            .security_schemes
+            .iter()
+            .find(|s| s.id == "Wrap")
+            .expect("Wrap scheme present");
+        assert_eq!(scheme.description.as_deref(), Some("per-call"));
+    }
+
+    /// OAS 3.2 §4.23: Reference Object "cannot be extended with
+    /// additional properties, and any properties added SHALL be
+    /// ignored." Verify the parser drops the extras and emits
+    /// `W-REF-SIBLINGS-INVALID`.
+    #[test]
+    fn ref_with_invalid_siblings_warns_and_drops() {
+        let src = r##"{
+            "openapi":"3.2.0",
+            "info":{"title":"t","version":"1"},
+            "paths":{"/x":{"get":{
+                "operationId":"x",
+                "parameters":[{
+                    "$ref":"#/components/parameters/Id",
+                    "description":"ok",
+                    "required":false,
+                    "deprecated":true
+                }],
+                "responses":{"200":{"description":"ok"}}
+            }}},
+            "components":{"parameters":{
+                "Id":{"name":"id","in":"path","required":true,"schema":{"type":"string"}}
+            }}
+        }"##;
+        let out = parse_str(src).unwrap();
+        let ir = out.spec.as_ref().unwrap();
+        let param = &ir.operations[0].path_params[0];
+        // `required` and `deprecated` on the ref site SHALL be
+        // ignored; the target's values survive.
+        assert!(param.required);
+        assert!(!param.deprecated);
+        // `description` on the ref site applies.
+        assert_eq!(param.description.as_deref(), Some("ok"));
+        assert!(
+            out.diagnostics
+                .iter()
+                .any(|d| d.code == diag::W_REF_SIBLINGS_INVALID),
+            "expected W-REF-SIBLINGS-INVALID; got: {:?}",
+            out.diagnostics.iter().map(|d| &d.code).collect::<Vec<_>>()
+        );
+    }
+
+    /// `x-*` extensions on a Reference Object are also invalid per
+    /// §4.23 ("cannot be extended with additional properties"). Verify
+    /// the warning fires and the extension does not propagate.
+    #[test]
+    fn ref_with_x_extension_sibling_warns() {
+        let src = r##"{
+            "openapi":"3.2.0",
+            "info":{"title":"t","version":"1"},
+            "paths":{"/x":{"get":{
+                "operationId":"x",
+                "responses":{"200":{
+                    "$ref":"#/components/responses/Shared",
+                    "x-vendor":"yes"
+                }}
+            }}},
+            "components":{"responses":{
+                "Shared":{"description":"shared"}
+            }}
+        }"##;
+        let out = parse_str(src).unwrap();
+        assert!(
+            out.diagnostics
+                .iter()
+                .any(|d| d.code == diag::W_REF_SIBLINGS_INVALID),
+            "expected W-REF-SIBLINGS-INVALID; got: {:?}",
+            out.diagnostics.iter().map(|d| &d.code).collect::<Vec<_>>()
+        );
+    }
+
+    /// MediaType (§4.14) has no `description` / `summary` fields.
+    /// A Reference Object pointing at a MediaType with override docs
+    /// applies neither — the target type doesn't read those fields.
+    /// (Tested via the `mediaTypes` components map, OAS 3.2.)
+    #[test]
+    fn ref_override_on_media_type_has_no_effect() {
+        let src = r##"{
+            "openapi":"3.2.0",
+            "info":{"title":"t","version":"1"},
+            "paths":{"/x":{"get":{
+                "operationId":"x",
+                "responses":{"200":{
+                    "description":"ok",
+                    "content":{"application/json":{
+                        "$ref":"#/components/mediaTypes/Shared",
+                        "description":"ignored"
+                    }}
+                }}
+            }}},
+            "components":{"mediaTypes":{
+                "Shared":{"schema":{"type":"string"}}
+            }}
+        }"##;
+        let out = parse_str(src).unwrap();
+        let ir = out.spec.as_ref().unwrap();
+        let content = &ir.operations[0].responses[0].content[0];
+        // MediaType (§4.14) has no `description` field per spec — the
+        // IR's BodyContent has no description slot. The override
+        // overlays the JSON but lands nowhere in the IR, matching
+        // §4.23's "this field has no effect" clause at the type level.
+        assert_eq!(content.media_type, "application/json");
+        assert!(content.examples.is_empty());
+    }
+
+    /// Reference Object on the target side of a multi-hop chain
+    /// (`A → B → final`) still gets its `summary`/`description`
+    /// applied at the outermost site. Only the outermost siblings
+    /// participate — intermediates are pure pass-through.
+    #[test]
+    fn ref_chain_only_outermost_siblings_apply() {
+        let src = r##"{
+            "openapi":"3.2.0",
+            "info":{"title":"t","version":"1"},
+            "paths":{"/x":{"get":{
+                "operationId":"x",
+                "responses":{"200":{
+                    "$ref":"#/components/responses/Outer",
+                    "description":"call-site"
+                }}
+            }}},
+            "components":{"responses":{
+                "Outer":{"$ref":"#/components/responses/Inner"},
+                "Inner":{"description":"deepest"}
+            }}
+        }"##;
+        let out = parse_str(src).unwrap();
+        let resp = &out.spec.as_ref().unwrap().operations[0].responses[0];
+        assert_eq!(resp.description.as_deref(), Some("call-site"));
+    }
+
+    /// OAS 3.0 dropped siblings silently from non-schema refs (the
+    /// schema-side path emits W-REF-SIBLINGS-3-0 separately). Verify
+    /// the override is not applied for 3.0 docs.
+    #[test]
+    fn ref_override_skipped_for_oas_3_0() {
+        let src = r##"{
+            "openapi":"3.0.3",
+            "info":{"title":"t","version":"1"},
+            "paths":{"/x":{"get":{
+                "operationId":"x",
+                "responses":{"200":{
+                    "$ref":"#/components/responses/Shared",
+                    "description":"would-be override"
+                }}
+            }}},
+            "components":{"responses":{
+                "Shared":{"description":"shared"}
+            }}
+        }"##;
+        let ir = parse_str(src).unwrap().spec.unwrap();
+        let resp = &ir.operations[0].responses[0];
+        // 3.0: siblings are dropped, target's description survives.
+        assert_eq!(resp.description.as_deref(), Some("shared"));
+    }
+
+    /// $ref with no siblings — basic happy path. Target's docs survive
+    /// unchanged; no warnings emitted.
+    #[test]
+    fn ref_with_only_dollar_ref_no_overrides() {
+        let src = r##"{
+            "openapi":"3.2.0",
+            "info":{"title":"t","version":"1"},
+            "paths":{"/x":{"get":{
+                "operationId":"x",
+                "responses":{"200":{"$ref":"#/components/responses/Shared"}}
+            }}},
+            "components":{"responses":{
+                "Shared":{"description":"shared","summary":"shared sum"}
+            }}
+        }"##;
+        let out = parse_str(src).unwrap();
+        let resp = &out.spec.as_ref().unwrap().operations[0].responses[0];
+        assert_eq!(resp.summary.as_deref(), Some("shared sum"));
+        assert_eq!(resp.description.as_deref(), Some("shared"));
+        assert!(
+            !out.diagnostics
+                .iter()
+                .any(|d| d.code == diag::W_REF_SIBLINGS_INVALID),
+            "no W-REF-SIBLINGS-INVALID for a bare $ref"
+        );
+    }
+
+    /// $ref override of `summary` only — `description` from target
+    /// survives unchanged. The two fields are independent.
+    #[test]
+    fn ref_summary_override_only_leaves_description_intact() {
+        let src = r##"{
+            "openapi":"3.2.0",
+            "info":{"title":"t","version":"1"},
+            "paths":{"/x":{"get":{
+                "operationId":"x",
+                "responses":{"200":{
+                    "$ref":"#/components/responses/Shared",
+                    "summary":"call-site sum"
+                }}
+            }}},
+            "components":{"responses":{
+                "Shared":{"summary":"shared sum","description":"shared d"}
+            }}
+        }"##;
+        let resp = &parse_str(src).unwrap().spec.unwrap().operations[0].responses[0];
+        assert_eq!(resp.summary.as_deref(), Some("call-site sum"));
+        assert_eq!(resp.description.as_deref(), Some("shared d"));
+    }
+
+    /// $ref override of `description` only — `summary` from target
+    /// survives unchanged.
+    #[test]
+    fn ref_description_override_only_leaves_summary_intact() {
+        let src = r##"{
+            "openapi":"3.2.0",
+            "info":{"title":"t","version":"1"},
+            "paths":{"/x":{"get":{
+                "operationId":"x",
+                "responses":{"200":{
+                    "$ref":"#/components/responses/Shared",
+                    "description":"call-site d"
+                }}
+            }}},
+            "components":{"responses":{
+                "Shared":{"summary":"shared sum","description":"shared d"}
+            }}
+        }"##;
+        let resp = &parse_str(src).unwrap().spec.unwrap().operations[0].responses[0];
+        assert_eq!(resp.summary.as_deref(), Some("shared sum"));
+        assert_eq!(resp.description.as_deref(), Some("call-site d"));
+    }
+
+    // ---- Per-node strict spec doc-field population ----
+
+    /// Operation `summary` populates independently from `description`.
+    /// OAS 3.1 introduced summary as a distinct field; this verifies the
+    /// two slots don't collapse.
+    #[test]
+    fn operation_summary_independent_of_description() {
+        let src = r#"{
+            "openapi":"3.2.0",
+            "info":{"title":"t","version":"1"},
+            "paths":{"/x":{"get":{
+                "operationId":"x",
+                "summary":"short",
+                "description":"long form",
+                "responses":{"200":{"description":"ok"}}
+            }}}
+        }"#;
+        let op = &parse_str(src).unwrap().spec.unwrap().operations[0];
+        assert_eq!(op.summary.as_deref(), Some("short"));
+        assert_eq!(op.description.as_deref(), Some("long form"));
+    }
+
+    /// PathItem-level `summary` falls back into `Operation.summary` when
+    /// the operation has none. OAS §4.9.
+    #[test]
+    fn operation_summary_falls_back_from_path_item() {
+        let src = r#"{
+            "openapi":"3.2.0",
+            "info":{"title":"t","version":"1"},
+            "paths":{"/x":{
+                "summary":"path-item sum",
+                "description":"path-item desc",
+                "get":{"operationId":"x","responses":{"200":{"description":"ok"}}}
+            }}
+        }"#;
+        let op = &parse_str(src).unwrap().spec.unwrap().operations[0];
+        assert_eq!(op.summary.as_deref(), Some("path-item sum"));
+        assert_eq!(op.description.as_deref(), Some("path-item desc"));
+    }
+
+    /// PathItem-level fallback is per-field independent — operation
+    /// `summary` overrides PathItem.summary, but PathItem.description
+    /// still flows through when the operation has none.
+    #[test]
+    fn path_item_fallback_per_field_independent() {
+        let src = r#"{
+            "openapi":"3.2.0",
+            "info":{"title":"t","version":"1"},
+            "paths":{"/x":{
+                "summary":"path-item sum",
+                "description":"path-item desc",
+                "get":{
+                    "operationId":"x",
+                    "summary":"op sum",
+                    "responses":{"200":{"description":"ok"}}
+                }
+            }}
+        }"#;
+        let op = &parse_str(src).unwrap().spec.unwrap().operations[0];
+        assert_eq!(op.summary.as_deref(), Some("op sum"));
+        assert_eq!(op.description.as_deref(), Some("path-item desc"));
+    }
+
+    /// `Operation.deprecated` populates from the spec.
+    #[test]
+    fn operation_deprecated_populates() {
+        let src = r#"{
+            "openapi":"3.2.0",
+            "info":{"title":"t","version":"1"},
+            "paths":{"/x":{"get":{
+                "operationId":"x",
+                "deprecated":true,
+                "responses":{"200":{"description":"ok"}}
+            }}}
+        }"#;
+        let op = &parse_str(src).unwrap().spec.unwrap().operations[0];
+        assert!(op.deprecated);
+    }
+
+    /// Webhooks carry PathItem-level `summary` / `description` per OAS
+    /// §4.9. Both fields populate independently.
+    #[test]
+    fn webhook_path_item_summary_and_description_populate() {
+        let src = r#"{
+            "openapi":"3.2.0",
+            "info":{"title":"t","version":"1"},
+            "paths":{},
+            "webhooks":{
+                "newPet":{
+                    "summary":"hook sum",
+                    "description":"hook desc",
+                    "post":{"operationId":"onNewPet","responses":{"200":{"description":"ok"}}}
+                }
+            }
+        }"#;
+        let ir = parse_str(src).unwrap().spec.unwrap();
+        let webhook = ir.webhooks.iter().find(|w| w.name == "newPet").unwrap();
+        assert_eq!(webhook.summary.as_deref(), Some("hook sum"));
+        assert_eq!(webhook.description.as_deref(), Some("hook desc"));
+    }
+
+    /// OAS 3.2 added `summary` to Response Object. Verify it populates
+    /// independently from `description` (which was already there).
+    #[test]
+    fn response_summary_3_2_populates() {
+        let src = r#"{
+            "openapi":"3.2.0",
+            "info":{"title":"t","version":"1"},
+            "paths":{"/x":{"get":{
+                "operationId":"x",
+                "responses":{"200":{
+                    "summary":"short label",
+                    "description":"long form"
+                }}
+            }}}
+        }"#;
+        let resp = &parse_str(src).unwrap().spec.unwrap().operations[0].responses[0];
+        assert_eq!(resp.summary.as_deref(), Some("short label"));
+        assert_eq!(resp.description.as_deref(), Some("long form"));
+    }
+
+    /// `Property.title` populates from each schema property's JSON
+    /// Schema `title` field.
+    #[test]
+    fn property_title_populates() {
+        let src = r##"{
+            "openapi":"3.2.0",
+            "info":{"title":"t","version":"1"},
+            "paths":{},
+            "components":{"schemas":{
+                "User":{
+                    "type":"object",
+                    "properties":{
+                        "id":{"type":"string","title":"User ID"}
+                    }
+                }
+            }}
+        }"##;
+        let ir = parse_str(src).unwrap().spec.unwrap();
+        let user = ir.types.iter().find(|t| t.id == "User").unwrap();
+        let forge_ir::TypeDef::Object(obj) = &user.definition else {
+            panic!("expected object");
+        };
+        let id_prop = obj.properties.iter().find(|p| p.name == "id").unwrap();
+        assert_eq!(id_prop.title.as_deref(), Some("User ID"));
+    }
+
+    /// `Property.external_docs` populates from the property schema's
+    /// `externalDocs` block.
+    #[test]
+    fn property_external_docs_populates() {
+        let src = r##"{
+            "openapi":"3.2.0",
+            "info":{"title":"t","version":"1"},
+            "paths":{},
+            "components":{"schemas":{
+                "User":{
+                    "type":"object",
+                    "properties":{
+                        "id":{
+                            "type":"string",
+                            "externalDocs":{"url":"https://example.com","description":"d"}
+                        }
+                    }
+                }
+            }}
+        }"##;
+        let ir = parse_str(src).unwrap().spec.unwrap();
+        let user = ir.types.iter().find(|t| t.id == "User").unwrap();
+        let forge_ir::TypeDef::Object(obj) = &user.definition else {
+            panic!("expected object");
+        };
+        let id_prop = obj.properties.iter().find(|p| p.name == "id").unwrap();
+        let ed = id_prop.external_docs.as_ref().unwrap();
+        assert_eq!(ed.url, "https://example.com");
+        assert_eq!(ed.description.as_deref(), Some("d"));
+    }
+
+    /// `Property.examples` populates from per-property schema-level
+    /// `example` (3.0 form, stored under `_default`).
+    #[test]
+    fn property_examples_populates() {
+        let src = r##"{
+            "openapi":"3.2.0",
+            "info":{"title":"t","version":"1"},
+            "paths":{},
+            "components":{"schemas":{
+                "User":{
+                    "type":"object",
+                    "properties":{
+                        "id":{"type":"string","example":"42"}
+                    }
+                }
+            }}
+        }"##;
+        let ir = parse_str(src).unwrap().spec.unwrap();
+        let user = ir.types.iter().find(|t| t.id == "User").unwrap();
+        let forge_ir::TypeDef::Object(obj) = &user.definition else {
+            panic!("expected object");
+        };
+        let id_prop = obj.properties.iter().find(|p| p.name == "id").unwrap();
+        assert_eq!(id_prop.examples.len(), 1);
+        assert_eq!(id_prop.examples[0].0, "_default");
+    }
+
+    /// `Property.deprecated` populates from JSON Schema 2020-12
+    /// `deprecated`.
+    #[test]
+    fn property_deprecated_populates() {
+        let src = r##"{
+            "openapi":"3.2.0",
+            "info":{"title":"t","version":"1"},
+            "paths":{},
+            "components":{"schemas":{
+                "User":{
+                    "type":"object",
+                    "properties":{
+                        "id":{"type":"string","deprecated":true}
+                    }
+                }
+            }}
+        }"##;
+        let ir = parse_str(src).unwrap().spec.unwrap();
+        let user = ir.types.iter().find(|t| t.id == "User").unwrap();
+        let forge_ir::TypeDef::Object(obj) = &user.definition else {
+            panic!("expected object");
+        };
+        let id_prop = obj.properties.iter().find(|p| p.name == "id").unwrap();
+        assert!(id_prop.deprecated);
+    }
+
+    /// `NamedType.deprecated` populates from JSON Schema 2020-12
+    /// `deprecated` at the schema level.
+    #[test]
+    fn named_type_deprecated_populates() {
+        let src = r##"{
+            "openapi":"3.2.0",
+            "info":{"title":"t","version":"1"},
+            "paths":{},
+            "components":{"schemas":{
+                "Legacy":{"type":"string","deprecated":true}
+            }}
+        }"##;
+        let ir = parse_str(src).unwrap().spec.unwrap();
+        let legacy = ir.types.iter().find(|t| t.id == "Legacy").unwrap();
+        assert!(legacy.deprecated);
+    }
+
+    /// OAS 3.2 §4.27: SecurityScheme adds `deprecated`. Verify it
+    /// populates.
+    #[test]
+    fn security_scheme_deprecated_3_2_populates() {
+        let src = r##"{
+            "openapi":"3.2.0",
+            "info":{"title":"t","version":"1"},
+            "paths":{},
+            "components":{"securitySchemes":{
+                "Old":{
+                    "type":"http",
+                    "scheme":"basic",
+                    "description":"do not use",
+                    "deprecated":true
+                }
+            }}
+        }"##;
+        let ir = parse_str(src).unwrap().spec.unwrap();
+        let scheme = ir.security_schemes.iter().find(|s| s.id == "Old").unwrap();
+        assert!(scheme.deprecated);
+        assert_eq!(scheme.description.as_deref(), Some("do not use"));
+    }
+
+    /// `NamedType.title` populates separately from `description`.
+    /// JSON Schema treats title as a short human label.
+    #[test]
+    fn named_type_title_populates() {
+        let src = r##"{
+            "openapi":"3.2.0",
+            "info":{"title":"t","version":"1"},
+            "paths":{},
+            "components":{"schemas":{
+                "Foo":{"type":"string","title":"Foo Type","description":"long"}
+            }}
+        }"##;
+        let ir = parse_str(src).unwrap().spec.unwrap();
+        let foo = ir.types.iter().find(|t| t.id == "Foo").unwrap();
+        assert_eq!(foo.title.as_deref(), Some("Foo Type"));
+        assert_eq!(foo.description.as_deref(), Some("long"));
     }
 
     #[test]

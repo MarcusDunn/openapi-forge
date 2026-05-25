@@ -315,8 +315,9 @@ fn parse_freeform(
                 let nt = NamedType {
                     id: alloc_id(ctx, &hint),
                     original_name: original_name(&hint),
-                    documentation: description(map),
                     title: title(map),
+                    description: description(map),
+                    deprecated: deprecated(map),
                     read_only: read_write_only(map).0,
                     write_only: read_write_only(map).1,
                     external_docs: crate::parse_external_docs(ctx, map.get("externalDocs"), ptr),
@@ -342,8 +343,9 @@ fn parse_freeform(
     let nt = NamedType {
         id: alloc_id(ctx, &hint),
         original_name: original_name(&hint),
-        documentation: description(map),
         title: title(map),
+        description: description(map),
+        deprecated: deprecated(map),
         read_only: read_write_only(map).0,
         write_only: read_write_only(map).1,
         external_docs: crate::parse_external_docs(ctx, map.get("externalDocs"), ptr),
@@ -730,8 +732,9 @@ fn parse_primitive(
     let nt = NamedType {
         id,
         original_name: original_name(&hint),
-        documentation: description(map),
         title: title(map),
+        description: description(map),
+        deprecated: deprecated(map),
         read_only: read_write_only(map).0,
         write_only: read_write_only(map).1,
         external_docs: crate::parse_external_docs(ctx, map.get("externalDocs"), ptr),
@@ -880,8 +883,9 @@ fn parse_array(
     let nt = NamedType {
         id,
         original_name: original_name(&hint),
-        documentation: description(map),
         title: title(map),
+        description: description(map),
+        deprecated: deprecated(map),
         read_only: read_write_only(map).0,
         write_only: read_write_only(map).1,
         external_docs: crate::parse_external_docs(ctx, map.get("externalDocs"), ptr),
@@ -910,15 +914,27 @@ fn parse_object(
                 ptr.with_token(name, |ptr| {
                     let role = format!("property_{}", crate::sanitize::ident(name));
                     if let Some(t) = parse_schema(ctx, schema, ptr, NameHint::inline(&id, &role)) {
-                        let (doc, deprecated, read_only, write_only, default) = match schema {
+                        let (
+                            prop_title,
+                            prop_desc,
+                            prop_dep,
+                            prop_ro,
+                            prop_wo,
+                            prop_extdocs,
+                            prop_default,
+                            prop_examples,
+                        ) = match schema {
                             J::Object(m) => (
+                                title(m),
                                 description(m),
-                                m.get("deprecated").and_then(J::as_bool).unwrap_or(false),
+                                deprecated(m),
                                 m.get("readOnly").and_then(J::as_bool).unwrap_or(false),
                                 m.get("writeOnly").and_then(J::as_bool).unwrap_or(false),
+                                crate::parse_external_docs(ctx, m.get("externalDocs"), ptr),
                                 crate::parse_default(ctx, m, ptr, "property"),
+                                crate::parse_examples(ctx, m, ptr),
                             ),
-                            _ => (None, false, false, false, None),
+                            _ => (None, None, false, false, false, None, None, vec![]),
                         };
                         let extensions = match schema {
                             J::Object(m) => crate::operations::collect_extensions(ctx, m, ptr),
@@ -928,11 +944,14 @@ fn parse_object(
                             name: name.clone(),
                             r#type: t,
                             required: false, // patched below from parent's `required` array
-                            documentation: doc,
-                            deprecated,
-                            read_only,
-                            write_only,
-                            default,
+                            title: prop_title,
+                            description: prop_desc,
+                            deprecated: prop_dep,
+                            read_only: prop_ro,
+                            write_only: prop_wo,
+                            external_docs: prop_extdocs,
+                            default: prop_default,
+                            examples: prop_examples,
                             extensions,
                         });
                     }
@@ -988,8 +1007,9 @@ fn parse_object(
     let nt = NamedType {
         id,
         original_name: original_name(&hint),
-        documentation: description(map),
         title: title(map),
+        description: description(map),
+        deprecated: deprecated(map),
         read_only: read_write_only(map).0,
         write_only: read_write_only(map).1,
         external_docs: crate::parse_external_docs(ctx, map.get("externalDocs"), ptr),
@@ -1016,10 +1036,7 @@ fn parse_string_enum(
     ptr.with_token("enum", |ptr| {
         for (i, v) in raw_values.iter().enumerate() {
             ptr.with_index(i, |ptr| match v {
-                J::String(s) => values.push(EnumStringValue {
-                    value: s.clone(),
-                    documentation: None,
-                }),
+                J::String(s) => values.push(EnumStringValue { value: s.clone() }),
                 J::Null => {
                     // A literal `null` member is the OpenAPI 3.0 idiom for
                     // a nullable enum (alongside `nullable: true`). Treat
@@ -1051,8 +1068,9 @@ fn parse_string_enum(
     let nt = NamedType {
         id: alloc_id(ctx, &hint),
         original_name: original_name(&hint),
-        documentation: description(map),
         title: title(map),
+        description: description(map),
+        deprecated: deprecated(map),
         read_only: read_write_only(map).0,
         write_only: read_write_only(map).1,
         external_docs: crate::parse_external_docs(ctx, map.get("externalDocs"), ptr),
@@ -1084,10 +1102,7 @@ fn parse_int_enum(
         for (i, v) in raw_values.iter().enumerate() {
             ptr.with_index(i, |ptr| match v {
                 J::Number(n) => match n.as_i64() {
-                    Some(value) => values.push(EnumIntValue {
-                        value,
-                        documentation: None,
-                    }),
+                    Some(value) => values.push(EnumIntValue { value }),
                     None => ctx.push_diag(diag::warn(
                         diag::W_ENUM_VALUE_DROPPED,
                         format!("integer enum value `{n}` is not an i64; dropped"),
@@ -1120,8 +1135,9 @@ fn parse_int_enum(
     let nt = NamedType {
         id: alloc_id(ctx, &hint),
         original_name: original_name(&hint),
-        documentation: description(map),
         title: title(map),
+        description: description(map),
+        deprecated: deprecated(map),
         read_only: read_write_only(map).0,
         write_only: read_write_only(map).1,
         external_docs: crate::parse_external_docs(ctx, map.get("externalDocs"), ptr),
@@ -1209,8 +1225,9 @@ fn parse_untagged_union(
     let nt = NamedType {
         id: id.clone(),
         original_name: original_name(&hint),
-        documentation: description(map),
         title: title(map),
+        description: description(map),
+        deprecated: deprecated(map),
         read_only: read_write_only(map).0,
         write_only: read_write_only(map).1,
         external_docs: crate::parse_external_docs(ctx, map.get("externalDocs"), ptr),
@@ -1266,8 +1283,9 @@ fn parse_type_array_union(
     let nt = NamedType {
         id: id.clone(),
         original_name: original_name(&hint),
-        documentation: description(map),
         title: title(map),
+        description: description(map),
+        deprecated: deprecated(map),
         read_only: read_write_only(map).0,
         write_only: read_write_only(map).1,
         external_docs: crate::parse_external_docs(ctx, map.get("externalDocs"), ptr),
@@ -1298,10 +1316,7 @@ fn parse_const(
     use forge_ir::{EnumIntType, EnumIntValue, EnumStringType, EnumStringValue, IntKind};
     let nt_definition = match c {
         J::String(s) => TypeDef::EnumString(EnumStringType {
-            values: vec![EnumStringValue {
-                value: s.clone(),
-                documentation: None,
-            }],
+            values: vec![EnumStringValue { value: s.clone() }],
         }),
         J::Number(n) => {
             let Some(int) = n.as_i64() else {
@@ -1320,10 +1335,7 @@ fn parse_const(
                 _ => IntKind::Int32,
             };
             TypeDef::EnumInt(EnumIntType {
-                values: vec![EnumIntValue {
-                    value: int,
-                    documentation: None,
-                }],
+                values: vec![EnumIntValue { value: int }],
                 kind,
             })
         }
@@ -1339,8 +1351,9 @@ fn parse_const(
                     let nt = NamedType {
                         id: alloc_id(ctx, &hint),
                         original_name: original_name(&hint),
-                        documentation: description(map),
                         title: title(map),
+                        description: description(map),
+                        deprecated: deprecated(map),
                         read_only: read_write_only(map).0,
                         write_only: read_write_only(map).1,
                         external_docs: crate::parse_external_docs(
@@ -1377,8 +1390,9 @@ fn parse_const(
     let nt = NamedType {
         id: alloc_id(ctx, &hint),
         original_name: original_name(&hint),
-        documentation: description(map),
         title: title(map),
+        description: description(map),
+        deprecated: deprecated(map),
         read_only: read_write_only(map).0,
         write_only: read_write_only(map).1,
         external_docs: crate::parse_external_docs(ctx, map.get("externalDocs"), ptr),
@@ -1522,8 +1536,9 @@ fn parse_oneof_discriminated(
     let nt = NamedType {
         id: id.clone(),
         original_name: original_name(&hint),
-        documentation: description(map),
         title: title(map),
+        description: description(map),
+        deprecated: deprecated(map),
         read_only: read_write_only(map).0,
         write_only: read_write_only(map).1,
         external_docs: crate::parse_external_docs(ctx, map.get("externalDocs"), ptr),
@@ -1580,8 +1595,9 @@ pub(crate) fn ensure_null_singleton(ctx: &mut Ctx) -> TypeRef {
         ctx.push_type(NamedType {
             id: NULL_ID.to_string(),
             original_name: None,
-            documentation: None,
             title: None,
+            description: None,
+            deprecated: false,
             read_only: false,
             write_only: false,
             external_docs: None,
@@ -1611,8 +1627,9 @@ pub(crate) fn maybe_wrap_nullable(ctx: &mut Ctx, nt: NamedType, nullable: bool) 
     let inner = NamedType {
         id: inner_id.clone(),
         original_name: None,
-        documentation: None,
         title: None,
+        description: None,
+        deprecated: false,
         read_only: false,
         write_only: false,
         external_docs: None,
@@ -1642,8 +1659,9 @@ pub(crate) fn maybe_wrap_nullable(ctx: &mut Ctx, nt: NamedType, nullable: bool) 
     let outer = NamedType {
         id: outer_id.clone(),
         original_name: nt.original_name,
-        documentation: nt.documentation,
         title: nt.title,
+        description: nt.description,
+        deprecated: nt.deprecated,
         read_only: nt.read_only,
         write_only: nt.write_only,
         external_docs: nt.external_docs,
@@ -1667,6 +1685,14 @@ pub(crate) fn original_name(hint: &NameHint) -> Option<String> {
 
 pub(crate) fn description(map: &serde_json::Map<String, J>) -> Option<String> {
     map.get("description").and_then(J::as_str).map(String::from)
+}
+
+pub(crate) fn summary(map: &serde_json::Map<String, J>) -> Option<String> {
+    map.get("summary").and_then(J::as_str).map(String::from)
+}
+
+pub(crate) fn deprecated(map: &serde_json::Map<String, J>) -> bool {
+    map.get("deprecated").and_then(J::as_bool).unwrap_or(false)
 }
 
 /// JSON Schema `title` — short human label. Surfaced as

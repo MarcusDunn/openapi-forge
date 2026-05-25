@@ -21,10 +21,9 @@
               "type": "Thing"
             }
           ],
-          "documentation": "Override the shared description with a per-call one."
+          "description": "Override the shared description with a per-call one."
         }
       ],
-      "deprecated": false,
       "location": {
         "pointer": "/paths/~1things/get",
         "file": "spec.json"

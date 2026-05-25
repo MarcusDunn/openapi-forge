@@ -85,8 +85,15 @@ pub(crate) fn parse_webhooks(ctx: &mut Ctx, webhooks: &J, ptr: &mut Ptr) {
             // doubles as the path-template label so generators have
             // something readable to surface for the inner operations.
             let operations = parse_path_item_maybe_ref(ctx, name, item, ptr, &mut seen_op_ids);
+            // PathItem-level summary/description per OAS §4.9.
+            let (summary, description) = item
+                .as_object()
+                .map(|m| (crate::schema::summary(m), crate::schema::description(m)))
+                .unwrap_or((None, None));
             ctx.webhooks.push(forge_ir::Webhook {
                 name: name.clone(),
+                summary,
+                description,
                 operations,
             });
         });
@@ -298,19 +305,17 @@ fn parse_operation(
         _ => Vec::new(),
     };
 
-    let documentation = map
-        .get("description")
-        .and_then(J::as_str)
-        .map(String::from)
-        .or_else(|| map.get("summary").and_then(J::as_str).map(String::from))
-        .or_else(|| path_item_description.map(String::from))
-        .or_else(|| path_item_summary.map(String::from));
-
-    let deprecated = map.get("deprecated").and_then(J::as_bool).unwrap_or(false);
+    // Operation docs (OAS §4.10): summary, description, deprecated,
+    // externalDocs. PathItem-level summary/description fall back when
+    // the operation has none — per-field independent so the two slots
+    // don't collapse into one.
+    let summary = crate::schema::summary(map).or_else(|| path_item_summary.map(String::from));
+    let description =
+        crate::schema::description(map).or_else(|| path_item_description.map(String::from));
+    let deprecated = crate::schema::deprecated(map);
+    let external_docs = crate::parse_external_docs(ctx, map.get("externalDocs"), ptr);
 
     let extensions = collect_extensions(ctx, map, ptr);
-
-    let external_docs = crate::parse_external_docs(ctx, map.get("externalDocs"), ptr);
 
     // OAS §4.8.10: operation `servers` overrides path-item `servers`,
     // which overrides root `servers`. Materialise the effective list
@@ -340,10 +345,11 @@ fn parse_operation(
         responses,
         security,
         tags,
-        documentation,
+        summary,
+        description,
         deprecated,
-        extensions,
         external_docs,
+        extensions,
         servers,
         callbacks,
         location: Some(ptr.loc(ctx.file)),
@@ -456,10 +462,6 @@ fn build_parameter(
         .get("required")
         .and_then(J::as_bool)
         .unwrap_or(false);
-    let documentation = param_map
-        .get("description")
-        .and_then(J::as_str)
-        .map(String::from);
     // OAS allows `schema` *or* `content.<media>.schema` (mutually
     // exclusive). The latter is for complex / non-trivial parameter
     // values. Try the inline form first, then fall back to content.
@@ -512,22 +514,23 @@ fn build_parameter(
         .get("allowReserved")
         .and_then(J::as_bool)
         .unwrap_or(false);
+    // OAS §4.12: Parameter Object carries description, deprecated,
+    // example/examples. No summary/title/externalDocs.
+    let description = crate::schema::description(param_map);
+    let deprecated = crate::schema::deprecated(param_map);
     let examples = crate::parse_examples(ctx, param_map, ptr);
     let extensions = collect_extensions(ctx, param_map, ptr);
     Some(Parameter {
         name: name.to_string(),
         r#type: type_ref,
         required,
-        documentation,
-        deprecated: param_map
-            .get("deprecated")
-            .and_then(J::as_bool)
-            .unwrap_or(false),
+        description,
+        deprecated,
+        examples,
         style: Some(style),
         explode,
         allow_empty_value,
         allow_reserved,
-        examples,
         extensions,
         location: Some(ptr.loc(ctx.file)),
     })
@@ -583,14 +586,6 @@ fn build_header(
         .get("required")
         .and_then(J::as_bool)
         .unwrap_or(false);
-    let deprecated = header_map
-        .get("deprecated")
-        .and_then(J::as_bool)
-        .unwrap_or(false);
-    let documentation = header_map
-        .get("description")
-        .and_then(J::as_str)
-        .map(String::from);
     let schema = header_map.get("schema").or_else(|| {
         header_map
             .get("content")
@@ -603,6 +598,10 @@ fn build_header(
     let type_ref = ptr.with_token("schema", |ptr| {
         parse_schema(ctx, schema, ptr, NameHint::inline(owner_id, &role_san))
     })?;
+    // OAS §4.21: Header Object carries description, deprecated,
+    // example/examples (same doc fields as Parameter Object).
+    let description = crate::schema::description(header_map);
+    let deprecated = crate::schema::deprecated(header_map);
     let examples = crate::parse_examples(ctx, header_map, ptr);
     // OAS Header inherits Parameter's serialization fields. The spec
     // fixes `style` to `simple`, but the IR captures whatever the
@@ -626,8 +625,8 @@ fn build_header(
     Some(forge_ir::Header {
         r#type: type_ref,
         required,
+        description,
         deprecated,
-        documentation,
         examples,
         style,
         explode,
@@ -692,7 +691,8 @@ fn parse_request_body(ctx: &mut Ctx, op_id: &str, value: &J, ptr: &mut Ptr) -> O
 fn parse_inline_request_body(ctx: &mut Ctx, op_id: &str, value: &J, ptr: &mut Ptr) -> Option<Body> {
     let map = value.as_object()?;
     let required = map.get("required").and_then(J::as_bool).unwrap_or(false);
-    let documentation = map.get("description").and_then(J::as_str).map(String::from);
+    // OAS §4.13: RequestBody Object carries only `description` for docs.
+    let description = crate::schema::description(map);
 
     let Some(J::Object(content)) = map.get("content") else {
         ctx.push_diag(diag::err(
@@ -733,6 +733,8 @@ fn parse_inline_request_body(ctx: &mut Ctx, op_id: &str, value: &J, ptr: &mut Pt
                         return Some(());
                     };
                     let encoding = parse_encoding_map(ctx, op_id, entry_map.get("encoding"), ptr);
+                    // OAS §4.14: MediaType Object only carries
+                    // `example`/`examples` for docs (no description).
                     let examples = crate::parse_examples(ctx, entry_map, ptr);
                     let extensions = collect_extensions(ctx, entry_map, ptr);
                     body_content.push(BodyContent {
@@ -756,7 +758,7 @@ fn parse_inline_request_body(ctx: &mut Ctx, op_id: &str, value: &J, ptr: &mut Pt
     Some(Body {
         content: body_content,
         required,
-        documentation,
+        description,
         extensions,
     })
 }
@@ -808,10 +810,10 @@ fn parse_inline_response(
             return None;
         }
     };
-    let documentation = entry_map
-        .get("description")
-        .and_then(J::as_str)
-        .map(String::from);
+    // OAS 3.2 §4.17: Response carries summary (new in 3.2) and
+    // description.
+    let summary = crate::schema::summary(entry_map);
+    let description = crate::schema::description(entry_map);
     let mut content_vec = Vec::new();
     if let Some(J::Object(content)) = entry_map.get("content") {
         ptr.with_token("content", |ptr| {
@@ -855,7 +857,8 @@ fn parse_inline_response(
         status,
         content: content_vec,
         headers,
-        documentation,
+        summary,
+        description,
         links,
         extensions,
     })

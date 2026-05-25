@@ -21,7 +21,7 @@
               "type": "listItems_response_200"
             }
           ],
-          "documentation": "ok"
+          "description": "ok"
         }
       ],
       "security": [
@@ -29,7 +29,6 @@
           "scheme_id": "apiKeyAuth"
         }
       ],
-      "deprecated": false,
       "servers": [
         {
           "url": "https://api.example.com"
@@ -77,7 +76,7 @@
         "name": "X-API-Key",
         "location": "header"
       },
-      "documentation": "Static API key issued in the developer portal."
+      "description": "Static API key issued in the developer portal."
     }
   ],
   "servers": [

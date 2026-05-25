@@ -40,10 +40,9 @@
               "type": "uploadFile_response_201"
             }
           ],
-          "documentation": "uploaded"
+          "description": "uploaded"
         }
       ],
-      "deprecated": false,
       "servers": [
         {
           "url": "https://api.example.com"

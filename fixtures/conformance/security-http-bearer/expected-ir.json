@@ -21,7 +21,7 @@
               "type": "getMe_response_200"
             }
           ],
-          "documentation": "ok"
+          "description": "ok"
         }
       ],
       "security": [
@@ -29,7 +29,6 @@
           "scheme_id": "bearerAuth"
         }
       ],
-      "deprecated": false,
       "servers": [
         {
           "url": "https://api.example.com"

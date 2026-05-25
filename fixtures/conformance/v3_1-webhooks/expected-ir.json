@@ -68,10 +68,9 @@
                 "kind": "explicit",
                 "code": 204
               },
-              "documentation": "ok"
+              "description": "ok"
             }
           ],
-          "deprecated": false,
           "location": {
             "pointer": "/webhooks/newPet/post",
             "file": "spec.json"

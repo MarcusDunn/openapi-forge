@@ -2,8 +2,8 @@
   "info": {
     "title": "info-full",
     "version": "2.0.0",
-    "description": "Long-form description of the API.",
     "summary": "All info fields populated.",
+    "description": "Long-form description of the API.",
     "terms_of_service": "https://example.com/tos",
     "contact": {
       "name": "API Support",

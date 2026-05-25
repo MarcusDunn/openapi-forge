@@ -30,7 +30,7 @@
               "type": "Widget"
             }
           ],
-          "documentation": "Existing widget returned"
+          "description": "Existing widget returned"
         },
         {
           "status": {
@@ -43,7 +43,7 @@
               "type": "WidgetCreated"
             }
           ],
-          "documentation": "Widget created"
+          "description": "Widget created"
         },
         {
           "status": {
@@ -56,7 +56,7 @@
               "type": "ValidationError"
             }
           ],
-          "documentation": "Validation error"
+          "description": "Validation error"
         },
         {
           "status": {
@@ -68,10 +68,9 @@
               "type": "Error"
             }
           ],
-          "documentation": "Unexpected error"
+          "description": "Unexpected error"
         }
       ],
-      "deprecated": false,
       "servers": [
         {
           "url": "https://api.example.com"

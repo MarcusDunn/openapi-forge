@@ -20,7 +20,6 @@
           "name": "q",
           "type": "create_param_query_q",
           "required": false,
-          "deprecated": false,
           "style": "form",
           "explode": true,
           "allow_empty_value": false,
@@ -64,7 +63,7 @@
             "kind": "explicit",
             "code": 200
           },
-          "documentation": "ok",
+          "description": "ok",
           "extensions": [
             [
               "x-response",
@@ -73,7 +72,6 @@
           ]
         }
       ],
-      "deprecated": false,
       "servers": [
         {
           "url": "https://api.example.com/{tier}",

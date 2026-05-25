@@ -21,10 +21,9 @@
               "type": "Thing"
             }
           ],
-          "documentation": "ok"
+          "description": "ok"
         }
       ],
-      "deprecated": false,
       "external_docs": {
         "description": "Operation-level deep link.",
         "url": "https://example.com/docs/list-things"

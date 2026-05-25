@@ -8,7 +8,7 @@
     {
       "id": "Status",
       "original_name": "Status",
-      "documentation": "A pet's lifecycle status.",
+      "description": "A pet's lifecycle status.",
       "definition": {
         "def": "enum-string",
         "values": [

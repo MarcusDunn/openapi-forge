@@ -14,7 +14,6 @@
           "name": "id",
           "type": "getPet_param_path_id",
           "required": true,
-          "deprecated": false,
           "style": "simple",
           "explode": false,
           "allow_empty_value": false,
@@ -37,10 +36,9 @@
               "type": "types__Pet"
             }
           ],
-          "documentation": "ok"
+          "description": "ok"
         }
       ],
-      "deprecated": false,
       "servers": [
         {
           "url": "https://api.example.com"

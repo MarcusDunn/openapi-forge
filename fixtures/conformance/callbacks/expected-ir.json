@@ -24,10 +24,9 @@
             "kind": "explicit",
             "code": 200
           },
-          "documentation": "callback ack"
+          "description": "callback ack"
         }
       ],
-      "deprecated": false,
       "location": {
         "pointer": "/paths/~1subscribe/post/callbacks/newEvent/{$request.body#~1callbackUrl}/post",
         "file": "spec.json"
@@ -44,10 +43,9 @@
             "kind": "explicit",
             "code": 200
           },
-          "documentation": "ack"
+          "description": "ack"
         }
       ],
-      "deprecated": false,
       "location": {
         "pointer": "/paths/~1subscribe/post/callbacks/shared/{$request.body#~1sharedUrl}/post",
         "file": "spec.json"
@@ -73,10 +71,9 @@
             "kind": "explicit",
             "code": 200
           },
-          "documentation": "subscribed"
+          "description": "subscribed"
         }
       ],
-      "deprecated": false,
       "callbacks": [
         {
           "name": "newEvent",

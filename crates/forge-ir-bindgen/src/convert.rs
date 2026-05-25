@@ -319,8 +319,8 @@ macro_rules! define_world_conversions {
                 ir::ApiInfo {
                     title: a.title,
                     version: a.version,
-                    description: a.description,
                     summary: a.summary,
+                    description: a.description,
                     terms_of_service: a.terms_of_service,
                     contact: a.contact.map(contact_from),
                     license_name: a.license_name,
@@ -334,8 +334,8 @@ macro_rules! define_world_conversions {
                 b::ApiInfo {
                     title: a.title,
                     version: a.version,
-                    description: a.description,
                     summary: a.summary,
+                    description: a.description,
                     terms_of_service: a.terms_of_service,
                     contact: a.contact.map(contact_to),
                     license_name: a.license_name,
@@ -415,8 +415,9 @@ macro_rules! define_world_conversions {
                 Ok(ir::NamedType {
                     id: n.id,
                     original_name: n.original_name,
-                    documentation: n.documentation,
                     title: n.title,
+                    description: n.description,
+                    deprecated: n.deprecated,
                     read_only: n.read_only,
                     write_only: n.write_only,
                     external_docs: n.external_docs.map(external_docs_from),
@@ -433,8 +434,9 @@ macro_rules! define_world_conversions {
                 b::NamedType {
                     id: n.id,
                     original_name: n.original_name,
-                    documentation: n.documentation,
                     title: n.title,
+                    description: n.description,
+                    deprecated: n.deprecated,
                     read_only: n.read_only,
                     write_only: n.write_only,
                     external_docs: n.external_docs.map(external_docs_to),
@@ -552,6 +554,8 @@ macro_rules! define_world_conversions {
             fn webhook_from(w: b::Webhook) -> Result<ir::Webhook, BindgenError> {
                 Ok(ir::Webhook {
                     name: w.name,
+                    summary: w.summary,
+                    description: w.description,
                     operations: w
                         .operations
                         .into_iter()
@@ -563,6 +567,8 @@ macro_rules! define_world_conversions {
             fn webhook_to(w: ir::Webhook) -> b::Webhook {
                 b::Webhook {
                     name: w.name,
+                    summary: w.summary,
+                    description: w.description,
                     operations: w.operations.into_iter().map(operation_to).collect(),
                 }
             }
@@ -740,11 +746,14 @@ macro_rules! define_world_conversions {
                             name: p.name,
                             r#type: p.type_,
                             required: p.required,
-                            documentation: p.documentation,
+                            title: p.title,
+                            description: p.description,
                             deprecated: p.deprecated,
                             read_only: p.read_only,
                             write_only: p.write_only,
+                            external_docs: p.external_docs.map(external_docs_from),
                             default: p.default,
+                            examples: examples_from(p.examples),
                             extensions: p.extensions,
                         })
                         .collect(),
@@ -771,11 +780,14 @@ macro_rules! define_world_conversions {
                             name: p.name,
                             type_: p.r#type,
                             required: p.required,
-                            documentation: p.documentation,
+                            title: p.title,
+                            description: p.description,
                             deprecated: p.deprecated,
                             read_only: p.read_only,
                             write_only: p.write_only,
+                            external_docs: p.external_docs.map(external_docs_to),
                             default: p.default,
+                            examples: examples_to(p.examples),
                             extensions: p.extensions,
                         })
                         .collect(),
@@ -802,10 +814,7 @@ macro_rules! define_world_conversions {
                     values: e
                         .values
                         .into_iter()
-                        .map(|v| ir::EnumStringValue {
-                            value: v.value,
-                            documentation: v.documentation,
-                        })
+                        .map(|v| ir::EnumStringValue { value: v.value })
                         .collect(),
                 }
             }
@@ -815,10 +824,7 @@ macro_rules! define_world_conversions {
                     values: e
                         .values
                         .into_iter()
-                        .map(|v| b::EnumStringValue {
-                            value: v.value,
-                            documentation: v.documentation,
-                        })
+                        .map(|v| b::EnumStringValue { value: v.value })
                         .collect(),
                 }
             }
@@ -828,10 +834,7 @@ macro_rules! define_world_conversions {
                     values: e
                         .values
                         .into_iter()
-                        .map(|v| ir::EnumIntValue {
-                            value: v.value,
-                            documentation: v.documentation,
-                        })
+                        .map(|v| ir::EnumIntValue { value: v.value })
                         .collect(),
                     kind: match e.kind {
                         b::IntKind::Int32 => ir::IntKind::Int32,
@@ -845,10 +848,7 @@ macro_rules! define_world_conversions {
                     values: e
                         .values
                         .into_iter()
-                        .map(|v| b::EnumIntValue {
-                            value: v.value,
-                            documentation: v.documentation,
-                        })
+                        .map(|v| b::EnumIntValue { value: v.value })
                         .collect(),
                     kind: match e.kind {
                         ir::IntKind::Int32 => b::IntKind::Int32,
@@ -971,8 +971,8 @@ macro_rules! define_world_conversions {
                 ir::Header {
                     r#type: h.type_,
                     required: h.required,
+                    description: h.description,
                     deprecated: h.deprecated,
-                    documentation: h.documentation,
                     examples: examples_from(h.examples),
                     style: h.style.map(param_style_from),
                     explode: h.explode,
@@ -986,8 +986,8 @@ macro_rules! define_world_conversions {
                 b::Header {
                     type_: h.r#type,
                     required: h.required,
+                    description: h.description,
                     deprecated: h.deprecated,
-                    documentation: h.documentation,
                     examples: examples_to(h.examples),
                     style: h.style.map(param_style_to),
                     explode: h.explode,
@@ -1002,13 +1002,13 @@ macro_rules! define_world_conversions {
                     name: p.name,
                     r#type: p.type_,
                     required: p.required,
-                    documentation: p.documentation,
+                    description: p.description,
                     deprecated: p.deprecated,
+                    examples: examples_from(p.examples),
                     style: p.style.map(param_style_from),
                     explode: p.explode,
                     allow_empty_value: p.allow_empty_value,
                     allow_reserved: p.allow_reserved,
-                    examples: examples_from(p.examples),
                     extensions: extensions_from(p.extensions),
                     location: p.location.map(loc_from),
                 }
@@ -1019,13 +1019,13 @@ macro_rules! define_world_conversions {
                     name: p.name,
                     type_: p.r#type,
                     required: p.required,
-                    documentation: p.documentation,
+                    description: p.description,
                     deprecated: p.deprecated,
+                    examples: examples_to(p.examples),
                     style: p.style.map(param_style_to),
                     explode: p.explode,
                     allow_empty_value: p.allow_empty_value,
                     allow_reserved: p.allow_reserved,
-                    examples: examples_to(p.examples),
                     extensions: extensions_to(p.extensions),
                     location: p.location.map(loc_to),
                 }
@@ -1035,7 +1035,7 @@ macro_rules! define_world_conversions {
                 ir::Body {
                     content: b_.content.into_iter().map(body_content_from).collect(),
                     required: b_.required,
-                    documentation: b_.documentation,
+                    description: b_.description,
                     extensions: extensions_from(b_.extensions),
                 }
             }
@@ -1044,7 +1044,7 @@ macro_rules! define_world_conversions {
                 b::Body {
                     content: b_.content.into_iter().map(body_content_to).collect(),
                     required: b_.required,
-                    documentation: b_.documentation,
+                    description: b_.description,
                     extensions: extensions_to(b_.extensions),
                 }
             }
@@ -1122,7 +1122,8 @@ macro_rules! define_world_conversions {
                         .into_iter()
                         .map(|(k, v)| (k, header_from(v)))
                         .collect(),
-                    documentation: r.documentation,
+                    summary: r.summary,
+                    description: r.description,
                     links: links_from(r.links),
                     extensions: extensions_from(r.extensions),
                 }
@@ -1141,7 +1142,8 @@ macro_rules! define_world_conversions {
                         .into_iter()
                         .map(|(k, v)| (k, header_to(v)))
                         .collect(),
-                    documentation: r.documentation,
+                    summary: r.summary,
+                    description: r.description,
                     links: links_to(r.links),
                     extensions: extensions_to(r.extensions),
                 }
@@ -1173,10 +1175,11 @@ macro_rules! define_world_conversions {
                         })
                         .collect(),
                     tags: op.tags,
-                    documentation: op.documentation,
+                    summary: op.summary,
+                    description: op.description,
                     deprecated: op.deprecated,
-                    extensions: op.extensions,
                     external_docs: op.external_docs.map(external_docs_from),
+                    extensions: op.extensions,
                     servers: op.servers.into_iter().map(server_from).collect(),
                     callbacks: op.callbacks.into_iter().map(callback_from).collect(),
                     location: op.location.map(loc_from),
@@ -1209,10 +1212,11 @@ macro_rules! define_world_conversions {
                         })
                         .collect(),
                     tags: op.tags,
-                    documentation: op.documentation,
+                    summary: op.summary,
+                    description: op.description,
                     deprecated: op.deprecated,
-                    extensions: op.extensions,
                     external_docs: op.external_docs.map(external_docs_to),
+                    extensions: op.extensions,
                     servers: op.servers.into_iter().map(server_to).collect(),
                     callbacks: op.callbacks.into_iter().map(callback_to).collect(),
                     location: op.location.map(loc_to),
@@ -1251,7 +1255,7 @@ macro_rules! define_world_conversions {
                             ir::SecuritySchemeKind::OpenIdConnect { url: u }
                         }
                     },
-                    documentation: s.documentation,
+                    description: s.description,
                     deprecated: s.deprecated,
                     extensions: extensions_from(s.extensions),
                 }
@@ -1285,7 +1289,7 @@ macro_rules! define_world_conversions {
                             b::SecuritySchemeKind::OpenIdConnect(url)
                         }
                     },
-                    documentation: s.documentation,
+                    description: s.description,
                     deprecated: s.deprecated,
                     extensions: extensions_to(s.extensions),
                 }

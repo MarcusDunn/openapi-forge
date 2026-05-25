@@ -14,7 +14,6 @@
           "name": "redirect_uri",
           "type": "follow_param_query_redirect_uri",
           "required": true,
-          "deprecated": false,
           "style": "form",
           "explode": true,
           "allow_empty_value": false,
@@ -31,10 +30,9 @@
             "kind": "explicit",
             "code": 302
           },
-          "documentation": "redirected"
+          "description": "redirected"
         }
       ],
-      "deprecated": false,
       "location": {
         "pointer": "/paths/~1follow/get",
         "file": "spec.json"

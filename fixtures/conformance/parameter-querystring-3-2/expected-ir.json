@@ -14,8 +14,7 @@
           "name": "raw",
           "type": "search_param_querystring_raw",
           "required": false,
-          "documentation": "the entire URL query string is passed through verbatim",
-          "deprecated": false,
+          "description": "the entire URL query string is passed through verbatim",
           "style": "simple",
           "explode": false,
           "allow_empty_value": false,
@@ -32,10 +31,9 @@
             "kind": "explicit",
             "code": 200
           },
-          "documentation": "ok"
+          "description": "ok"
         }
       ],
-      "deprecated": false,
       "location": {
         "pointer": "/paths/~1search/get",
         "file": "spec.json"

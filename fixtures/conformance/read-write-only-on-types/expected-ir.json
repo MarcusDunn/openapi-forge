@@ -20,7 +20,7 @@
     {
       "id": "ServerAssignedId",
       "original_name": "ServerAssignedId",
-      "documentation": "Set by the server; clients must not provide a value.",
+      "description": "Set by the server; clients must not provide a value.",
       "read_only": true,
       "definition": {
         "def": "primitive",
@@ -37,7 +37,7 @@
     {
       "id": "WriteSecret",
       "original_name": "WriteSecret",
-      "documentation": "Accepted on requests; never returned in responses.",
+      "description": "Accepted on requests; never returned in responses.",
       "write_only": true,
       "definition": {
         "def": "primitive",

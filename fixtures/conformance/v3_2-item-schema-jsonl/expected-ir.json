@@ -22,10 +22,9 @@
               "item_schema": "Event"
             }
           ],
-          "documentation": "JSON-Lines stream of events."
+          "description": "JSON-Lines stream of events."
         }
       ],
-      "deprecated": false,
       "location": {
         "pointer": "/paths/~1events/get",
         "file": "spec.json"

@@ -14,7 +14,6 @@
           "name": "q",
           "type": "search_param_query_q",
           "required": false,
-          "deprecated": false,
           "style": "form",
           "explode": true,
           "allow_empty_value": true,
@@ -30,7 +29,6 @@
           "name": "X-Trace",
           "type": "search_param_header_X_Trace",
           "required": false,
-          "deprecated": false,
           "style": "simple",
           "explode": false,
           "allow_empty_value": false,
@@ -47,10 +45,9 @@
             "kind": "explicit",
             "code": 204
           },
-          "documentation": "no content"
+          "description": "no content"
         }
       ],
-      "deprecated": false,
       "location": {
         "pointer": "/paths/~1search/get",
         "file": "spec.json"

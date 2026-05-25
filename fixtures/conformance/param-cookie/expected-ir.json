@@ -14,7 +14,6 @@
           "name": "session",
           "type": "getMe_param_cookie_session",
           "required": true,
-          "deprecated": false,
           "style": "form",
           "explode": true,
           "allow_empty_value": false,
@@ -28,7 +27,6 @@
           "name": "trace",
           "type": "getMe_param_cookie_trace",
           "required": false,
-          "deprecated": false,
           "style": "form",
           "explode": true,
           "allow_empty_value": false,
@@ -45,10 +43,9 @@
             "kind": "explicit",
             "code": 204
           },
-          "documentation": "ok"
+          "description": "ok"
         }
       ],
-      "deprecated": false,
       "servers": [
         {
           "url": "https://api.example.com"

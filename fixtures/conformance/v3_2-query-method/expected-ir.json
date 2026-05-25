@@ -15,10 +15,9 @@
             "kind": "explicit",
             "code": 204
           },
-          "documentation": "ok"
+          "description": "ok"
         }
       ],
-      "deprecated": false,
       "location": {
         "pointer": "/paths/~1items/get",
         "file": "spec.json"
@@ -37,10 +36,9 @@
             "kind": "explicit",
             "code": 204
           },
-          "documentation": "ok"
+          "description": "ok"
         }
       ],
-      "deprecated": false,
       "location": {
         "pointer": "/paths/~1items/additionalOperations/QUERY",
         "file": "spec.json"

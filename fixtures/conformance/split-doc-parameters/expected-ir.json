@@ -14,7 +14,6 @@
           "name": "page",
           "type": "listItems_param_query_page",
           "required": false,
-          "deprecated": false,
           "style": "form",
           "explode": true,
           "allow_empty_value": false,
@@ -28,7 +27,6 @@
           "name": "pageSize",
           "type": "listItems_param_query_pageSize",
           "required": false,
-          "deprecated": false,
           "style": "form",
           "explode": true,
           "allow_empty_value": false,
@@ -45,10 +43,9 @@
             "kind": "explicit",
             "code": 204
           },
-          "documentation": "ok"
+          "description": "ok"
         }
       ],
-      "deprecated": false,
       "location": {
         "pointer": "/paths/~1items/get",
         "file": "spec.json"
