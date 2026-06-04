@@ -1170,6 +1170,7 @@ dependencies = [
  "forge-host",
  "forge-ir",
  "forge-parser",
+ "forge-pipeline",
  "forge-test-harness",
  "pretty_assertions",
  "serde_json",

@@ -22,7 +22,7 @@ use std::path::{Path, PathBuf};
 
 use clap::{Parser, Subcommand};
 use forge_host::{Engine, Plugin};
-use forge_pipeline::{run as run_pipeline, PipelineConfig};
+use forge_pipeline::{run as run_pipeline, PipelineConfig, PipelineError};
 use serde::Deserialize;
 
 mod oci;
@@ -301,7 +301,19 @@ fn run_generate(
         ..Default::default()
     };
     let xforms: Vec<&Plugin> = transformers.iter().collect();
-    let out = run_pipeline(&engine, ir, &xforms, &generator, &pipe_cfg)?;
+    let out = match run_pipeline(&engine, ir, &xforms, &generator, &pipe_cfg) {
+        Ok(out) => out,
+        // A stage that halts the pipeline with error-severity diagnostics
+        // carries them out; print each one (same rendering as parse-time
+        // diagnostics) so the failure says *what* was wrong, not just how
+        // many things were.
+        Err(e) => {
+            if let PipelineError::StageErrors { diagnostics, .. } = &e {
+                print_diagnostics(diagnostics);
+            }
+            return Err(e.into());
+        }
+    };
 
     // Validate output before writing. Use the generator's limits to seed
     // the caps; this matches what the host enforced inside the WASM call.
