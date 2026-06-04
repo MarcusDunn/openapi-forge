@@ -51,7 +51,14 @@ pub enum PipelineError {
         source: StageError,
     },
     #[error("stage `{plugin}` produced {count} error-severity diagnostics; halting")]
-    StageErrors { plugin: String, count: usize },
+    StageErrors {
+        plugin: String,
+        count: usize,
+        /// The halting stage's diagnostics, carried out so callers can
+        /// render them (the CLI prints each one) instead of being told
+        /// only how many there were.
+        diagnostics: Vec<Diagnostic>,
+    },
 }
 
 /// Run the configured pipeline.
@@ -86,13 +93,14 @@ pub fn run(
             .iter()
             .filter(|d| d.severity == Severity::Error)
             .count();
-        diagnostics.extend(out.diagnostics);
         if err_count > 0 && cfg.policy == StagePolicy::HaltOnError {
             return Err(PipelineError::StageErrors {
                 plugin: t.info().name.clone(),
                 count: err_count,
+                diagnostics: out.diagnostics,
             });
         }
+        diagnostics.extend(out.diagnostics);
         current = out.spec;
     }
 
@@ -108,13 +116,14 @@ pub fn run(
         .iter()
         .filter(|d| d.severity == Severity::Error)
         .count();
-    diagnostics.extend(gen_out.diagnostics.iter().cloned());
     if err_count > 0 && cfg.policy == StagePolicy::HaltOnError {
         return Err(PipelineError::StageErrors {
             plugin: generator.info().name.clone(),
             count: err_count,
+            diagnostics: gen_out.diagnostics,
         });
     }
+    diagnostics.extend(gen_out.diagnostics.iter().cloned());
 
     Ok(PipelineOutput {
         generation: gen_out,
