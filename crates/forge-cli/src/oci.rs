@@ -29,12 +29,15 @@
 //!
 //! ## Auth
 //!
-//! Pulls are anonymous by default. For `ghcr.io` refs we additionally
-//! shell out to `gh auth token` and, if it yields a token, authenticate
-//! over HTTP Basic so private GitHub packages resolve. Anything that
-//! goes wrong with `gh` (not installed, not logged in, empty token)
-//! degrades silently to an anonymous pull — public plugins keep working
-//! with no GitHub login. See ADR-0010.
+//! Pulls are anonymous by default. For `ghcr.io` refs we look for a
+//! GitHub token in precedence order — `GH_TOKEN`, `GITHUB_TOKEN`, then
+//! `gh auth token` — and, if one is found, authenticate over HTTP Basic
+//! so private GitHub packages resolve. The env vars let CI authenticate
+//! without `gh` installed; the `gh` fallback gives local shells the
+//! "just be logged in" experience. If no source yields a token (env
+//! unset, `gh` missing or not logged in), the pull degrades silently to
+//! anonymous — public plugins keep working with no GitHub login. See
+//! ADR-0010.
 
 use std::path::{Path, PathBuf};
 
@@ -46,7 +49,8 @@ use oci_client::{
 };
 use sha2::{Digest, Sha256};
 
-/// Registry whose private packages we can unlock via the `gh` CLI.
+/// Registry whose private packages we can unlock with a GitHub token
+/// (from the environment or the `gh` CLI).
 const GHCR_REGISTRY: &str = "ghcr.io";
 
 /// Username sent alongside the `gh` token over HTTP Basic. GHCR's token
@@ -243,7 +247,7 @@ fn configured_protocol() -> ClientProtocol {
 /// everything except `ghcr.io`, where we try the `gh` CLI so private
 /// GitHub packages resolve without the user wiring up a separate token.
 fn resolve_auth(registry: &str) -> RegistryAuth {
-    auth_from_token(registry, gh_auth_token(registry))
+    auth_from_token(registry, ghcr_token(registry))
 }
 
 /// Pure mapping from `(registry, token)` to a `RegistryAuth`, factored
@@ -256,14 +260,41 @@ fn auth_from_token(registry: &str, token: Option<String>) -> RegistryAuth {
     }
 }
 
-/// Best-effort GitHub token from `gh auth token`, only for `ghcr.io`.
-/// Returns `None` — never an error — if the registry isn't GHCR, `gh`
-/// is missing, the user isn't logged in, or the token is empty. Auth is
-/// an optional enhancement; a failure here just means an anonymous pull.
-fn gh_auth_token(registry: &str) -> Option<String> {
+/// Best-effort GitHub token for `ghcr.io`, in precedence order:
+/// `GH_TOKEN`, then `GITHUB_TOKEN`, then `gh auth token`. The env vars
+/// let CI authenticate without `gh` installed (and mirror `gh`'s own
+/// precedence, so a local shell that overrides one keeps doing so).
+/// Returns `None` — never an error — for non-GHCR registries or when no
+/// source yields a token; auth is optional and a miss just means an
+/// anonymous pull.
+fn ghcr_token(registry: &str) -> Option<String> {
     if registry != GHCR_REGISTRY {
         return None;
     }
+    token_from_env().or_else(token_from_gh_cli)
+}
+
+/// First non-empty value of `GH_TOKEN`, then `GITHUB_TOKEN`.
+fn token_from_env() -> Option<String> {
+    first_token([
+        std::env::var("GH_TOKEN").ok(),
+        std::env::var("GITHUB_TOKEN").ok(),
+    ])
+}
+
+/// First candidate that is present and non-blank, trimmed. Pure helper
+/// so the precedence rule is testable without touching process env.
+fn first_token(candidates: impl IntoIterator<Item = Option<String>>) -> Option<String> {
+    candidates
+        .into_iter()
+        .flatten()
+        .map(|t| t.trim().to_owned())
+        .find(|t| !t.is_empty())
+}
+
+/// Token from `gh auth token`. `None` if `gh` is missing, the user is
+/// not logged in, or the output is empty.
+fn token_from_gh_cli() -> Option<String> {
     let output = std::process::Command::new("gh")
         .args(["auth", "token"])
         .output()
@@ -521,9 +552,28 @@ mod tests {
     }
 
     #[test]
-    fn gh_auth_token_skips_non_ghcr_registries() {
-        // Must short-circuit before ever invoking `gh`.
-        assert_eq!(gh_auth_token("docker.io"), None);
+    fn ghcr_token_skips_non_ghcr_registries() {
+        // Must short-circuit before reading env or invoking `gh`.
+        assert_eq!(ghcr_token("docker.io"), None);
+    }
+
+    #[test]
+    fn first_token_picks_first_non_blank_trimmed() {
+        // Empty / whitespace-only candidates are skipped; the winner is
+        // trimmed. This is the GH_TOKEN-then-GITHUB_TOKEN precedence.
+        assert_eq!(first_token([None, None]), None);
+        assert_eq!(
+            first_token([Some("".to_owned()), Some("  ".to_owned())]),
+            None
+        );
+        assert_eq!(
+            first_token([Some("  gh_a  ".to_owned()), Some("gh_b".to_owned())]),
+            Some("gh_a".to_owned())
+        );
+        assert_eq!(
+            first_token([Some("   ".to_owned()), Some("gh_b".to_owned())]),
+            Some("gh_b".to_owned())
+        );
     }
 
     #[test]

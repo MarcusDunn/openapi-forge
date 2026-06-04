@@ -61,13 +61,17 @@ Tag-pinned refs read the pointer file. Stale tags are accepted as the
 cost of the simpler design — pin by digest if you need airtight
 reproducibility.
 
-**Auth:** anonymous by default. For `ghcr.io` refs the CLI additionally
-shells out to `gh auth token`; if that yields a token, the pull
-authenticates over HTTP Basic (GHCR exchanges those credentials for a
-bearer token at its token endpoint), so private GitHub packages resolve
-with no extra configuration. Any `gh` failure — not installed, not
-logged in, empty token — degrades silently to an anonymous pull, so
-public plugins keep working without a GitHub login. A `DENIED`/
+**Auth:** anonymous by default. For `ghcr.io` refs the CLI looks for a
+GitHub token in precedence order — `GH_TOKEN`, `GITHUB_TOKEN`, then
+`gh auth token` — and, if one is found, authenticates over HTTP Basic
+(GHCR exchanges those credentials for a bearer token at its token
+endpoint), so private GitHub packages resolve with no extra
+configuration. The env vars let CI authenticate without `gh` installed
+(GitHub Actions exposes `GITHUB_TOKEN`); the `gh` fallback gives local
+shells the "just be logged in" experience and mirrors `gh`'s own env
+precedence. If no source yields a token — env unset, `gh` missing or not
+logged in — the pull degrades silently to anonymous, so public plugins
+keep working without a GitHub login. A `DENIED`/
 `UNAUTHORIZED` response on a `ghcr.io` ref is rewritten into an
 actionable error pointing at `gh auth refresh -h github.com -s
 read:packages` — the `read:packages` scope GHCR requires is not part of
