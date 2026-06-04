@@ -80,10 +80,17 @@ dir = "out"
 ```
 
 Pulls are anonymous by default. For private `ghcr.io` packages, log in
-with the [GitHub CLI](https://cli.github.com/) (`gh auth login`) and
-`forge` will reuse that token automatically — no separate configuration.
-See `docs/adr/0010-oci-plugin-distribution.md` for the cache layout,
-accepted layer media types, and roadmap.
+with the [GitHub CLI](https://cli.github.com/) and `forge` reuses that
+token automatically — no separate configuration. GHCR package reads need
+the `read:packages` scope, which the default login does not grant:
+
+```sh
+gh auth refresh -h github.com -s read:packages
+```
+
+If a private pull is denied, `forge` prints this exact command. See
+`docs/adr/0010-oci-plugin-distribution.md` for the cache layout, accepted
+layer media types, and roadmap.
 
 ### Config-less invocation
 

@@ -67,7 +67,11 @@ authenticates over HTTP Basic (GHCR exchanges those credentials for a
 bearer token at its token endpoint), so private GitHub packages resolve
 with no extra configuration. Any `gh` failure — not installed, not
 logged in, empty token — degrades silently to an anonymous pull, so
-public plugins keep working without a GitHub login. Other registries and
+public plugins keep working without a GitHub login. A `DENIED`/
+`UNAUTHORIZED` response on a `ghcr.io` ref is rewritten into an
+actionable error pointing at `gh auth refresh -h github.com -s
+read:packages` — the `read:packages` scope GHCR requires is not part of
+the default `gh auth login` token. Other registries and
 `~/.docker/config.json` reading remain deferred to a follow-up.
 
 **Accepted layer media types:**

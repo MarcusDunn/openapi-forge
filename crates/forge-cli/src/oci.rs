@@ -86,6 +86,17 @@ pub enum OciError {
     #[error("registry pull: {0}")]
     Registry(#[from] oci_client::errors::OciDistributionError),
     #[error(
+        "access denied by ghcr.io. If this is a private package, log in with the \
+         GitHub CLI and ensure your token carries the `read:packages` scope:\n    \
+         gh auth refresh -h github.com -s read:packages\n  \
+         (or `gh auth login` if you have not authenticated yet)"
+    )]
+    GhcrAccessDenied {
+        reference: String,
+        #[source]
+        source: oci_client::errors::OciDistributionError,
+    },
+    #[error(
         "no acceptable wasm layer in {reference}: \
          expected one of [{}], got [{got}]",
         ACCEPTED_MEDIA_TYPES.join(", ")
@@ -188,9 +199,22 @@ async fn pull(reference: &Reference, auth: &RegistryAuth) -> Result<Pulled, OciE
         protocol: configured_protocol(),
         ..ClientConfig::default()
     });
-    let image = client
+    let image = match client
         .pull(reference, auth, ACCEPTED_MEDIA_TYPES.to_vec())
-        .await?;
+        .await
+    {
+        Ok(image) => image,
+        // Turn an opaque 403 on a ghcr.io ref into an actionable hint:
+        // private packages need a `gh` token with the `read:packages`
+        // scope, which the default `gh auth login` token lacks.
+        Err(e) if reference.registry() == GHCR_REGISTRY && is_access_denied(&e) => {
+            return Err(OciError::GhcrAccessDenied {
+                reference: reference.to_string(),
+                source: e,
+            });
+        }
+        Err(e) => return Err(e.into()),
+    };
 
     let layer = pick_wasm_layer(&image.layers, &image.manifest, &reference.to_string())?;
     let bytes = layer.data.to_vec();
@@ -252,6 +276,22 @@ fn gh_auth_token(registry: &str) -> Option<String> {
         None
     } else {
         Some(token)
+    }
+}
+
+/// Does this pull error mean "the registry refused you," as opposed to
+/// a transport/parse/not-found failure? Used to decide whether to attach
+/// the ghcr.io auth hint. Covers both the bearer-exchange failure and a
+/// `DENIED`/`UNAUTHORIZED` code in the registry's error envelope.
+fn is_access_denied(err: &oci_client::errors::OciDistributionError) -> bool {
+    use oci_client::errors::{OciDistributionError as E, OciErrorCode};
+    match err {
+        E::UnauthorizedError { .. } | E::AuthenticationFailure(_) => true,
+        E::RegistryError { envelope, .. } => envelope
+            .errors
+            .iter()
+            .any(|e| matches!(e.code, OciErrorCode::Denied | OciErrorCode::Unauthorized)),
+        _ => false,
     }
 }
 
@@ -484,6 +524,41 @@ mod tests {
     fn gh_auth_token_skips_non_ghcr_registries() {
         // Must short-circuit before ever invoking `gh`.
         assert_eq!(gh_auth_token("docker.io"), None);
+    }
+
+    #[test]
+    fn denied_envelope_is_access_denied() {
+        use oci_client::errors::{OciDistributionError, OciEnvelope, OciError, OciErrorCode};
+        let err = OciDistributionError::RegistryError {
+            url: "https://ghcr.io/v2/org/pkg/manifests/latest".to_owned(),
+            envelope: OciEnvelope {
+                errors: vec![OciError {
+                    code: OciErrorCode::Denied,
+                    message: "requested access to the resource is denied".to_owned(),
+                    detail: serde_json::Value::Null,
+                }],
+            },
+        };
+        assert!(is_access_denied(&err));
+    }
+
+    #[test]
+    fn unauthorized_error_is_access_denied() {
+        use oci_client::errors::OciDistributionError;
+        let err = OciDistributionError::UnauthorizedError {
+            url: "https://ghcr.io/v2/org/pkg/manifests/latest".to_owned(),
+        };
+        assert!(is_access_denied(&err));
+    }
+
+    #[test]
+    fn not_found_is_not_access_denied() {
+        use oci_client::errors::OciDistributionError;
+        // A genuine 404 / missing-manifest must not masquerade as an
+        // auth problem — that would send users chasing a scope they
+        // already have.
+        let err = OciDistributionError::ImageManifestNotFoundError("nope".to_owned());
+        assert!(!is_access_denied(&err));
     }
 
     #[test]
