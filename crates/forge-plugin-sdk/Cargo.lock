@@ -40,7 +40,7 @@ checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
 
 [[package]]
 name = "forge-ir"
-version = "0.1.18"
+version = "0.1.19"
 dependencies = [
  "indexmap",
  "serde",
@@ -48,7 +48,7 @@ dependencies = [
 
 [[package]]
 name = "forge-plugin-sdk"
-version = "0.1.18"
+version = "0.1.19"
 dependencies = [
  "forge-ir",
  "serde",
@@ -111,9 +111,9 @@ checksum = "6cc46bac87ef8093eed6f272babb833b6443374399985ac8ed28471ee0918545"
 
 [[package]]
 name = "log"
-version = "0.4.31"
+version = "0.4.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "113b30b4cd05f7c06868fdb2854f66a7b9fece9a48425351cd532e810d74024f"
+checksum = "953f07c43838f8e6f9758cab68bf5bed85465e7587ebe0b823f1bcd81978ad3a"
 
 [[package]]
 name = "memchr"
