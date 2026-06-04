@@ -162,6 +162,10 @@ interface types {
         // `T | null` is a `union-type` whose variants list contains a Null
         // reference, canonicalized to last.
         %null,
+        // The JSON Schema "any" schema: an empty/freeform schema (`{}`) or
+        // boolean `true`, which validates any instance. Distinct from an
+        // `object` with permissive additional-properties (matches objects only).
+        any,
     }
 
     // ----- primitives -----

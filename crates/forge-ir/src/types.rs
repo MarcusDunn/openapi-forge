@@ -75,6 +75,14 @@ pub enum TypeDef {
     /// as a [`UnionType`] whose variants list contains a `Null` reference
     /// (canonicalized to last). See issue #107.
     Null,
+    /// The JSON Schema "any" schema — an empty/freeform schema (`{}`) or the
+    /// boolean schema `true`. It validates *any* instance (object, array,
+    /// string, number, boolean, or null). Per JSON Schema 2020-12 §4.3.2, `{}`
+    /// and `true` are equivalent. Distinct from an [`ObjectType`] with
+    /// permissive `additionalProperties` (`{"type":"object"}`), which validates
+    /// objects only — collapsing the two would reject otherwise-valid
+    /// non-object instances.
+    Any,
 }
 
 /// Canonical pool id for the [`TypeDef::Null`] singleton. See issue #107.

@@ -624,6 +624,7 @@ macro_rules! define_world_conversions {
                     b::TypeDef::EnumInt(e) => ir::TypeDef::EnumInt(enum_int_from(e)),
                     b::TypeDef::Union(u) => ir::TypeDef::Union(union_from(u)),
                     b::TypeDef::Null => ir::TypeDef::Null,
+                    b::TypeDef::Any => ir::TypeDef::Any,
                 })
             }
 
@@ -636,6 +637,7 @@ macro_rules! define_world_conversions {
                     ir::TypeDef::EnumInt(e) => b::TypeDef::EnumInt(enum_int_to(e)),
                     ir::TypeDef::Union(u) => b::TypeDef::Union(union_to(u)),
                     ir::TypeDef::Null => b::TypeDef::Null,
+                    ir::TypeDef::Any => b::TypeDef::Any,
                 }
             }
 

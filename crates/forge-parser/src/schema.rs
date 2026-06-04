@@ -334,11 +334,11 @@ fn parse_freeform(
             }
         }
     }
-    let obj = ObjectType {
-        properties: vec![],
-        additional_properties: AdditionalProperties::Any,
-        constraints: ObjectConstraints::default(),
-    };
+    // A schema with no `type` (and no composition keyword) is the JSON Schema
+    // "any" schema — equivalent to `{}` / boolean `true` — which validates ANY
+    // instance, not just objects. Lower it to `TypeDef::Any` rather than an
+    // empty permissive object (`{"type":"object"}`), which would incorrectly
+    // reject non-object instances (strings, numbers, arrays, …).
     let extensions = crate::operations::collect_extensions(ctx, map, ptr);
     let nt = NamedType {
         id: alloc_id(ctx, &hint),
@@ -352,7 +352,7 @@ fn parse_freeform(
         default: crate::parse_default(ctx, map, ptr, "schema"),
         examples: crate::parse_examples(ctx, map, ptr),
         xml: crate::parse_xml(ctx, map, ptr),
-        definition: TypeDef::Object(obj),
+        definition: TypeDef::Any,
         extensions,
         location: Some(ptr.loc(ctx.file)),
     };

@@ -97,7 +97,8 @@ pub fn validate_refs(ir: &ir::Ir) -> Result<(), BindgenError> {
             ir::TypeDef::Primitive(_)
             | ir::TypeDef::EnumString(_)
             | ir::TypeDef::EnumInt(_)
-            | ir::TypeDef::Null => {}
+            | ir::TypeDef::Null
+            | ir::TypeDef::Any => {}
         }
     }
     for op in &ir.operations {

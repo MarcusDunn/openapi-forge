@@ -2117,6 +2117,52 @@ mod tests {
     }
 
     #[test]
+    fn empty_and_freeform_schemas_lower_to_any_not_object() {
+        // A schema with no `type` — `{}` or an annotation-only schema — is the
+        // JSON Schema "any" schema (equivalent to boolean `true`, JSON Schema
+        // 2020-12 §4.3.2): it validates ANY instance, not just objects. It must
+        // lower to `TypeDef::Any`, NOT to `{"type":"object"}` (an `Object` with
+        // permissive additionalProperties), which would reject non-object
+        // instances like strings or numbers.
+        let src = r#"{
+            "openapi":"3.1.0",
+            "info":{"title":"t","version":"1"},
+            "paths":{},
+            "components":{
+                "schemas":{
+                    "AnyVal":{},
+                    "OpaqueDoc":{"description":"any JSON value"},
+                    "RealObject":{"type":"object"}
+                }
+            }
+        }"#;
+        let ir = parse_str(src).unwrap().spec.unwrap();
+        let def = |id: &str| {
+            &ir.types
+                .iter()
+                .find(|t| t.id == id)
+                .unwrap_or_else(|| panic!("missing type {id}"))
+                .definition
+        };
+        assert!(
+            matches!(def("AnyVal"), forge_ir::TypeDef::Any),
+            "`{{}}` must lower to Any, got {:?}",
+            def("AnyVal")
+        );
+        assert!(
+            matches!(def("OpaqueDoc"), forge_ir::TypeDef::Any),
+            "an annotation-only schema must lower to Any, got {:?}",
+            def("OpaqueDoc")
+        );
+        // A schema that *does* declare `type: object` stays an object.
+        assert!(
+            matches!(def("RealObject"), forge_ir::TypeDef::Object(_)),
+            "`{{\"type\":\"object\"}}` must stay Object, got {:?}",
+            def("RealObject")
+        );
+    }
+
+    #[test]
     fn schema_compound_default_survives_via_value_pool() {
         let src = r#"{
             "openapi":"3.0.3",

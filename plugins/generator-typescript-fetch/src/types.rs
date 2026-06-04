@@ -37,6 +37,8 @@ pub fn render_type_ref(spec: &ir::Ir, type_ref: &ir::TypeRef, namespace: Option<
         },
         // The bare Null type renders as the TS literal `null`.
         ir::TypeDef::Null => "null".into(),
+        // The "any" schema (`{}` / `true`) accepts any JSON value → `unknown`.
+        ir::TypeDef::Any => "unknown".into(),
     }
 }
 
@@ -146,6 +148,17 @@ pub fn render_named_type(spec: &ir::Ir, nt: &ir::NamedType) -> Option<String> {
                 s.push_str(&format!("export type {name} = null;\n"));
                 Some(s)
             }
+        }
+        // The "any" schema (`{}` / `true`): a named alias emits as
+        // `type Foo = unknown;` (validates any JSON value).
+        ir::TypeDef::Any => {
+            let name = named_ref(nt);
+            let mut s = String::new();
+            if let Some(d) = &nt.description {
+                s.push_str(&jsdoc(d, ""));
+            }
+            s.push_str(&format!("export type {name} = unknown;\n"));
+            Some(s)
         }
     }
 }

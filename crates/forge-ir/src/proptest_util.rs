@@ -193,6 +193,7 @@ pub fn type_def() -> impl Strategy<Value = TypeDef> {
         object_type().prop_map(TypeDef::Object),
         union_type().prop_map(TypeDef::Union),
         Just(TypeDef::Null),
+        Just(TypeDef::Any),
     ]
 }
 
