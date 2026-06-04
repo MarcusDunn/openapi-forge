@@ -26,6 +26,15 @@
 //! exists; this is intentionally simple and accepts that a tag could
 //! have been re-pushed in the registry without the cache noticing.
 //! Pin by digest if you want airtight reproducibility.
+//!
+//! ## Auth
+//!
+//! Pulls are anonymous by default. For `ghcr.io` refs we additionally
+//! shell out to `gh auth token` and, if it yields a token, authenticate
+//! over HTTP Basic so private GitHub packages resolve. Anything that
+//! goes wrong with `gh` (not installed, not logged in, empty token)
+//! degrades silently to an anonymous pull — public plugins keep working
+//! with no GitHub login. See ADR-0010.
 
 use std::path::{Path, PathBuf};
 
@@ -36,6 +45,15 @@ use oci_client::{
     Client, Reference,
 };
 use sha2::{Digest, Sha256};
+
+/// Registry whose private packages we can unlock via the `gh` CLI.
+const GHCR_REGISTRY: &str = "ghcr.io";
+
+/// Username sent alongside the `gh` token over HTTP Basic. GHCR's token
+/// endpoint validates only the password (the token) and ignores the
+/// username, so this is a descriptive placeholder mirroring git's
+/// token-as-password convention.
+const GHCR_TOKEN_USERNAME: &str = "x-access-token";
 
 /// Layer media types we accept as carrying a single WASM component.
 /// First match wins; order is informational only.
@@ -67,6 +85,17 @@ pub enum OciError {
     },
     #[error("registry pull: {0}")]
     Registry(#[from] oci_client::errors::OciDistributionError),
+    #[error(
+        "access denied by ghcr.io. If this is a private package, log in with the \
+         GitHub CLI and ensure your token carries the `read:packages` scope:\n    \
+         gh auth refresh -h github.com -s read:packages\n  \
+         (or `gh auth login` if you have not authenticated yet)"
+    )]
+    GhcrAccessDenied {
+        reference: String,
+        #[source]
+        source: oci_client::errors::OciDistributionError,
+    },
     #[error(
         "no acceptable wasm layer in {reference}: \
          expected one of [{}], got [{got}]",
@@ -114,11 +143,15 @@ pub fn fetch_to_bytes(reference: &str) -> Result<Vec<u8>, OciError> {
     }
 
     // Cache miss. Pull from the registry.
+    // Resolve auth synchronously (it may shell out to `gh`) before
+    // entering the async runtime, keeping the subprocess off the executor.
+    let auth = resolve_auth(parsed.registry());
+
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
         .map_err(OciError::Runtime)?;
-    let pulled = runtime.block_on(pull(&parsed))?;
+    let pulled = runtime.block_on(pull(&parsed, &auth))?;
 
     // If the caller pinned by digest, validate it before trusting the
     // bytes. The OCI client validates layer digests against the manifest,
@@ -161,15 +194,27 @@ struct Pulled {
     layer_digest: String,
 }
 
-async fn pull(reference: &Reference) -> Result<Pulled, OciError> {
+async fn pull(reference: &Reference, auth: &RegistryAuth) -> Result<Pulled, OciError> {
     let client = Client::new(ClientConfig {
         protocol: configured_protocol(),
         ..ClientConfig::default()
     });
-    let auth = RegistryAuth::Anonymous;
-    let image = client
-        .pull(reference, &auth, ACCEPTED_MEDIA_TYPES.to_vec())
-        .await?;
+    let image = match client
+        .pull(reference, auth, ACCEPTED_MEDIA_TYPES.to_vec())
+        .await
+    {
+        Ok(image) => image,
+        // Turn an opaque 403 on a ghcr.io ref into an actionable hint:
+        // private packages need a `gh` token with the `read:packages`
+        // scope, which the default `gh auth login` token lacks.
+        Err(e) if reference.registry() == GHCR_REGISTRY && is_access_denied(&e) => {
+            return Err(OciError::GhcrAccessDenied {
+                reference: reference.to_string(),
+                source: e,
+            });
+        }
+        Err(e) => return Err(e.into()),
+    };
 
     let layer = pick_wasm_layer(&image.layers, &image.manifest, &reference.to_string())?;
     let bytes = layer.data.to_vec();
@@ -191,6 +236,62 @@ fn configured_protocol() -> ClientProtocol {
             ClientProtocol::HttpsExcept(list)
         }
         _ => ClientProtocol::Https,
+    }
+}
+
+/// Pick the registry credentials for `registry`. Anonymous for
+/// everything except `ghcr.io`, where we try the `gh` CLI so private
+/// GitHub packages resolve without the user wiring up a separate token.
+fn resolve_auth(registry: &str) -> RegistryAuth {
+    auth_from_token(registry, gh_auth_token(registry))
+}
+
+/// Pure mapping from `(registry, token)` to a `RegistryAuth`, factored
+/// out of [`resolve_auth`] so the policy is unit-testable without a
+/// real `gh` on `PATH`.
+fn auth_from_token(registry: &str, token: Option<String>) -> RegistryAuth {
+    match (registry, token) {
+        (GHCR_REGISTRY, Some(token)) => RegistryAuth::Basic(GHCR_TOKEN_USERNAME.to_owned(), token),
+        _ => RegistryAuth::Anonymous,
+    }
+}
+
+/// Best-effort GitHub token from `gh auth token`, only for `ghcr.io`.
+/// Returns `None` — never an error — if the registry isn't GHCR, `gh`
+/// is missing, the user isn't logged in, or the token is empty. Auth is
+/// an optional enhancement; a failure here just means an anonymous pull.
+fn gh_auth_token(registry: &str) -> Option<String> {
+    if registry != GHCR_REGISTRY {
+        return None;
+    }
+    let output = std::process::Command::new("gh")
+        .args(["auth", "token"])
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let token = String::from_utf8(output.stdout).ok()?.trim().to_owned();
+    if token.is_empty() {
+        None
+    } else {
+        Some(token)
+    }
+}
+
+/// Does this pull error mean "the registry refused you," as opposed to
+/// a transport/parse/not-found failure? Used to decide whether to attach
+/// the ghcr.io auth hint. Covers both the bearer-exchange failure and a
+/// `DENIED`/`UNAUTHORIZED` code in the registry's error envelope.
+fn is_access_denied(err: &oci_client::errors::OciDistributionError) -> bool {
+    use oci_client::errors::{OciDistributionError as E, OciErrorCode};
+    match err {
+        E::UnauthorizedError { .. } | E::AuthenticationFailure(_) => true,
+        E::RegistryError { envelope, .. } => envelope
+            .errors
+            .iter()
+            .any(|e| matches!(e.code, OciErrorCode::Denied | OciErrorCode::Unauthorized)),
+        _ => false,
     }
 }
 
@@ -393,6 +494,71 @@ mod tests {
             p,
             PathBuf::from("/tmp/x/by-tag/ghcr.io/owner_repo/1.0.0.digest")
         );
+    }
+
+    #[test]
+    fn ghcr_token_maps_to_basic_auth() {
+        let auth = auth_from_token("ghcr.io", Some("ghp_secret".to_owned()));
+        assert_eq!(
+            auth,
+            RegistryAuth::Basic(GHCR_TOKEN_USERNAME.to_owned(), "ghp_secret".to_owned())
+        );
+    }
+
+    #[test]
+    fn ghcr_without_token_is_anonymous() {
+        assert_eq!(auth_from_token("ghcr.io", None), RegistryAuth::Anonymous);
+    }
+
+    #[test]
+    fn non_ghcr_registry_is_anonymous_even_with_token() {
+        // We only ever surface a token for ghcr.io, but guard the policy
+        // anyway: a token must never leak to a different registry.
+        assert_eq!(
+            auth_from_token("docker.io", Some("ghp_secret".to_owned())),
+            RegistryAuth::Anonymous
+        );
+    }
+
+    #[test]
+    fn gh_auth_token_skips_non_ghcr_registries() {
+        // Must short-circuit before ever invoking `gh`.
+        assert_eq!(gh_auth_token("docker.io"), None);
+    }
+
+    #[test]
+    fn denied_envelope_is_access_denied() {
+        use oci_client::errors::{OciDistributionError, OciEnvelope, OciError, OciErrorCode};
+        let err = OciDistributionError::RegistryError {
+            url: "https://ghcr.io/v2/org/pkg/manifests/latest".to_owned(),
+            envelope: OciEnvelope {
+                errors: vec![OciError {
+                    code: OciErrorCode::Denied,
+                    message: "requested access to the resource is denied".to_owned(),
+                    detail: serde_json::Value::Null,
+                }],
+            },
+        };
+        assert!(is_access_denied(&err));
+    }
+
+    #[test]
+    fn unauthorized_error_is_access_denied() {
+        use oci_client::errors::OciDistributionError;
+        let err = OciDistributionError::UnauthorizedError {
+            url: "https://ghcr.io/v2/org/pkg/manifests/latest".to_owned(),
+        };
+        assert!(is_access_denied(&err));
+    }
+
+    #[test]
+    fn not_found_is_not_access_denied() {
+        use oci_client::errors::OciDistributionError;
+        // A genuine 404 / missing-manifest must not masquerade as an
+        // auth problem — that would send users chasing a scope they
+        // already have.
+        let err = OciDistributionError::ImageManifestNotFoundError("nope".to_owned());
+        assert!(!is_access_denied(&err));
     }
 
     #[test]
