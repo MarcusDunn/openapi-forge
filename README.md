@@ -79,8 +79,11 @@ config = { packageName = "petstore-client" }
 dir = "out"
 ```
 
-Anonymous registries only in v1; see `docs/adr/0010-oci-plugin-distribution.md`
-for the cache layout, accepted layer media types, and roadmap.
+Pulls are anonymous by default. For private `ghcr.io` packages, log in
+with the [GitHub CLI](https://cli.github.com/) (`gh auth login`) and
+`forge` will reuse that token automatically — no separate configuration.
+See `docs/adr/0010-oci-plugin-distribution.md` for the cache layout,
+accepted layer media types, and roadmap.
 
 ### Config-less invocation
 

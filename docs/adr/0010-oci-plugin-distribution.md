@@ -61,10 +61,14 @@ Tag-pinned refs read the pointer file. Stale tags are accepted as the
 cost of the simpler design — pin by digest if you need airtight
 reproducibility.
 
-**Auth:** anonymous-only in v1. We deliberately defer
-`~/.docker/config.json` reading and bearer-token plumbing to a
-follow-up; the open-source generators we expect to ship live on public
-registries.
+**Auth:** anonymous by default. For `ghcr.io` refs the CLI additionally
+shells out to `gh auth token`; if that yields a token, the pull
+authenticates over HTTP Basic (GHCR exchanges those credentials for a
+bearer token at its token endpoint), so private GitHub packages resolve
+with no extra configuration. Any `gh` failure — not installed, not
+logged in, empty token — degrades silently to an anonymous pull, so
+public plugins keep working without a GitHub login. Other registries and
+`~/.docker/config.json` reading remain deferred to a follow-up.
 
 **Accepted layer media types:**
 1. `application/vnd.bytecodealliance.wasm.component.layer.v0+wasm`
