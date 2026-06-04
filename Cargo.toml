@@ -24,7 +24,7 @@ exclude = ["crates/forge-plugin-sdk", "plugins", "fuzz"]
 [workspace.package]
 version = "0.1.14"
 edition = "2021"
-rust-version = "1.87"
+rust-version = "1.93"
 license = "Apache-2.0 OR MIT"
 repository = "https://github.com/marcusdunn/openapi-forge"
 authors = ["OpenAPI Forge contributors"]
@@ -70,8 +70,8 @@ jsonptr = "0.7"
 jsonschema = { version = "0.46", default-features = false }
 
 # WASM toolchain
-wasmtime = { version = "44", default-features = false, features = ["component-model", "cranelift", "runtime", "std", "addr2line", "demangle", "parallel-compilation"] }
-wasmtime-wasi = "44"
+wasmtime = { version = "45", default-features = false, features = ["component-model", "cranelift", "runtime", "std", "addr2line", "demangle", "parallel-compilation"] }
+wasmtime-wasi = "45"
 wit-bindgen = "0.36"
 wit-bindgen-rt = "0.36"
 
