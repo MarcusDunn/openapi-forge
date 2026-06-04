@@ -50,6 +50,9 @@ pub fn render_type_ref(spec: &ir::Ir, type_ref: &ir::TypeRef) -> String {
         // round-trips it as `()`. Generators rarely render this directly
         // because nullable wraps go through `peel_nullable` above.
         ir::TypeDef::Null => "()".into(),
+        // The "any" schema (`{}` / `true`) accepts any JSON value, rendered as
+        // `serde_json::Value`.
+        ir::TypeDef::Any => "serde_json::Value".into(),
     }
 }
 
@@ -150,6 +153,14 @@ pub fn render_named_type(spec: &ir::Ir, nt: &ir::NamedType) -> Option<String> {
                 s.push_str(&format!("pub type {name} = ();\n"));
                 Some(s)
             }
+        }
+        // The "any" schema (`{}` / `true`): a named alias emits as
+        // `pub type Foo = serde_json::Value;` (any JSON value).
+        ir::TypeDef::Any => {
+            let name = named_ref(nt);
+            let mut s = doc_comment(nt.description.as_deref());
+            s.push_str(&format!("pub type {name} = serde_json::Value;\n"));
+            Some(s)
         }
     }
 }
