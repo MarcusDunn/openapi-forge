@@ -88,9 +88,27 @@ the `read:packages` scope, which the default login does not grant:
 gh auth refresh -h github.com -s read:packages
 ```
 
-If a private pull is denied, `forge` prints this exact command. See
-`docs/adr/0010-oci-plugin-distribution.md` for the cache layout, accepted
-layer media types, and roadmap.
+If a private pull is denied, `forge` prints this exact command.
+
+**In CI**, where `gh` may not be installed, set `GH_TOKEN` (or
+`GITHUB_TOKEN`) instead — `forge` reads it directly, no `gh` required.
+Tokens are checked in the order `GH_TOKEN`, `GITHUB_TOKEN`, then
+`gh auth token`.
+
+```yaml
+# GitHub Actions
+permissions:
+  packages: read            # required for the built-in GITHUB_TOKEN
+steps:
+  - run: forge generate ...
+    env:
+      # built-in token works for packages the running repo can access;
+      # use a PAT with read:packages for other repos/orgs
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+See `docs/adr/0010-oci-plugin-distribution.md` for the cache layout,
+accepted layer media types, and roadmap.
 
 ### Config-less invocation
 
