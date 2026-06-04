@@ -35,7 +35,13 @@ runs:
       run: |
         set -euo pipefail
         # crates.io returns 200 for { name, version } that exists, 404 otherwise.
+        # A descriptive User-Agent is REQUIRED: crates.io now answers UA-less
+        # requests (curl's default included) with 403, which this probe would
+        # misread as "not published" and let `cargo publish` hard-fail with
+        # "already exists" on a re-run after a partial release. See the
+        # v0.1.14 wedge for the failure mode.
         status=$(curl -sS -o /dev/null -w '%{http_code}' \
+          -A "openapi-forge-release (https://github.com/MarcusDunn/openapi-forge)" \
           "https://crates.io/api/v1/crates/${CRATE}/${VERSION}")
         if [ "$status" = "200" ]; then
           echo "already_published=true" >>"$GITHUB_OUTPUT"
