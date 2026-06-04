@@ -17,6 +17,13 @@ updates:
       interval: weekly
     open-pull-requests-limit: 10
     groups:
+      # wasmtime and wasmtime-wasi are released in lockstep and must share a
+      # major version. Group them across all update-types (listed before
+      # cargo-minor-patch so this rule wins) so a major bump arrives as one
+      # mergeable PR instead of separate, individually-uncompilable ones.
+      wasmtime:
+        patterns: ["wasmtime*"]
+        update-types: [major, minor, patch]
       cargo-minor-patch:
         update-types: [minor, patch]
 
@@ -37,6 +44,11 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
     groups:
+      # Keep wasmtime* together here too (transitive via the root crates) so a
+      # major bump doesn't land as a standalone, uncompilable /fuzz PR.
+      wasmtime:
+        patterns: ["wasmtime*"]
+        update-types: [major, minor, patch]
       cargo-minor-patch:
         update-types: [minor, patch]
 
