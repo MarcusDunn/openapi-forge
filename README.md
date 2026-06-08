@@ -35,6 +35,37 @@ Or install from source via crates.io:
 cargo install openapi-forge-cli
 ```
 
+### Nix
+
+The flake exposes the `forge` CLI as its default package, so you can run it
+ad-hoc or pin it into a system/home-manager flake and bump it with
+`nix flake update`:
+
+```sh
+# Run without installing
+nix run github:MarcusDunn/openapi-forge -- --help
+
+# Install into a profile
+nix profile install github:MarcusDunn/openapi-forge
+```
+
+To consume it from another flake, add it as an input and reference the
+package. The input tracks `main` (which carries the version bump for each
+release), so `nix flake update` advances it to the latest commit:
+
+```nix
+{
+  inputs.openapi-forge.url = "github:MarcusDunn/openapi-forge";
+
+  # then, e.g. in environment.systemPackages / home.packages:
+  #   inputs.openapi-forge.packages.${pkgs.system}.default
+}
+```
+
+Pin a specific release instead by pointing the input at a tag
+(`github:MarcusDunn/openapi-forge/v0.1.21`); a versioned tag never moves, so
+you bump it by hand.
+
 ## Why
 
 `openapi-generator` (the Swagger project) requires generators to ship in-tree.
