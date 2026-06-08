@@ -8,8 +8,8 @@
 use forge_ir::{
     AdditionalProperties, ArrayConstraints, ArrayType, Discriminator, EnumIntType, EnumIntValue,
     EnumStringType, EnumStringValue, IntKind, NamedType, ObjectConstraints, ObjectType,
-    PrimitiveConstraints, PrimitiveKind, PrimitiveType, Property, TypeDef, TypeRef, UnionKind,
-    UnionType, UnionVariant, NULL_ID,
+    PatternProperty, PrimitiveConstraints, PrimitiveKind, PrimitiveType, Property, TypeDef,
+    TypeRef, UnionKind, UnionType, UnionVariant, NULL_ID,
 };
 use serde_json::Value as J;
 
@@ -971,6 +971,7 @@ fn parse_object(
             p.required = true;
         }
     }
+    let pattern_properties = parse_pattern_properties(ctx, map, ptr, &id);
     let additional = match map.get("additionalProperties") {
         Some(J::Bool(false)) => AdditionalProperties::Forbidden,
         Some(J::Bool(true)) | None => AdditionalProperties::Any,
@@ -994,13 +995,16 @@ fn parse_object(
             AdditionalProperties::Any
         }
     };
+    let property_names = parse_property_names(ctx, map, ptr, &id);
     let constraints = ObjectConstraints {
         min_properties: map.get("minProperties").and_then(J::as_u64),
         max_properties: map.get("maxProperties").and_then(J::as_u64),
     };
     let obj = ObjectType {
         properties,
+        pattern_properties,
         additional_properties: additional,
+        property_names,
         constraints,
     };
     let extensions = crate::operations::collect_extensions(ctx, map, ptr);
@@ -1021,6 +1025,77 @@ fn parse_object(
         location: Some(ptr.loc(ctx.file)),
     };
     Some(maybe_wrap_nullable(ctx, nt, nullable))
+}
+
+/// Parse JSON Schema `patternProperties` (2020-12 §10.3.2.2) into IR
+/// entries. The keyword's value is an object whose keys are ECMA-262
+/// regexes and whose values are the schemas that property *values* under
+/// a matching name must satisfy. Inline value schemas are lifted under
+/// `<owner>_pattern_property_<sanitized-regex>`. A non-object keyword
+/// value carries no entries — same as omitting the keyword — so we return
+/// an empty vec rather than erroring.
+pub(crate) fn parse_pattern_properties(
+    ctx: &mut Ctx,
+    map: &serde_json::Map<String, J>,
+    ptr: &mut Ptr,
+    owner_id: &str,
+) -> Vec<PatternProperty> {
+    let mut out = Vec::new();
+    if let Some(J::Object(pats)) = map.get("patternProperties") {
+        ptr.with_token("patternProperties", |ptr| {
+            for (pattern, schema) in pats {
+                ptr.with_token(pattern, |ptr| {
+                    let role = format!("pattern_property_{}", crate::sanitize::ident(pattern));
+                    if let Some(t) =
+                        parse_schema(ctx, schema, ptr, NameHint::inline(owner_id, &role))
+                    {
+                        out.push(PatternProperty {
+                            pattern: pattern.clone(),
+                            r#type: t,
+                        });
+                    }
+                });
+            }
+        });
+    }
+    out
+}
+
+/// Parse JSON Schema `propertyNames` (2020-12 §10.3.2.4) into a `TypeRef`
+/// the property *names* must satisfy. Returns `None` when the keyword is
+/// absent or is a boolean schema (`true` is the no-op; `false`/other
+/// boolean shapes carry no string constraint the IR can surface).
+///
+/// Property names are always strings, and the canonical `propertyNames`
+/// schema omits `type` — e.g. `{ "pattern": "^[A-Za-z_]\w*$" }`. So a
+/// typeless, non-`$ref` schema is defaulted to `type: "string"` before
+/// walking, ensuring `pattern` / `minLength` / `maxLength` / `format`
+/// land on a string primitive instead of being dropped into a freeform
+/// `any`.
+pub(crate) fn parse_property_names(
+    ctx: &mut Ctx,
+    map: &serde_json::Map<String, J>,
+    ptr: &mut Ptr,
+    owner_id: &str,
+) -> Option<TypeRef> {
+    let J::Object(pn) = map.get("propertyNames")? else {
+        return None;
+    };
+    let effective: J = if pn.contains_key("type") || pn.contains_key("$ref") {
+        J::Object(pn.clone())
+    } else {
+        let mut m = pn.clone();
+        m.insert("type".to_string(), J::String("string".to_string()));
+        J::Object(m)
+    };
+    ptr.with_token("propertyNames", |ptr| {
+        parse_schema(
+            ctx,
+            &effective,
+            ptr,
+            NameHint::inline(owner_id, "property_names"),
+        )
+    })
 }
 
 fn parse_string_enum(

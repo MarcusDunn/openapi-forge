@@ -316,7 +316,9 @@ mod tests {
                         extensions: vec![],
                     })
                     .collect(),
+                pattern_properties: vec![],
                 additional_properties: AdditionalProperties::Forbidden,
+                property_names: None,
                 constraints: ObjectConstraints::default(),
             }),
             extensions: vec![],

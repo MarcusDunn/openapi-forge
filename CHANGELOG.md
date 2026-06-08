@@ -8,6 +8,16 @@ Pre-1.0, the IR is unstable. Every release that touches the IR carries an
 
 ## [Unreleased]
 
+### Added — JSON Schema `patternProperties` / `propertyNames` (BREAKING)
+
+`ObjectType` now surfaces the two remaining JSON Schema 2020-12 object applicator keywords (§10.3.2.2, §10.3.2.4), alongside the existing `additionalProperties`:
+
+- **`pattern_properties`**: a `Vec<PatternProperty>` (each `{ pattern, type }`). `pattern` is the raw ECMA-262 property-name regex; `type` is the schema values under a matching key must satisfy. Inline value schemas are lifted under `<owner>_pattern_property_<regex>`.
+- **`property_names`**: an `Option<TypeRef>` the property *names* must validate against. Names are always strings, so a typeless `propertyNames` schema (the canonical `{ "pattern": "..." }` form) is defaulted to a string primitive, preserving its `pattern` / `min_length` / `max_length` / `format`. Boolean `propertyNames` schemas lower to `None`.
+- `allOf` flattening unions `pattern_properties` across parts and keeps the last `property_names`, warning via `parser/W-ALLOF-CONFLICT` on a regex-type or schema mismatch.
+
+Both fields are omitted from the serialized IR when empty, so existing object IR is byte-identical. New `PatternProperty` IR type. WIT, host bindgen, and plugin-sdk conversions updated; proptest strategy covers the new fields. **Breaking** for plugins that construct `ObjectType` literals (two new fields). Five new conformance fixtures.
+
 ## [0.1.19] - 2026-06-08
 
 ## [0.1.18] - 2026-06-04

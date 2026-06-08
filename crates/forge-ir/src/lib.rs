@@ -34,8 +34,8 @@ pub use security::{
 };
 pub use types::{
     AdditionalProperties, ArrayConstraints, ArrayType, EnumIntType, EnumIntValue, EnumStringType,
-    EnumStringValue, IntKind, NamedType, ObjectConstraints, ObjectType, PrimitiveConstraints,
-    PrimitiveKind, PrimitiveType, Property, TypeDef, TypeRef, NULL_ID,
+    EnumStringValue, IntKind, NamedType, ObjectConstraints, ObjectType, PatternProperty,
+    PrimitiveConstraints, PrimitiveKind, PrimitiveType, Property, TypeDef, TypeRef, NULL_ID,
 };
 pub use types::{Discriminator, UnionKind, UnionType, UnionVariant};
 pub use value::{Value, ValueRef};
