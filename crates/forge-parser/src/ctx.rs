@@ -189,7 +189,9 @@ mod tests {
             xml: None,
             definition: TypeDef::Object(ObjectType {
                 properties: vec![],
+                pattern_properties: vec![],
                 additional_properties: AdditionalProperties::Forbidden,
+                property_names: None,
                 constraints: ObjectConstraints::default(),
             }),
             extensions: vec![],

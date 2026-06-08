@@ -181,8 +181,36 @@ pub struct ArrayConstraints {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ObjectType {
     pub properties: Vec<Property>,
+    /// JSON Schema `patternProperties` — each entry pairs an ECMA-262
+    /// regex against the schema that property *values* whose name
+    /// matches the regex must satisfy. Orthogonal to `properties`
+    /// (which match by exact name) and to `additional_properties`
+    /// (the fallback for names that match neither). Empty when the
+    /// keyword is absent.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub pattern_properties: Vec<PatternProperty>,
     pub additional_properties: AdditionalProperties,
+    /// JSON Schema `propertyNames` — a schema every property *name* in
+    /// the object must validate against. Names are always strings, so
+    /// this points at a string-shaped type (typically carrying a
+    /// `pattern` / `min_length` / `max_length` constraint). `None`
+    /// when the keyword is absent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub property_names: Option<TypeRef>,
     pub constraints: ObjectConstraints,
+}
+
+/// One entry of JSON Schema `patternProperties`: a property-name regex
+/// paired with the schema that matching property values must satisfy.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PatternProperty {
+    /// The raw ECMA-262 regular expression key. Generators targeting a
+    /// non-ECMA regex engine translate it, the same way they do for
+    /// [`PrimitiveConstraints::pattern`].
+    pub pattern: String,
+    /// Schema that values under a matching property name must satisfy.
+    #[serde(rename = "type")]
+    pub r#type: TypeRef,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

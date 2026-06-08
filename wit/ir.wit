@@ -222,8 +222,15 @@ interface types {
 
     record object-type {
         properties: list<property>,
+        pattern-properties: list<pattern-property>,   // patternProperties (regex -> value schema)
         additional-properties: additional-properties,
+        property-names: option<type-ref>,             // propertyNames (schema all keys must satisfy)
         constraints: object-constraints,
+    }
+
+    record pattern-property {
+        pattern: string,                     // raw ECMA-262 property-name regex
+        %type: type-ref,                     // schema matching property values must satisfy
     }
 
     record property {

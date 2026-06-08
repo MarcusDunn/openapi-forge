@@ -759,6 +759,14 @@ macro_rules! define_world_conversions {
                             extensions: p.extensions,
                         })
                         .collect(),
+                    pattern_properties: o
+                        .pattern_properties
+                        .into_iter()
+                        .map(|p| ir::PatternProperty {
+                            pattern: p.pattern,
+                            r#type: p.type_,
+                        })
+                        .collect(),
                     additional_properties: match o.additional_properties {
                         b::AdditionalProperties::Forbidden => ir::AdditionalProperties::Forbidden,
                         b::AdditionalProperties::Any => ir::AdditionalProperties::Any,
@@ -766,6 +774,7 @@ macro_rules! define_world_conversions {
                             ir::AdditionalProperties::Typed { r#type: t }
                         }
                     },
+                    property_names: o.property_names,
                     constraints: ir::ObjectConstraints {
                         min_properties: o.constraints.min_properties,
                         max_properties: o.constraints.max_properties,
@@ -793,6 +802,14 @@ macro_rules! define_world_conversions {
                             extensions: p.extensions,
                         })
                         .collect(),
+                    pattern_properties: o
+                        .pattern_properties
+                        .into_iter()
+                        .map(|p| b::PatternProperty {
+                            pattern: p.pattern,
+                            type_: p.r#type,
+                        })
+                        .collect(),
                     additional_properties: match o.additional_properties {
                         ir::AdditionalProperties::Forbidden => b::AdditionalProperties::Forbidden,
                         ir::AdditionalProperties::Any => b::AdditionalProperties::Any,
@@ -800,6 +817,7 @@ macro_rules! define_world_conversions {
                             b::AdditionalProperties::Typed(r#type)
                         }
                     },
+                    property_names: o.property_names,
                     constraints: b::ObjectConstraints {
                         min_properties: o.constraints.min_properties,
                         max_properties: o.constraints.max_properties,
