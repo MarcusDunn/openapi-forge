@@ -70,7 +70,9 @@ spec = "openapi.json"
 wasm = "./plugins/my-transformer.wasm"
 
 # OCI ref — pulled lazily on `forge generate`, cached under the user's
-# XDG cache dir. Pin by digest (`@sha256:…`) for airtight reproducibility.
+# XDG cache dir. Mutable tags like `:latest` are revalidated against the
+# registry each run; pin by digest (`@sha256:…`) for airtight,
+# network-free reproducibility.
 [generator]
 oci = "ghcr.io/marcusdunn/typescript-fetch:0.1.0"
 config = { packageName = "petstore-client" }
