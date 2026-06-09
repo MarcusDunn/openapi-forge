@@ -56,10 +56,21 @@ by-digest/sha256/<hex>.wasm        ← canonical, content-addressed
 by-tag/<reg>/<repo>/<tag>.digest   ← pointer "sha256:..."
 ```
 
-Refs pinned by `@sha256:...` skip the network entirely on cache hit.
-Tag-pinned refs read the pointer file. Stale tags are accepted as the
-cost of the simpler design — pin by digest if you need airtight
-reproducibility.
+Refs pinned by `@sha256:...` are immutable and skip the network entirely
+on cache hit. Tag-pinned refs are *mutable* (registries like GHCR do not
+enforce tag immutability), so they are revalidated against the registry on
+every run: forge re-resolves the tag to its wasm-layer digest with a cheap
+manifest request, then serves the content-addressed blob when the digest
+is unchanged or pulls the new layer when the tag has moved. This keeps
+`:latest` honest without re-downloading unchanged layers. If the registry
+is unreachable, forge falls back to the last cached blob for the tag
+(logging a warning) so offline work isn't blocked. Pin by digest for
+network-free reproducibility.
+
+> An earlier revision of this ADR accepted serving stale tags as the cost
+> of a simpler cache. That bit consumers when `:latest` was re-pushed: the
+> cache kept resolving to the old build forever. Revalidation closes that
+> gap while preserving the content-addressed blob store.
 
 **Auth:** anonymous by default. For `ghcr.io` refs the CLI looks for a
 GitHub token in precedence order — `GH_TOKEN`, `GITHUB_TOKEN`, then
@@ -96,8 +107,10 @@ fail loudly on non-wasm bytes anyway.
   engine sees a byte. The sandbox guarantees in ADR-0001 are intact —
   plugins still have no network, no clock, no env, no filesystem.
 - **Caching keeps CI fast.** Content-addressed storage means a second
-  `forge generate` (or a determinism-job re-run) hits the disk, not the
-  network.
+  `forge generate` (or a determinism-job re-run) serves the wasm layer
+  from disk. Digest-pinned refs skip the network entirely; tag-pinned refs
+  pay only a small manifest request to revalidate, never a layer
+  re-download when the digest is unchanged.
 
 ## Consequences
 
