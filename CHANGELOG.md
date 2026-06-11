@@ -8,6 +8,8 @@ Pre-1.0, the IR is unstable. Every release that touches the IR carries an
 
 ## [Unreleased]
 
+## [0.1.21] - 2026-06-09
+
 ## [0.1.20] - 2026-06-08
 
 ### Added — JSON Schema `patternProperties` / `propertyNames` (BREAKING)
