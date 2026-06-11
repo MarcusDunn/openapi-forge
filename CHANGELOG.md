@@ -8,6 +8,17 @@ Pre-1.0, the IR is unstable. Every release that touches the IR carries an
 
 ## [Unreleased]
 
+### Added — configurable sandbox limits via `[limits]` in `forge.toml`
+
+The per-stage WASM sandbox limits (fuel, memory, wall-clock, output file
+count / total bytes / per-file bytes) can now be overridden per stage
+kind with optional `[limits.transformer]` and `[limits.generator]`
+tables in `forge.toml`. Unset keys keep the built-in defaults; unknown
+keys are rejected so typos fail loudly. `forge_pipeline::PipelineConfig`
+grew `transformer_limits` / `generator_limits` fields (defaulting to the
+previous hard-coded values), and the CLI's post-run output guard now
+uses the configured generator limits instead of the defaults.
+
 ## [0.1.20] - 2026-06-08
 
 ### Added — JSON Schema `patternProperties` / `propertyNames` (BREAKING)

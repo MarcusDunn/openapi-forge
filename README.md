@@ -163,6 +163,32 @@ forge generate \
 Per-plugin config defaults to `{}`; reach for `forge.toml` when you need
 to pass `config = { ... }` blocks.
 
+## Sandbox limits
+
+Plugins run under per-stage resource limits (fuel, memory, wall-clock,
+output size). The defaults suit typical specs; very large specs or
+prolific generators can hit them. Raise (or tighten) any limit with an
+optional `[limits]` section in `forge.toml` — unset keys keep their
+defaults:
+
+```toml
+[limits.transformer]
+fuel = 10_000_000_000        # default 5_000_000_000
+memory_bytes = 268_435_456   # default 128 MiB
+wall_clock_ms = 10_000       # default 5_000
+
+[limits.generator]
+fuel = 100_000_000_000             # default 50_000_000_000
+memory_bytes = 1_073_741_824       # default 512 MiB
+wall_clock_ms = 60_000             # default 30_000
+output_files_max = 50_000          # default 10_000
+output_total_bytes_max = 1_073_741_824    # default 256 MiB
+output_per_file_bytes_max = 134_217_728   # default 16 MiB
+```
+
+The `output_*` caps apply only to generators — transformers return IR,
+not files. Misspelled keys are rejected rather than silently ignored.
+
 The full project plan lives in the issue tracker / project documentation;
 this README intentionally summarises rather than duplicates.
 

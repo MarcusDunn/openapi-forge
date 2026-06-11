@@ -334,6 +334,135 @@ fn generate_config_less_requires_generator() {
         .stderr(predicates::str::contains("--generator is required"));
 }
 
+/// `[limits]` in `forge.toml` overrides the built-in sandbox limits.
+/// Raising every knob must still let a normal run succeed.
+#[test]
+fn generate_with_raised_limits_succeeds() {
+    let dir = tempfile::tempdir().unwrap();
+    let project = dir.path();
+
+    std::fs::write(project.join("ir.json"), SAMPLE_IR).unwrap();
+
+    let xform_wasm = plugin_artifact("transformer_noop");
+    let gen_wasm = plugin_artifact("generator_debug_dump");
+
+    let toml = format!(
+        r#"
+[input]
+ir = "ir.json"
+
+[[transformers]]
+wasm = "{xform}"
+
+[generator]
+wasm = "{gen}"
+
+[output]
+dir = "out"
+
+[limits.transformer]
+fuel = 10000000000
+wall_clock_ms = 10000
+
+[limits.generator]
+fuel = 100000000000
+memory_bytes = 1073741824
+output_files_max = 50000
+output_total_bytes_max = 1073741824
+output_per_file_bytes_max = 134217728
+"#,
+        xform = xform_wasm.display(),
+        gen = gen_wasm.display(),
+    );
+    std::fs::write(project.join("forge.toml"), toml).unwrap();
+
+    Command::cargo_bin("forge")
+        .unwrap()
+        .arg("generate")
+        .arg(project)
+        .assert()
+        .success();
+
+    let out = std::fs::read_to_string(project.join("out/ir.txt")).expect("output file");
+    assert!(out.contains("title:    test-api"), "body: {out}");
+}
+
+/// Lowered limits are enforced, not just parsed: a one-unit fuel budget
+/// must trap the generator with a fuel-exhaustion error.
+#[test]
+fn generate_with_tiny_fuel_limit_fails() {
+    let dir = tempfile::tempdir().unwrap();
+    let project = dir.path();
+
+    std::fs::write(project.join("ir.json"), SAMPLE_IR).unwrap();
+
+    let gen_wasm = plugin_artifact("generator_debug_dump");
+
+    let toml = format!(
+        r#"
+[input]
+ir = "ir.json"
+
+[generator]
+wasm = "{gen}"
+
+[output]
+dir = "out"
+
+[limits.generator]
+fuel = 1
+"#,
+        gen = gen_wasm.display(),
+    );
+    std::fs::write(project.join("forge.toml"), toml).unwrap();
+
+    Command::cargo_bin("forge")
+        .unwrap()
+        .arg("generate")
+        .arg(project)
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains("exceeded Fuel"));
+}
+
+/// A typo'd key in `[limits]` fails the run loudly instead of silently
+/// keeping the default.
+#[test]
+fn generate_with_unknown_limit_key_fails() {
+    let dir = tempfile::tempdir().unwrap();
+    let project = dir.path();
+
+    std::fs::write(project.join("ir.json"), SAMPLE_IR).unwrap();
+
+    let gen_wasm = plugin_artifact("generator_debug_dump");
+
+    let toml = format!(
+        r#"
+[input]
+ir = "ir.json"
+
+[generator]
+wasm = "{gen}"
+
+[output]
+dir = "out"
+
+[limits.generator]
+feul = 100
+"#,
+        gen = gen_wasm.display(),
+    );
+    std::fs::write(project.join("forge.toml"), toml).unwrap();
+
+    Command::cargo_bin("forge")
+        .unwrap()
+        .arg("generate")
+        .arg(project)
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains("failed to parse forge.toml"));
+}
+
 #[test]
 fn ir_version_subcommand() {
     Command::cargo_bin("forge")
