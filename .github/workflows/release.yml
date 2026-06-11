@@ -455,7 +455,7 @@ jobs:
       # cargo-edit, which would fail because cargo-edit's deps require
       # rust >=1.88 and rust-toolchain.toml pins this repo to 1.87.
       - name: Install cargo-edit
-        uses: taiki-e/install-action@25435dc8dd3baed7417e0c96d3fe89013a5b2e09 # v2.81.3
+        uses: taiki-e/install-action@7a79fe8c3a13344501c80d99cae481c1c9085912 # v2.81.10
         with:
           tool: cargo-edit
 
