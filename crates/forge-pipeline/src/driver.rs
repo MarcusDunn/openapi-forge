@@ -11,13 +11,28 @@
 use forge_host::{Engine, GenerationOutput, Limits, Plugin, StageError};
 use forge_ir::{Diagnostic, Ir, Severity};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct PipelineConfig {
     /// JSON config strings per stage. Indexed parallel to `transformers`,
     /// followed by the generator config at the end. Stages with no config
     /// receive the empty object `"{}"`.
     pub configs: Vec<String>,
     pub policy: StagePolicy,
+    /// Sandbox limits applied to every transformer stage.
+    pub transformer_limits: Limits,
+    /// Sandbox limits applied to the generator stage.
+    pub generator_limits: Limits,
+}
+
+impl Default for PipelineConfig {
+    fn default() -> Self {
+        Self {
+            configs: Vec::new(),
+            policy: StagePolicy::default(),
+            transformer_limits: Limits::transformer(),
+            generator_limits: Limits::generator(),
+        }
+    }
 }
 
 /// Halt-on-error policy. Default halts the pipeline before the next stage
@@ -83,7 +98,7 @@ pub fn run(
     for (i, t) in transformers.iter().enumerate() {
         let stage_cfg = cfg_or_empty(i);
         let out = t
-            .transform(current, &stage_cfg, Limits::transformer())
+            .transform(current, &stage_cfg, cfg.transformer_limits)
             .map_err(|e| PipelineError::Transformer {
                 plugin: t.info().name.clone(),
                 source: e,
@@ -106,7 +121,7 @@ pub fn run(
 
     let gen_cfg = cfg_or_empty(transformers.len());
     let gen_out = generator
-        .generate(current, &gen_cfg, Limits::generator())
+        .generate(current, &gen_cfg, cfg.generator_limits)
         .map_err(|e| PipelineError::Generator {
             plugin: generator.info().name.clone(),
             source: e,

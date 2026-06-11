@@ -74,6 +74,8 @@ struct Project {
     transformers: Vec<PluginRef>,
     generator: PluginRef,
     output: Output,
+    #[serde(default)]
+    limits: LimitsSection,
 }
 
 #[derive(Debug, Deserialize)]
@@ -115,6 +117,56 @@ fn empty_config() -> serde_json::Value {
 #[derive(Debug, Deserialize)]
 struct Output {
     dir: PathBuf,
+}
+
+/// `[limits]` section: per-stage-kind overrides for the WASM sandbox
+/// limits. Every field is optional; anything unset keeps the built-in
+/// default from [`forge_host::Limits`]. Unknown keys are rejected so a
+/// typo'd limit fails the run instead of silently keeping the default.
+#[derive(Debug, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct LimitsSection {
+    #[serde(default)]
+    transformer: LimitOverrides,
+    #[serde(default)]
+    generator: LimitOverrides,
+}
+
+#[derive(Debug, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct LimitOverrides {
+    fuel: Option<u64>,
+    memory_bytes: Option<usize>,
+    wall_clock_ms: Option<u64>,
+    /// Output caps only apply to the generator stage; transformers
+    /// return IR, not files.
+    output_files_max: Option<u32>,
+    output_total_bytes_max: Option<u64>,
+    output_per_file_bytes_max: Option<u64>,
+}
+
+impl LimitOverrides {
+    fn apply(&self, mut base: forge_host::Limits) -> forge_host::Limits {
+        if let Some(v) = self.fuel {
+            base.fuel = v;
+        }
+        if let Some(v) = self.memory_bytes {
+            base.memory_bytes = v;
+        }
+        if let Some(v) = self.wall_clock_ms {
+            base.wall_clock_ms = v;
+        }
+        if let Some(v) = self.output_files_max {
+            base.output_files_max = v;
+        }
+        if let Some(v) = self.output_total_bytes_max {
+            base.output_total_bytes_max = v;
+        }
+        if let Some(v) = self.output_per_file_bytes_max {
+            base.output_per_file_bytes_max = v;
+        }
+        base
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -240,6 +292,7 @@ fn generate_from_args(
         output: Output {
             dir: out_dir.clone(),
         },
+        limits: LimitsSection::default(),
     };
 
     // In config-less mode, paths in CLI args are relative to CWD; pass
@@ -296,8 +349,14 @@ fn run_generate(
     validate_config(generator.config_schema(), &cfg.generator.config, &gen_label)?;
     configs.push(cfg.generator.config.to_string());
 
+    let generator_limits = cfg.limits.generator.apply(forge_host::Limits::generator());
     let pipe_cfg = PipelineConfig {
         configs,
+        transformer_limits: cfg
+            .limits
+            .transformer
+            .apply(forge_host::Limits::transformer()),
+        generator_limits,
         ..Default::default()
     };
     let xforms: Vec<&Plugin> = transformers.iter().collect();
@@ -317,7 +376,7 @@ fn run_generate(
 
     // Validate output before writing. Use the generator's limits to seed
     // the caps; this matches what the host enforced inside the WASM call.
-    let caps = forge_host::filesystem::Caps::from_limits(forge_host::Limits::generator());
+    let caps = forge_host::filesystem::Caps::from_limits(generator_limits);
     forge_host::filesystem::validate_output(&out.generation.files, caps)?;
 
     let out_dir = out_override
@@ -464,5 +523,76 @@ fn print_diagnostics(diagnostics: &[forge_ir::Diagnostic]) {
             })
             .unwrap_or_default();
         eprintln!("{label} [{}] {} ({})", d.code, d.message, location);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const BASE_MANIFEST: &str = r#"
+[input]
+spec = "openapi.json"
+
+[generator]
+wasm = "gen.wasm"
+
+[output]
+dir = "out"
+"#;
+
+    #[test]
+    fn limits_section_defaults_when_absent() {
+        let cfg: Project = toml::from_str(BASE_MANIFEST).unwrap();
+        let defaults = forge_host::Limits::generator();
+        let resolved = cfg.limits.generator.apply(defaults);
+        assert_eq!(resolved.fuel, defaults.fuel);
+        assert_eq!(
+            resolved.output_total_bytes_max,
+            defaults.output_total_bytes_max
+        );
+    }
+
+    #[test]
+    fn limits_overrides_apply_per_stage_kind() {
+        let manifest = format!(
+            "{BASE_MANIFEST}\n\
+             [limits.transformer]\n\
+             fuel = 9000000000\n\n\
+             [limits.generator]\n\
+             fuel = 100000000000\n\
+             output_files_max = 50000\n\
+             output_total_bytes_max = 1073741824\n\
+             output_per_file_bytes_max = 134217728\n\
+             memory_bytes = 1073741824\n\
+             wall_clock_ms = 60000\n"
+        );
+        let cfg: Project = toml::from_str(&manifest).unwrap();
+
+        let t = cfg
+            .limits
+            .transformer
+            .apply(forge_host::Limits::transformer());
+        assert_eq!(t.fuel, 9_000_000_000);
+        // Untouched fields keep the built-in defaults.
+        assert_eq!(
+            t.memory_bytes,
+            forge_host::Limits::transformer().memory_bytes
+        );
+
+        let g = cfg.limits.generator.apply(forge_host::Limits::generator());
+        assert_eq!(g.fuel, 100_000_000_000);
+        assert_eq!(g.output_files_max, 50_000);
+        assert_eq!(g.output_total_bytes_max, 1024 * 1024 * 1024);
+        assert_eq!(g.output_per_file_bytes_max, 128 * 1024 * 1024);
+        assert_eq!(g.memory_bytes, 1024 * 1024 * 1024);
+        assert_eq!(g.wall_clock_ms, 60_000);
+    }
+
+    #[test]
+    fn limits_unknown_key_is_rejected() {
+        let manifest = format!("{BASE_MANIFEST}\n[limits.generator]\nfeul = 1\n");
+        let err = toml::from_str::<Project>(&manifest).unwrap_err();
+        assert!(err.to_string().contains("feul"), "{err}");
     }
 }
