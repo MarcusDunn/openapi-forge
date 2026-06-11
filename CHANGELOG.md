@@ -8,6 +8,8 @@ Pre-1.0, the IR is unstable. Every release that touches the IR carries an
 
 ## [Unreleased]
 
+## [0.1.21] - 2026-06-09
+
 ### Added — configurable sandbox limits via `[limits]` in `forge.toml`
 
 The per-stage WASM sandbox limits (fuel, memory, wall-clock, output file
