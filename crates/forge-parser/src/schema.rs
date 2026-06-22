@@ -615,7 +615,7 @@ pub(crate) fn resolver_error_message(raw: &str, e: &crate::external::ResolverErr
 pub(crate) fn ensure_doc_registered(
     ctx: &mut Ctx,
     canonical: &std::path::Path,
-    root: &serde_json::Value,
+    root: &std::sync::Arc<serde_json::Value>,
 ) {
     // The root cache is keyed independently of `doc_prefix` so the main
     // spec (which has an empty prefix pre-registered by `Ctx::with_resolver`)
@@ -623,7 +623,7 @@ pub(crate) fn ensure_doc_registered(
     // matters when an external doc refs back into the main spec.
     ctx.doc_roots
         .entry(canonical.to_path_buf())
-        .or_insert_with(|| root.clone());
+        .or_insert_with(|| std::sync::Arc::clone(root));
     if ctx.doc_prefix.contains_key(canonical) {
         return;
     }
@@ -640,7 +640,7 @@ pub(crate) fn ensure_doc_registered(
         }
     }
     if !registered_anything {
-        if let serde_json::Value::Object(map) = root {
+        if let serde_json::Value::Object(map) = root.as_ref() {
             for name in map.keys() {
                 idx.register(crate::sanitize::ident(name));
             }

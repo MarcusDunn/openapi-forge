@@ -126,7 +126,8 @@ fn parse_with_resolver(
     let mut ctx = Ctx::with_resolver(file, resolver, main_doc);
     // Cache the main spec's root so structural refs (`#/components/parameters/Page`)
     // can resolve without going back through the resolver.
-    ctx.doc_roots.insert(ctx.current_doc.clone(), root.clone());
+    ctx.doc_roots
+        .insert(ctx.current_doc.clone(), std::sync::Arc::new(root.clone()));
     let mut ptr = Ptr::new();
 
     // 1. Version check.
