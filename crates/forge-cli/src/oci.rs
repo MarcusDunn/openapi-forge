@@ -480,13 +480,26 @@ fn pick_wasm_descriptor<'a>(
 
 // ── cache I/O ────────────────────────────────────────────────────────────
 
-fn cache_root() -> Result<PathBuf, OciError> {
+/// Base of forge's on-disk cache: `$FORGE_CACHE_DIR` if set, else the XDG
+/// cache dir. The OCI plugin store and the compiled-component cache live in
+/// sibling subdirectories under here.
+pub(crate) fn cache_base() -> Result<PathBuf, OciError> {
     let base = if let Ok(env) = std::env::var("FORGE_CACHE_DIR") {
         PathBuf::from(env)
     } else {
         dirs::cache_dir().ok_or(OciError::NoCacheDir)?
     };
-    Ok(base.join("openapi-forge").join("plugins"))
+    Ok(base.join("openapi-forge"))
+}
+
+fn cache_root() -> Result<PathBuf, OciError> {
+    Ok(cache_base()?.join("plugins"))
+}
+
+/// Directory for wasmtime's compiled-component cache. Sibling of the OCI
+/// plugin store; wasmtime manages entries (eviction, versioning) within it.
+pub(crate) fn compiled_cache_dir() -> Result<PathBuf, OciError> {
+    Ok(cache_base()?.join("compiled"))
 }
 
 fn blob_path(cache_root: &Path, digest: &str) -> Result<PathBuf, OciError> {
