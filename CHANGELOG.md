@@ -8,6 +8,8 @@ Pre-1.0, the IR is unstable. Every release that touches the IR carries an
 
 ## [Unreleased]
 
+## [0.1.22] - 2026-06-11
+
 ## [0.1.21] - 2026-06-09
 
 ### Added — configurable sandbox limits via `[limits]` in `forge.toml`
