@@ -324,7 +324,7 @@ fn run_generate(
 ) -> Result<(), CliError> {
     let ir = load_ir(project, &cfg.input)?;
 
-    let engine = Engine::new().map_err(|e| CliError::Engine(e.to_string()))?;
+    let engine = build_engine()?;
 
     let mut transformers: Vec<Plugin> = Vec::with_capacity(cfg.transformers.len());
     let mut configs: Vec<String> = Vec::with_capacity(cfg.transformers.len() + 1);
@@ -398,6 +398,28 @@ fn run_generate(
         out.diagnostics.len(),
     );
     Ok(())
+}
+
+/// Build the wasmtime engine, backed by an on-disk compilation cache so
+/// plugin components aren't recompiled from scratch on every run (the
+/// dominant per-invocation cost). The cache lives alongside the OCI plugin
+/// store under the forge cache dir. If the cache directory can't be set up
+/// (e.g. no resolvable cache dir), fall back to an uncached engine with a
+/// warning rather than failing the run — caching is an optimisation, not a
+/// correctness requirement.
+fn build_engine() -> Result<Engine, CliError> {
+    match oci::compiled_cache_dir() {
+        Ok(dir) => match Engine::with_cache(&dir) {
+            Ok(engine) => return Ok(engine),
+            Err(e) => tracing::warn!(
+                "compilation cache disabled ({e}); plugins will be recompiled each run"
+            ),
+        },
+        Err(e) => tracing::warn!(
+            "compilation cache disabled (no cache dir: {e}); plugins will be recompiled each run"
+        ),
+    }
+    Engine::new().map_err(|e| CliError::Engine(e.to_string()))
 }
 
 /// Load the IR for the configured `[input]`, branching on whether the
