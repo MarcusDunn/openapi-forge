@@ -8,7 +8,7 @@ branding:
 inputs:
   version:
     description: >-
-      Forge version to install (e.g. "0.1.24" or "v0.1.24"; the leading v
+      Forge version to install (e.g. "0.1.25" or "v0.1.25"; the leading v
       is stripped automatically). Default: latest release.
     required: false
     default: 'latest'

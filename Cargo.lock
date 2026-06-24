@@ -1109,7 +1109,7 @@ checksum = "77ce24cb58228fbb8aa041425bb1050850ac19177686ea6e0f41a70416f56fdb"
 
 [[package]]
 name = "forge-host"
-version = "0.1.24"
+version = "0.1.25"
 dependencies = [
  "forge-ir",
  "forge-ir-bindgen",
@@ -1126,7 +1126,7 @@ dependencies = [
 
 [[package]]
 name = "forge-ir"
-version = "0.1.24"
+version = "0.1.25"
 dependencies = [
  "indexmap",
  "pretty_assertions",
@@ -1137,7 +1137,7 @@ dependencies = [
 
 [[package]]
 name = "forge-ir-bindgen"
-version = "0.1.24"
+version = "0.1.25"
 dependencies = [
  "forge-ir",
  "indexmap",
@@ -1150,7 +1150,7 @@ dependencies = [
 
 [[package]]
 name = "forge-parser"
-version = "0.1.24"
+version = "0.1.25"
 dependencies = [
  "forge-ir",
  "indexmap",
@@ -1163,7 +1163,7 @@ dependencies = [
 
 [[package]]
 name = "forge-pipeline"
-version = "0.1.24"
+version = "0.1.25"
 dependencies = [
  "forge-host",
  "forge-ir",
@@ -1176,7 +1176,7 @@ dependencies = [
 
 [[package]]
 name = "forge-plugin-itests"
-version = "0.1.24"
+version = "0.1.25"
 dependencies = [
  "forge-host",
  "forge-ir",
@@ -1190,7 +1190,7 @@ dependencies = [
 
 [[package]]
 name = "forge-test-harness"
-version = "0.1.24"
+version = "0.1.25"
 dependencies = [
  "forge-host",
  "forge-ir",
@@ -2358,7 +2358,7 @@ checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 
 [[package]]
 name = "openapi-forge-cli"
-version = "0.1.24"
+version = "0.1.25"
 dependencies = [
  "assert_cmd",
  "clap",
@@ -4895,7 +4895,7 @@ checksum = "1e9df38ee2d2c3c5948ea468a8406ff0db0b29ae1ffde1bcf20ef305bcc95c51"
 
 [[package]]
 name = "xtask"
-version = "0.0.21"
+version = "0.0.22"
 dependencies = [
  "clap",
 ]
