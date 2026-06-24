@@ -197,12 +197,13 @@ generated code — with an optional `[hooks]` section in `forge.toml`:
 ```toml
 [hooks]
 post_generate = [
-  "eslint --fix && prettier --write .",   # shell form
-  ["cargo", "fmt"],                        # exec form
+  "eslint --fix && prettier --write .",                   # shell form
+  ["cargo", "fmt"],                                        # exec form
+  { cmd = "optional-linter", continue_on_error = true },  # table form
 ]
 ```
 
-Each entry is a hook in one of two forms (cf. Docker's shell vs exec
+A hook's command is given in one of two forms (cf. Docker's shell vs exec
 form):
 
 - **shell form** — a string run through the platform shell. Globs
@@ -212,11 +213,22 @@ form):
   shell needs to be present. Prefer this for paths with spaces or fully
   deterministic invocations.
 
+An entry is either a bare command (string or array) or a **table** that
+wraps a command (`cmd = <string|array>`) with per-hook options:
+
+- `continue_on_error` (default `false`) — when `true`, a non-zero exit or
+  a failure to start logs a warning and continues to the next hook
+  instead of aborting. Use it for optional or best-effort hooks.
+
 Commands run in order, only after every generated file is written, with
 the **output directory as their working directory** (the `FORGE_OUT_DIR`
 env var holds its path too). stdout/stderr are inherited so formatter
-output is visible. The first command to exit non-zero aborts the run with
-a non-zero exit code.
+output is visible.
+
+A hook that fails (and isn't marked `continue_on_error`) aborts the run
+and `forge` exits **3** — distinct from the exit **2** used for forge's
+own errors, so callers can tell "a hook failed" (generation succeeded;
+files are on disk) apart from "generation failed".
 
 Hooks run in project mode only; [config-less invocation](#config-less-invocation)
 has no `[hooks]` section. Misspelled keys are rejected.

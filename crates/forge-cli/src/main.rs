@@ -185,8 +185,38 @@ struct HooksSection {
     post_generate: Vec<Hook>,
 }
 
-/// A single hook command, in one of two forms (cf. Docker's shell vs
-/// exec form):
+/// A single hook entry. Either a bare command (string or argv array) or
+/// a table that wraps a command with per-hook options:
+///
+/// ```toml
+/// post_generate = [
+///   "cargo fmt",                                          # bare, shell form
+///   ["prettier", "--write", "."],                        # bare, exec form
+///   { cmd = "optional-linter", continue_on_error = true } # table form
+/// ]
+/// ```
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+enum Hook {
+    Bare(HookCmd),
+    Table(HookTable),
+}
+
+/// Table form of a hook: a command plus per-hook options. Unknown keys
+/// are rejected so a typo fails the run instead of silently doing
+/// nothing.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct HookTable {
+    cmd: HookCmd,
+    /// When true, a non-zero exit (or a failure to start) logs a warning
+    /// and continues to the next hook instead of aborting the run.
+    #[serde(default)]
+    continue_on_error: bool,
+}
+
+/// The command part of a hook, in one of two forms (cf. Docker's shell
+/// vs exec form):
 ///
 /// - **shell form** — a string run through the platform shell
 ///   (`"eslint --fix && prettier --write ."`). Globs, pipes, `&&`,
@@ -196,7 +226,7 @@ struct HooksSection {
 ///   word-splitting or glob/var expansion) and no shell is required.
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
-enum Hook {
+enum HookCmd {
     Shell(String),
     Exec(Vec<String>),
 }
@@ -255,6 +285,19 @@ enum CliError {
     PostGenHookFailed { command: String, code: String },
 }
 
+impl CliError {
+    /// Process exit code for this error. Post-generate hook failures get
+    /// their own code (3) so callers can tell "a hook failed" apart from
+    /// "forge itself failed" (2) — generation succeeded and files are on
+    /// disk in the hook case.
+    fn exit_code(&self) -> i32 {
+        match self {
+            CliError::PostGenHookFailed { .. } | CliError::PostGenHookSpawn { .. } => 3,
+            _ => 2,
+        }
+    }
+}
+
 fn main() {
     tracing_subscriber::fmt()
         .with_env_filter(
@@ -290,7 +333,7 @@ fn main() {
             eprintln!("  caused by: {err}");
             src = err.source();
         }
-        std::process::exit(2);
+        std::process::exit(e.exit_code());
     }
 }
 
@@ -444,12 +487,31 @@ fn run_generate(
 }
 
 impl Hook {
+    /// The command to run, regardless of bare vs table form.
+    fn cmd(&self) -> &HookCmd {
+        match self {
+            Hook::Bare(c) => c,
+            Hook::Table(t) => &t.cmd,
+        }
+    }
+
+    /// Whether a failure of this hook should be tolerated. Only the table
+    /// form can opt in; bare hooks always abort the run on failure.
+    fn continue_on_error(&self) -> bool {
+        match self {
+            Hook::Bare(_) => false,
+            Hook::Table(t) => t.continue_on_error,
+        }
+    }
+}
+
+impl HookCmd {
     /// A human-readable rendering of the command, used in log lines and
     /// error messages.
     fn label(&self) -> String {
         match self {
-            Hook::Shell(s) => s.clone(),
-            Hook::Exec(argv) => argv.join(" "),
+            HookCmd::Shell(s) => s.clone(),
+            HookCmd::Exec(argv) => argv.join(" "),
         }
     }
 
@@ -458,8 +520,8 @@ impl Hook {
     /// empty exec array, which has no program to run.
     fn command(&self) -> Option<std::process::Command> {
         match self {
-            Hook::Shell(s) => Some(shell_command(s)),
-            Hook::Exec(argv) => {
+            HookCmd::Shell(s) => Some(shell_command(s)),
+            HookCmd::Exec(argv) => {
                 let (program, args) = argv.split_first()?;
                 let mut c = std::process::Command::new(program);
                 c.args(args);
@@ -476,28 +538,51 @@ impl Hook {
 /// explicitly. The first command to exit non-zero aborts the run.
 fn run_post_generate_hooks(hooks: &HooksSection, out_dir: &Path) -> Result<(), CliError> {
     for hook in &hooks.post_generate {
-        let label = hook.label();
-        let mut command = hook.command().ok_or_else(|| CliError::PostGenHookFailed {
-            command: "[]".to_owned(),
-            code: "empty command".to_owned(),
-        })?;
+        let label = hook.cmd().label();
+        // An empty exec array is malformed config, not a runtime failure;
+        // reject it regardless of continue_on_error.
+        let mut command = hook
+            .cmd()
+            .command()
+            .ok_or_else(|| CliError::PostGenHookFailed {
+                command: "[]".to_owned(),
+                code: "empty command".to_owned(),
+            })?;
         println!("running post_generate hook: {label}");
-        let status = command
+        let outcome = command
             .current_dir(out_dir)
             .env("FORGE_OUT_DIR", out_dir)
-            .status()
-            .map_err(|source| CliError::PostGenHookSpawn {
-                command: label.clone(),
-                source,
-            })?;
-        if !status.success() {
-            return Err(CliError::PostGenHookFailed {
-                command: label,
-                code: status
+            .status();
+        match outcome {
+            Ok(status) if status.success() => {}
+            Ok(status) => {
+                let code = status
                     .code()
                     .map(|c| c.to_string())
-                    .unwrap_or_else(|| "signal".to_owned()),
-            });
+                    .unwrap_or_else(|| "signal".to_owned());
+                if hook.continue_on_error() {
+                    eprintln!(
+                        "warning: post_generate hook failed (exit {code}), continuing: {label}"
+                    );
+                } else {
+                    return Err(CliError::PostGenHookFailed {
+                        command: label,
+                        code,
+                    });
+                }
+            }
+            Err(source) => {
+                if hook.continue_on_error() {
+                    eprintln!(
+                        "warning: post_generate hook could not start ({label}), continuing: {source}"
+                    );
+                } else {
+                    return Err(CliError::PostGenHookSpawn {
+                        command: label,
+                        source,
+                    });
+                }
+            }
         }
     }
     Ok(())
@@ -743,25 +828,64 @@ dir = "out"
     }
 
     #[test]
-    fn hooks_post_generate_parses_both_forms_in_order() {
+    fn hooks_post_generate_parses_all_forms_in_order() {
         let manifest = format!(
             "{BASE_MANIFEST}\n\
              [hooks]\n\
-             post_generate = [\"prettier --write .\", [\"cargo\", \"fmt\"]]\n"
+             post_generate = [\
+               \"prettier --write .\", \
+               [\"cargo\", \"fmt\"], \
+               {{ cmd = \"optional-linter\", continue_on_error = true }}\
+             ]\n"
         );
         let cfg: Project = toml::from_str(&manifest).unwrap();
-        let labels: Vec<String> = cfg.hooks.post_generate.iter().map(Hook::label).collect();
-        assert_eq!(labels, vec!["prettier --write .", "cargo fmt"]);
-        assert!(matches!(cfg.hooks.post_generate[0], Hook::Shell(_)));
-        assert!(matches!(cfg.hooks.post_generate[1], Hook::Exec(_)));
+        let hooks = &cfg.hooks.post_generate;
+        let labels: Vec<String> = hooks.iter().map(|h| h.cmd().label()).collect();
+        assert_eq!(
+            labels,
+            vec!["prettier --write .", "cargo fmt", "optional-linter"]
+        );
+        assert!(matches!(hooks[0], Hook::Bare(HookCmd::Shell(_))));
+        assert!(matches!(hooks[1], Hook::Bare(HookCmd::Exec(_))));
+        assert!(matches!(hooks[2], Hook::Table(_)));
+        // continue_on_error only the table form opts into.
+        assert_eq!(
+            hooks
+                .iter()
+                .map(Hook::continue_on_error)
+                .collect::<Vec<_>>(),
+            vec![false, false, true]
+        );
+    }
+
+    #[test]
+    fn hooks_table_continue_on_error_defaults_false() {
+        let manifest = format!("{BASE_MANIFEST}\n[hooks]\npost_generate = [{{ cmd = \"x\" }}]\n");
+        let cfg: Project = toml::from_str(&manifest).unwrap();
+        assert!(!cfg.hooks.post_generate[0].continue_on_error());
+    }
+
+    #[test]
+    fn hooks_table_supports_exec_form_cmd() {
+        let manifest = format!(
+            "{BASE_MANIFEST}\n[hooks]\npost_generate = [{{ cmd = [\"cargo\", \"fmt\"] }}]\n"
+        );
+        let cfg: Project = toml::from_str(&manifest).unwrap();
+        assert!(matches!(
+            cfg.hooks.post_generate[0],
+            Hook::Table(HookTable {
+                cmd: HookCmd::Exec(_),
+                ..
+            })
+        ));
     }
 
     #[test]
     fn hooks_empty_exec_form_has_no_command() {
         // An empty argv array parses but produces no program to run; the
         // runner turns this into an error rather than spawning nothing.
-        let hook = Hook::Exec(vec![]);
-        assert!(hook.command().is_none());
+        let cmd = HookCmd::Exec(vec![]);
+        assert!(cmd.command().is_none());
     }
 
     #[test]
@@ -769,5 +893,16 @@ dir = "out"
         let manifest = format!("{BASE_MANIFEST}\n[hooks]\npost_gen = [\"x\"]\n");
         let err = toml::from_str::<Project>(&manifest).unwrap_err();
         assert!(err.to_string().contains("post_gen"), "{err}");
+    }
+
+    #[test]
+    fn hooks_table_unknown_key_is_rejected() {
+        // A typo'd option inside the table form must not be silently
+        // ignored. (Reached through an untagged enum, so the message is
+        // generic — the important property is that it errors.)
+        let manifest = format!(
+            "{BASE_MANIFEST}\n[hooks]\npost_generate = [{{ cmd = \"x\", contineu_on_error = true }}]\n"
+        );
+        assert!(toml::from_str::<Project>(&manifest).is_err());
     }
 }
