@@ -67,15 +67,69 @@ enum Cmd {
     IrVersion,
 }
 
+/// Top-level `forge.toml`. Supports two mutually-exclusive layouts:
+///
+/// - **Single pipeline** (original layout): top-level `[[transformers]]`,
+///   `[generator]`, and `[output]` describe one transforms → generator
+///   stack, with optional top-level `[hooks]`.
+/// - **Multiple pipelines**: one or more `[[pipelines]]` tables, each its
+///   own transforms → generator stack writing to its own `[output]` with
+///   its own `[pipelines.hooks]`. The top-level `[input]` and `[limits]`
+///   become shared defaults that each pipeline may override.
+///
+/// Mixing the two — top-level stack fields alongside `[[pipelines]]` — is
+/// rejected as ambiguous (see [`resolve_pipelines`]).
 #[derive(Debug, Deserialize)]
 struct Project {
-    input: Input,
+    /// Shared input. Required for the single-pipeline layout; for the
+    /// multi-pipeline layout it is the default used by any pipeline that
+    /// doesn't declare its own `[pipelines.input]`.
+    #[serde(default)]
+    input: Option<Input>,
+    #[serde(default)]
+    transformers: Vec<PluginRef>,
+    #[serde(default)]
+    generator: Option<PluginRef>,
+    #[serde(default)]
+    output: Option<Output>,
+    /// Shared sandbox-limit overrides. For the multi-pipeline layout, a
+    /// pipeline's own `[pipelines.limits]` is layered on top of these.
+    #[serde(default)]
+    limits: LimitsSection,
+    /// Lifecycle hooks for the single-pipeline layout. In the
+    /// multi-pipeline layout hooks live per-pipeline instead (use
+    /// `[pipelines.hooks]`); a top-level `[hooks]` alongside
+    /// `[[pipelines]]` is rejected.
+    #[serde(default)]
+    hooks: HooksSection,
+    /// Multi-pipeline layout. Empty for the single-pipeline layout.
+    #[serde(default)]
+    pipelines: Vec<Pipeline>,
+}
+
+/// One `[[pipelines]]` entry: a self-contained transforms → generator
+/// stack. `input` and `limits` fall back to the top-level shared values
+/// when omitted; `hooks` are per-pipeline.
+#[derive(Debug, Deserialize)]
+struct Pipeline {
+    /// Optional label, surfaced in progress output to tell pipelines
+    /// apart. Purely cosmetic.
+    #[serde(default)]
+    name: Option<String>,
+    /// Per-pipeline input override. Falls back to the top-level `[input]`
+    /// when omitted.
+    #[serde(default)]
+    input: Option<Input>,
     #[serde(default)]
     transformers: Vec<PluginRef>,
     generator: PluginRef,
     output: Output,
+    /// Per-pipeline limit overrides, layered on top of the top-level
+    /// shared `[limits]`.
     #[serde(default)]
     limits: LimitsSection,
+    /// Lifecycle hooks run after this pipeline's output is written,
+    /// against this pipeline's output dir.
     #[serde(default)]
     hooks: HooksSection,
 }
@@ -283,6 +337,21 @@ enum CliError {
     },
     #[error("post_generate hook failed (exit {code}): {command}")]
     PostGenHookFailed { command: String, code: String },
+    #[error(
+        "forge.toml mixes the single-pipeline layout (top-level [generator]/[[transformers]]/[output]/[hooks]) \
+         with [[pipelines]]; use one or the other"
+    )]
+    MixedLayout,
+    #[error("forge.toml: missing [input] (required when not using [[pipelines]])")]
+    MissingInput,
+    #[error("forge.toml: missing [generator] (define one, or use [[pipelines]])")]
+    MissingGeneratorBlock,
+    #[error("forge.toml: missing [output] (required when not using [[pipelines]])")]
+    MissingOutput,
+    #[error("forge.toml: pipeline `{pipeline}` has no [pipelines.input] and no shared top-level [input]")]
+    PipelineNoInput { pipeline: String },
+    #[error("--out cannot be used with multiple [[pipelines]]; each pipeline writes to its own [output]")]
+    OutOverrideMultiPipeline,
 }
 
 impl CliError {
@@ -360,7 +429,7 @@ fn generate_from_args(
     let out_dir = out_override.ok_or(CliError::MissingOut)?.to_path_buf();
 
     let cfg = Project {
-        input: Input::Spec { spec },
+        input: Some(Input::Spec { spec }),
         transformers: transformer
             .iter()
             .map(|s| PluginRef {
@@ -368,15 +437,16 @@ fn generate_from_args(
                 config: empty_config(),
             })
             .collect(),
-        generator: PluginRef {
+        generator: Some(PluginRef {
             source: parse_plugin_arg(generator),
             config: empty_config(),
-        },
-        output: Output {
+        }),
+        output: Some(Output {
             dir: out_dir.clone(),
-        },
+        }),
         limits: LimitsSection::default(),
         hooks: HooksSection::default(),
+        pipelines: Vec::new(),
     };
 
     // In config-less mode, paths in CLI args are relative to CWD; pass
@@ -401,21 +471,135 @@ fn parse_plugin_arg(s: &str) -> PluginSource {
     }
 }
 
+/// A fully-resolved pipeline: everything needed to run one transforms →
+/// generator stack, with shared top-level defaults already folded in.
+#[derive(Debug)]
+struct ResolvedPipeline<'a> {
+    name: Option<&'a str>,
+    input: &'a Input,
+    transformers: &'a [PluginRef],
+    generator: &'a PluginRef,
+    output: &'a Output,
+    hooks: &'a HooksSection,
+    transformer_limits: forge_host::Limits,
+    generator_limits: forge_host::Limits,
+}
+
+/// Flatten a [`Project`] into the ordered list of pipelines to run.
+///
+/// Handles both layouts and folds the shared top-level `[input]` /
+/// `[limits]` into each multi-pipeline entry. A manifest that mixes the
+/// two layouts (top-level stack fields *and* `[[pipelines]]`) is rejected,
+/// since which one wins would be ambiguous.
+fn resolve_pipelines(cfg: &Project) -> Result<Vec<ResolvedPipeline<'_>>, CliError> {
+    let has_top_stack = !cfg.transformers.is_empty()
+        || cfg.generator.is_some()
+        || cfg.output.is_some()
+        || !cfg.hooks.post_generate.is_empty();
+
+    if cfg.pipelines.is_empty() {
+        // Single-pipeline layout: the top-level stack fields are the one
+        // and only pipeline.
+        let input = cfg.input.as_ref().ok_or(CliError::MissingInput)?;
+        let generator = cfg
+            .generator
+            .as_ref()
+            .ok_or(CliError::MissingGeneratorBlock)?;
+        let output = cfg.output.as_ref().ok_or(CliError::MissingOutput)?;
+        return Ok(vec![ResolvedPipeline {
+            name: None,
+            input,
+            transformers: &cfg.transformers,
+            generator,
+            output,
+            hooks: &cfg.hooks,
+            transformer_limits: cfg
+                .limits
+                .transformer
+                .apply(forge_host::Limits::transformer()),
+            generator_limits: cfg.limits.generator.apply(forge_host::Limits::generator()),
+        }]);
+    }
+
+    // Multi-pipeline layout.
+    if has_top_stack {
+        return Err(CliError::MixedLayout);
+    }
+    cfg.pipelines
+        .iter()
+        .map(|p| {
+            let input = p.input.as_ref().or(cfg.input.as_ref()).ok_or_else(|| {
+                CliError::PipelineNoInput {
+                    pipeline: p.name.clone().unwrap_or_else(|| "<unnamed>".into()),
+                }
+            })?;
+            // Limit overrides compose by field: layer the pipeline's own
+            // overrides on top of the shared top-level overrides on top of
+            // the built-in defaults.
+            let transformer_limits = p.limits.transformer.apply(
+                cfg.limits
+                    .transformer
+                    .apply(forge_host::Limits::transformer()),
+            );
+            let generator_limits = p
+                .limits
+                .generator
+                .apply(cfg.limits.generator.apply(forge_host::Limits::generator()));
+            Ok(ResolvedPipeline {
+                name: p.name.as_deref(),
+                input,
+                transformers: &p.transformers,
+                generator: &p.generator,
+                output: &p.output,
+                hooks: &p.hooks,
+                transformer_limits,
+                generator_limits,
+            })
+        })
+        .collect()
+}
+
 fn run_generate(
     project: &Path,
     cfg: &Project,
     out_override: Option<&Path>,
 ) -> Result<(), CliError> {
-    let ir = load_ir(project, &cfg.input)?;
+    let pipelines = resolve_pipelines(cfg)?;
+
+    // `--out` retargets a single output dir, which is meaningless when each
+    // pipeline owns its own. Fail loudly instead of silently writing every
+    // pipeline over the same directory.
+    if out_override.is_some() && pipelines.len() > 1 {
+        return Err(CliError::OutOverrideMultiPipeline);
+    }
 
     let engine = build_engine()?;
+    let total = pipelines.len();
+    for (i, p) in pipelines.iter().enumerate() {
+        run_one_pipeline(project, &engine, p, out_override, i, total)?;
+    }
+    Ok(())
+}
 
-    let mut transformers: Vec<Plugin> = Vec::with_capacity(cfg.transformers.len());
-    let mut configs: Vec<String> = Vec::with_capacity(cfg.transformers.len() + 1);
-    for t in &cfg.transformers {
+/// Run a single resolved pipeline: load its IR, load its plugins, drive
+/// the transforms → generator stack, write the output files, and run its
+/// post-generate hooks.
+fn run_one_pipeline(
+    project: &Path,
+    engine: &Engine,
+    p: &ResolvedPipeline<'_>,
+    out_override: Option<&Path>,
+    index: usize,
+    total: usize,
+) -> Result<(), CliError> {
+    let ir = load_ir(project, p.input)?;
+
+    let mut transformers: Vec<Plugin> = Vec::with_capacity(p.transformers.len());
+    let mut configs: Vec<String> = Vec::with_capacity(p.transformers.len() + 1);
+    for t in p.transformers {
         let (bytes, label) = load_plugin_bytes(project, &t.source)?;
         let plugin =
-            Plugin::load_transformer(&engine, &bytes).map_err(|e| CliError::PluginLoad {
+            Plugin::load_transformer(engine, &bytes).map_err(|e| CliError::PluginLoad {
                 origin: label.clone(),
                 reason: e.to_string(),
             })?;
@@ -424,27 +608,23 @@ fn run_generate(
         configs.push(t.config.to_string());
     }
 
-    let (gen_bytes, gen_label) = load_plugin_bytes(project, &cfg.generator.source)?;
+    let (gen_bytes, gen_label) = load_plugin_bytes(project, &p.generator.source)?;
     let generator =
-        Plugin::load_generator(&engine, &gen_bytes).map_err(|e| CliError::PluginLoad {
+        Plugin::load_generator(engine, &gen_bytes).map_err(|e| CliError::PluginLoad {
             origin: gen_label.clone(),
             reason: e.to_string(),
         })?;
-    validate_config(generator.config_schema(), &cfg.generator.config, &gen_label)?;
-    configs.push(cfg.generator.config.to_string());
+    validate_config(generator.config_schema(), &p.generator.config, &gen_label)?;
+    configs.push(p.generator.config.to_string());
 
-    let generator_limits = cfg.limits.generator.apply(forge_host::Limits::generator());
     let pipe_cfg = PipelineConfig {
         configs,
-        transformer_limits: cfg
-            .limits
-            .transformer
-            .apply(forge_host::Limits::transformer()),
-        generator_limits,
+        transformer_limits: p.transformer_limits,
+        generator_limits: p.generator_limits,
         ..Default::default()
     };
     let xforms: Vec<&Plugin> = transformers.iter().collect();
-    let out = match run_pipeline(&engine, ir, &xforms, &generator, &pipe_cfg) {
+    let out = match run_pipeline(engine, ir, &xforms, &generator, &pipe_cfg) {
         Ok(out) => out,
         // A stage that halts the pipeline with error-severity diagnostics
         // carries them out; print each one (same rendering as parse-time
@@ -460,12 +640,12 @@ fn run_generate(
 
     // Validate output before writing. Use the generator's limits to seed
     // the caps; this matches what the host enforced inside the WASM call.
-    let caps = forge_host::filesystem::Caps::from_limits(generator_limits);
+    let caps = forge_host::filesystem::Caps::from_limits(p.generator_limits);
     forge_host::filesystem::validate_output(&out.generation.files, caps)?;
 
     let out_dir = out_override
-        .map(|p| p.to_path_buf())
-        .unwrap_or_else(|| project.join(&cfg.output.dir));
+        .map(|o| o.to_path_buf())
+        .unwrap_or_else(|| project.join(&p.output.dir));
     std::fs::create_dir_all(&out_dir)?;
     for f in &out.generation.files {
         let target = out_dir.join(&f.path);
@@ -475,14 +655,25 @@ fn run_generate(
         std::fs::write(&target, &f.content)?;
     }
 
+    // Tag the summary with the pipeline's name / position only when there
+    // is more than one, so the single-pipeline output stays unchanged.
+    let tag = if total > 1 {
+        let label = p
+            .name
+            .map(|n| format!(" {n}"))
+            .unwrap_or_else(|| format!(" {}/{}", index + 1, total));
+        format!("[pipeline{label}] ")
+    } else {
+        String::new()
+    };
     println!(
-        "wrote {} file(s) to {} ({} diagnostic(s))",
+        "{tag}wrote {} file(s) to {} ({} diagnostic(s))",
         out.generation.files.len(),
         out_dir.display(),
         out.diagnostics.len(),
     );
 
-    run_post_generate_hooks(&cfg.hooks, &out_dir)?;
+    run_post_generate_hooks(p.hooks, &out_dir)?;
     Ok(())
 }
 
@@ -904,5 +1095,139 @@ dir = "out"
             "{BASE_MANIFEST}\n[hooks]\npost_generate = [{{ cmd = \"x\", contineu_on_error = true }}]\n"
         );
         assert!(toml::from_str::<Project>(&manifest).is_err());
+    }
+
+    #[test]
+    fn single_pipeline_layout_resolves_to_one() {
+        let cfg: Project = toml::from_str(BASE_MANIFEST).unwrap();
+        let pipelines = resolve_pipelines(&cfg).unwrap();
+        assert_eq!(pipelines.len(), 1);
+        assert!(pipelines[0].name.is_none());
+    }
+
+    const MULTI_MANIFEST: &str = r#"
+[input]
+spec = "openapi.json"
+
+[[pipelines]]
+name = "a"
+
+[pipelines.generator]
+wasm = "gen-a.wasm"
+
+[pipelines.output]
+dir = "out/a"
+
+[[pipelines]]
+name = "b"
+[pipelines.input]
+ir = "b.json"
+
+[pipelines.generator]
+wasm = "gen-b.wasm"
+
+[pipelines.output]
+dir = "out/b"
+"#;
+
+    #[test]
+    fn multi_pipeline_resolves_each_with_shared_input_fallback() {
+        let cfg: Project = toml::from_str(MULTI_MANIFEST).unwrap();
+        let pipelines = resolve_pipelines(&cfg).unwrap();
+        assert_eq!(pipelines.len(), 2);
+
+        assert_eq!(pipelines[0].name, Some("a"));
+        // Pipeline `a` has no [pipelines.input]; it inherits the shared spec.
+        assert!(matches!(pipelines[0].input, Input::Spec { .. }));
+
+        assert_eq!(pipelines[1].name, Some("b"));
+        // Pipeline `b` overrides the input with its own IR.
+        assert!(matches!(pipelines[1].input, Input::Ir { .. }));
+    }
+
+    #[test]
+    fn multi_pipeline_limits_layer_over_shared_defaults() {
+        // Top-level fuel is the shared default; pipeline `b` overrides it.
+        let manifest = r#"
+[input]
+spec = "openapi.json"
+
+[limits.generator]
+fuel = 5000
+
+[[pipelines]]
+name = "inherits"
+[pipelines.generator]
+wasm = "a.wasm"
+[pipelines.output]
+dir = "out/a"
+
+[[pipelines]]
+name = "overrides"
+[pipelines.generator]
+wasm = "b.wasm"
+[pipelines.output]
+dir = "out/b"
+[pipelines.limits.generator]
+fuel = 9999
+"#;
+        let cfg: Project = toml::from_str(manifest).unwrap();
+        let pipelines = resolve_pipelines(&cfg).unwrap();
+        assert_eq!(pipelines[0].generator_limits.fuel, 5000);
+        assert_eq!(pipelines[1].generator_limits.fuel, 9999);
+    }
+
+    #[test]
+    fn mixed_layout_is_rejected() {
+        let manifest = format!(
+            "{BASE_MANIFEST}\n[[pipelines]]\nname = \"x\"\n\
+             [pipelines.generator]\nwasm = \"g.wasm\"\n\
+             [pipelines.output]\ndir = \"o\"\n"
+        );
+        let cfg: Project = toml::from_str(&manifest).unwrap();
+        let err = resolve_pipelines(&cfg).unwrap_err();
+        assert!(matches!(err, CliError::MixedLayout), "{err}");
+    }
+
+    #[test]
+    fn top_level_hooks_with_pipelines_is_rejected() {
+        // [hooks] is part of the single-pipeline stack; pairing it with
+        // [[pipelines]] is the same ambiguity as a top-level [generator].
+        let manifest = r#"
+[input]
+spec = "openapi.json"
+
+[hooks]
+post_generate = ["echo hi"]
+
+[[pipelines]]
+name = "x"
+[pipelines.generator]
+wasm = "g.wasm"
+[pipelines.output]
+dir = "o"
+"#;
+        let cfg: Project = toml::from_str(manifest).unwrap();
+        let err = resolve_pipelines(&cfg).unwrap_err();
+        assert!(matches!(err, CliError::MixedLayout), "{err}");
+    }
+
+    #[test]
+    fn pipeline_without_any_input_is_rejected() {
+        // No top-level [input] and the pipeline declares none either.
+        let manifest = r#"
+[[pipelines]]
+name = "orphan"
+[pipelines.generator]
+wasm = "g.wasm"
+[pipelines.output]
+dir = "o"
+"#;
+        let cfg: Project = toml::from_str(manifest).unwrap();
+        let err = resolve_pipelines(&cfg).unwrap_err();
+        assert!(
+            matches!(err, CliError::PipelineNoInput { ref pipeline } if pipeline == "orphan"),
+            "{err}"
+        );
     }
 }

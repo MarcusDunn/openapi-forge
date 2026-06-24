@@ -88,6 +88,126 @@ dir = "out"
     assert!(out.contains("GET /things/{id}"), "body: {out}");
 }
 
+/// Multi-pipeline layout: a single `forge.toml` declares two
+/// `[[pipelines]]`, each its own transforms → generator stack writing to
+/// its own `[output]`. Both must run from one `forge generate`, sharing the
+/// top-level `[input]`. Exercises shared-input fallback, per-pipeline
+/// output dirs, and the per-pipeline config block.
+#[test]
+fn generate_multiple_pipelines() {
+    let dir = tempfile::tempdir().unwrap();
+    let project = dir.path();
+
+    let petstore = repo_root().join("fixtures/e2e/petstore/spec.json");
+    let spec = std::fs::read_to_string(&petstore).expect("read petstore spec");
+    std::fs::write(project.join("spec.json"), spec).unwrap();
+
+    let xform_wasm = plugin_artifact("transformer_noop");
+    let ts_wasm = plugin_artifact("generator_typescript_fetch");
+    let dump_wasm = plugin_artifact("generator_debug_dump");
+
+    // Pipeline `ts` chains a transformer into the TypeScript generator;
+    // pipeline `dump` runs the debug-dump generator straight off the shared
+    // input. Neither declares its own [input].
+    let toml = format!(
+        r#"
+[input]
+spec = "spec.json"
+
+[[pipelines]]
+name = "ts"
+
+[[pipelines.transformers]]
+wasm = "{xform}"
+
+[pipelines.generator]
+wasm = "{ts}"
+config = {{ packageName = "petstore-client" }}
+
+[pipelines.output]
+dir = "out/ts"
+
+[[pipelines]]
+name = "dump"
+
+[pipelines.generator]
+wasm = "{dump}"
+
+[pipelines.output]
+dir = "out/dump"
+"#,
+        xform = xform_wasm.display(),
+        ts = ts_wasm.display(),
+        dump = dump_wasm.display(),
+    );
+    std::fs::write(project.join("forge.toml"), toml).unwrap();
+
+    Command::cargo_bin("forge")
+        .unwrap()
+        .arg("generate")
+        .arg(project)
+        .assert()
+        .success();
+
+    // First pipeline's TypeScript output.
+    let client =
+        std::fs::read_to_string(project.join("out/ts/src/client.ts")).expect("ts client.ts");
+    assert!(client.contains("export class ApiClient"), "{client}");
+    let pkg =
+        std::fs::read_to_string(project.join("out/ts/package.json")).expect("ts package.json");
+    assert!(pkg.contains("\"name\": \"petstore-client\""), "{pkg}");
+
+    // Second pipeline's debug-dump output, written to a separate dir.
+    let dump = std::fs::read_to_string(project.join("out/dump/ir.txt")).expect("dump ir.txt");
+    assert!(dump.contains("title:"), "{dump}");
+}
+
+/// Mixing the single-pipeline top-level stack with `[[pipelines]]` is
+/// ambiguous and must be rejected with a clear error rather than silently
+/// preferring one.
+#[test]
+fn generate_mixed_layout_fails() {
+    let dir = tempfile::tempdir().unwrap();
+    let project = dir.path();
+
+    std::fs::write(project.join("ir.json"), SAMPLE_IR).unwrap();
+    let gen_wasm = plugin_artifact("generator_debug_dump");
+
+    let toml = format!(
+        r#"
+[input]
+ir = "ir.json"
+
+[generator]
+wasm = "{gen}"
+
+[output]
+dir = "out"
+
+[[pipelines]]
+name = "extra"
+
+[pipelines.generator]
+wasm = "{gen}"
+
+[pipelines.output]
+dir = "out2"
+"#,
+        gen = gen_wasm.display(),
+    );
+    std::fs::write(project.join("forge.toml"), toml).unwrap();
+
+    Command::cargo_bin("forge")
+        .unwrap()
+        .arg("generate")
+        .arg(project)
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains(
+            "mixes the single-pipeline layout",
+        ));
+}
+
 #[test]
 fn generate_from_petstore_spec() {
     let dir = tempfile::tempdir().unwrap();

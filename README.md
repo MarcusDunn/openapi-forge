@@ -163,6 +163,61 @@ forge generate \
 Per-plugin config defaults to `{}`; reach for `forge.toml` when you need
 to pass `config = { ... }` blocks.
 
+## Multiple pipelines
+
+One `forge.toml` can drive several independent transforms → generator
+stacks. Declare each as a `[[pipelines]]` table with its own `[output]`;
+the top-level `[input]` and `[limits]` act as shared defaults that any
+pipeline may override. A single `forge generate` runs them all in order.
+
+```toml
+# Shared by every pipeline unless a pipeline overrides it.
+[input]
+spec = "openapi.json"
+
+[[pipelines]]
+name = "typescript"            # optional label, shown in the run summary
+
+[[pipelines.transformers]]
+wasm = "./plugins/redact.wasm"
+
+[pipelines.generator]
+oci = "ghcr.io/marcusdunn/typescript-fetch:0.1.0"
+config = { packageName = "petstore-client" }
+
+[pipelines.output]
+dir = "out/ts"
+
+[[pipelines]]
+name = "rust"
+
+[pipelines.generator]
+wasm = "./plugins/rust-reqwest.wasm"
+
+[pipelines.output]
+dir = "out/rust"
+
+[pipelines.hooks]
+post_generate = ["cargo fmt"]
+
+# Optional: layer per-pipeline limit overrides on top of the top-level
+# [limits]. Anything unset falls back to the shared value, then the
+# built-in default.
+[pipelines.limits.generator]
+wall_clock_ms = 60000
+```
+
+A pipeline may set its own `[pipelines.input]` to read a different spec or
+pre-parsed IR; otherwise it inherits the top-level `[input]`. Hooks are
+per-pipeline: each `[[pipelines]]` declares its own `[pipelines.hooks]`,
+run against that pipeline's output dir.
+
+This is mutually exclusive with the single-pipeline layout above — a
+manifest that defines both top-level `[generator]`/`[[transformers]]`/
+`[output]`/`[hooks]` *and* `[[pipelines]]` is rejected as ambiguous. `--out` is
+likewise rejected with multiple pipelines, since each one writes to its
+own `[output] dir`.
+
 ## Sandbox limits
 
 Plugins run under per-stage resource limits (fuel, memory, wall-clock,
