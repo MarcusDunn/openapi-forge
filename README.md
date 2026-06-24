@@ -189,6 +189,50 @@ output_per_file_bytes_max = 134_217_728   # default 16 MiB
 The `output_*` caps apply only to generators — transformers return IR,
 not files. Misspelled keys are rejected rather than silently ignored.
 
+## Post-generation hooks
+
+Run commands after generation finishes — typically formatters over the
+generated code — with an optional `[hooks]` section in `forge.toml`:
+
+```toml
+[hooks]
+post_generate = [
+  "eslint --fix && prettier --write .",                   # shell form
+  ["cargo", "fmt"],                                        # exec form
+  { cmd = "optional-linter", continue_on_error = true },  # table form
+]
+```
+
+A hook's command is given in one of two forms (cf. Docker's shell vs exec
+form):
+
+- **shell form** — a string run through the platform shell. Globs
+  (`*.ts`), pipes, `&&`, redirection and `$VAR` expansion all work.
+- **exec form** — an argv array run directly with **no shell**. Arguments
+  pass through literally (no word-splitting or glob/var expansion) and no
+  shell needs to be present. Prefer this for paths with spaces or fully
+  deterministic invocations.
+
+An entry is either a bare command (string or array) or a **table** that
+wraps a command (`cmd = <string|array>`) with per-hook options:
+
+- `continue_on_error` (default `false`) — when `true`, a non-zero exit or
+  a failure to start logs a warning and continues to the next hook
+  instead of aborting. Use it for optional or best-effort hooks.
+
+Commands run in order, only after every generated file is written, with
+the **output directory as their working directory** (the `FORGE_OUT_DIR`
+env var holds its path too). stdout/stderr are inherited so formatter
+output is visible.
+
+A hook that fails (and isn't marked `continue_on_error`) aborts the run
+and `forge` exits **3** — distinct from the exit **2** used for forge's
+own errors, so callers can tell "a hook failed" (generation succeeded;
+files are on disk) apart from "generation failed".
+
+Hooks run in project mode only; [config-less invocation](#config-less-invocation)
+has no `[hooks]` section. Misspelled keys are rejected.
+
 The full project plan lives in the issue tracker / project documentation;
 this README intentionally summarises rather than duplicates.
 
