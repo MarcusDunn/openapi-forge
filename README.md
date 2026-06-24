@@ -189,6 +189,38 @@ output_per_file_bytes_max = 134_217_728   # default 16 MiB
 The `output_*` caps apply only to generators — transformers return IR,
 not files. Misspelled keys are rejected rather than silently ignored.
 
+## Post-generation hooks
+
+Run commands after generation finishes — typically formatters over the
+generated code — with an optional `[hooks]` section in `forge.toml`:
+
+```toml
+[hooks]
+post_generate = [
+  "eslint --fix && prettier --write .",   # shell form
+  ["cargo", "fmt"],                        # exec form
+]
+```
+
+Each entry is a hook in one of two forms (cf. Docker's shell vs exec
+form):
+
+- **shell form** — a string run through the platform shell. Globs
+  (`*.ts`), pipes, `&&`, redirection and `$VAR` expansion all work.
+- **exec form** — an argv array run directly with **no shell**. Arguments
+  pass through literally (no word-splitting or glob/var expansion) and no
+  shell needs to be present. Prefer this for paths with spaces or fully
+  deterministic invocations.
+
+Commands run in order, only after every generated file is written, with
+the **output directory as their working directory** (the `FORGE_OUT_DIR`
+env var holds its path too). stdout/stderr are inherited so formatter
+output is visible. The first command to exit non-zero aborts the run with
+a non-zero exit code.
+
+Hooks run in project mode only; [config-less invocation](#config-less-invocation)
+has no `[hooks]` section. Misspelled keys are rejected.
+
 The full project plan lives in the issue tracker / project documentation;
 this README intentionally summarises rather than duplicates.
 
