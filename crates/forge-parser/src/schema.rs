@@ -1375,11 +1375,13 @@ fn parse_type_array_union(
     Some(id)
 }
 
-/// 3.1 `const` keyword. Single literal value of any primitive type. We
-/// fold it into the matching single-value enum so the existing IR shape
-/// covers it without a new `ConstType`. `const: null` resolves to a
-/// `TypeDef::Null` node (named, when the user gave it a name; otherwise
-/// the canonical singleton). See issue #107.
+/// 3.1 `const` keyword. Single literal value of any scalar type. We fold
+/// it into the matching single-value enum so the existing IR shapes cover
+/// it without a new `ConstType`: strings → `EnumString`, integers →
+/// `EnumInt`, non-integer numbers → `EnumNumber`, booleans → `EnumBool`.
+/// `const: null` resolves to a `TypeDef::Null` node (named, when the user
+/// gave it a name; otherwise the canonical singleton). Array- and
+/// object-typed `const` are not yet supported. See issue #107.
 fn parse_const(
     ctx: &mut Ctx,
     map: &serde_json::Map<String, J>,
@@ -1388,31 +1390,46 @@ fn parse_const(
     hint: NameHint,
     nullable: bool,
 ) -> Option<TypeRef> {
-    use forge_ir::{EnumIntType, EnumIntValue, EnumStringType, EnumStringValue, IntKind};
+    use forge_ir::{
+        EnumBoolType, EnumBoolValue, EnumIntType, EnumIntValue, EnumNumberType, EnumNumberValue,
+        EnumStringType, EnumStringValue, IntKind, NumberKind,
+    };
     let nt_definition = match c {
         J::String(s) => TypeDef::EnumString(EnumStringType {
             values: vec![EnumStringValue { value: s.clone() }],
         }),
+        J::Bool(b) => TypeDef::EnumBool(EnumBoolType {
+            values: vec![EnumBoolValue { value: *b }],
+        }),
         J::Number(n) => {
-            let Some(int) = n.as_i64() else {
+            // Integers stay on `EnumInt`; any other number (a genuine
+            // fraction, or a magnitude beyond i64) becomes an `EnumNumber`.
+            if let Some(int) = n.as_i64() {
+                let kind = match map.get("format").and_then(J::as_str) {
+                    Some("int64") => IntKind::Int64,
+                    _ => IntKind::Int32,
+                };
+                TypeDef::EnumInt(EnumIntType {
+                    values: vec![EnumIntValue { value: int }],
+                    kind,
+                })
+            } else if let Some(float) = n.as_f64() {
+                let kind = match map.get("format").and_then(J::as_str) {
+                    Some("float") => NumberKind::Float,
+                    _ => NumberKind::Double,
+                };
+                TypeDef::EnumNumber(EnumNumberType {
+                    values: vec![EnumNumberValue { value: float }],
+                    kind,
+                })
+            } else {
                 ctx.push_diag(diag::err(
                     diag::E_INVALID_TYPE,
-                    format!(
-                        "`const: {n}` is a non-integer number; integer-, string-, and \
-                         null-typed `const` values are supported."
-                    ),
+                    format!("`const: {n}` is not representable as a finite number"),
                     ptr.loc(ctx.file),
                 ));
                 return None;
-            };
-            let kind = match map.get("format").and_then(J::as_str) {
-                Some("int64") => IntKind::Int64,
-                _ => IntKind::Int32,
-            };
-            TypeDef::EnumInt(EnumIntType {
-                values: vec![EnumIntValue { value: int }],
-                kind,
-            })
+            }
         }
         J::Null => {
             // `const: null` means the value is exactly null. For inline
@@ -1453,7 +1470,8 @@ fn parse_const(
             ctx.push_diag(diag::err(
                 diag::E_INVALID_TYPE,
                 format!(
-                    "`const` value `{}` is not a string, integer, or null",
+                    "`const` value `{}` is not a scalar; string, number, boolean, and null \
+                     `const` values are supported (array and object are not)",
                     serde_json::to_string(other).unwrap_or_default()
                 ),
                 ptr.loc(ctx.file),

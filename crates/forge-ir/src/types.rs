@@ -69,6 +69,14 @@ pub enum TypeDef {
     Array(ArrayType),
     EnumString(EnumStringType),
     EnumInt(EnumIntType),
+    /// A boolean-typed single-value (`const`) or closed set (`enum`). JSON
+    /// Schema `const: true` lowers here with one value; a future
+    /// `enum: [true, false]` would carry both. See issue #107.
+    EnumBool(EnumBoolType),
+    /// A number-typed (non-integer) single-value (`const`) or closed set.
+    /// JSON Schema `const: 1.5` lowers here. Integer consts/enums stay on
+    /// [`TypeDef::EnumInt`]; this variant covers `number`-typed literals.
+    EnumNumber(EnumNumberType),
     Union(UnionType),
     /// JSON's `null` as a unit type. The canonical singleton lives in
     /// [`crate::Ir::types`] under id [`NULL_ID`]; `T | null` is expressed
@@ -305,6 +313,41 @@ pub struct EnumIntValue {
 pub enum IntKind {
     Int32,
     Int64,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct EnumBoolType {
+    pub values: Vec<EnumBoolValue>,
+}
+
+/// One value in a boolean-typed enum. OAS / JSON Schema does not define
+/// per-value documentation; see [`EnumStringValue`].
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct EnumBoolValue {
+    pub value: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct EnumNumberType {
+    pub values: Vec<EnumNumberValue>,
+    pub kind: NumberKind,
+}
+
+/// One value in a number-typed enum. OAS / JSON Schema does not define
+/// per-value documentation; see [`EnumStringValue`].
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct EnumNumberValue {
+    pub value: f64,
+}
+
+/// Width refinement for a number-typed literal, mirroring [`IntKind`].
+/// `format: float` selects [`NumberKind::Float`]; everything else
+/// (including `format: double` and an absent format) is [`NumberKind::Double`].
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum NumberKind {
+    Float,
+    Double,
 }
 
 // ---- unions ----

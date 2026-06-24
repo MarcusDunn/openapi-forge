@@ -622,6 +622,8 @@ macro_rules! define_world_conversions {
                     b::TypeDef::Array(a) => ir::TypeDef::Array(array_from(a)),
                     b::TypeDef::EnumString(e) => ir::TypeDef::EnumString(enum_str_from(e)),
                     b::TypeDef::EnumInt(e) => ir::TypeDef::EnumInt(enum_int_from(e)),
+                    b::TypeDef::EnumBool(e) => ir::TypeDef::EnumBool(enum_bool_from(e)),
+                    b::TypeDef::EnumNumber(e) => ir::TypeDef::EnumNumber(enum_number_from(e)),
                     b::TypeDef::Union(u) => ir::TypeDef::Union(union_from(u)),
                     b::TypeDef::Null => ir::TypeDef::Null,
                     b::TypeDef::Any => ir::TypeDef::Any,
@@ -635,6 +637,8 @@ macro_rules! define_world_conversions {
                     ir::TypeDef::Array(a) => b::TypeDef::Array(array_to(a)),
                     ir::TypeDef::EnumString(e) => b::TypeDef::EnumString(enum_str_to(e)),
                     ir::TypeDef::EnumInt(e) => b::TypeDef::EnumInt(enum_int_to(e)),
+                    ir::TypeDef::EnumBool(e) => b::TypeDef::EnumBool(enum_bool_to(e)),
+                    ir::TypeDef::EnumNumber(e) => b::TypeDef::EnumNumber(enum_number_to(e)),
                     ir::TypeDef::Union(u) => b::TypeDef::Union(union_to(u)),
                     ir::TypeDef::Null => b::TypeDef::Null,
                     ir::TypeDef::Any => b::TypeDef::Any,
@@ -873,6 +877,54 @@ macro_rules! define_world_conversions {
                     kind: match e.kind {
                         ir::IntKind::Int32 => b::IntKind::Int32,
                         ir::IntKind::Int64 => b::IntKind::Int64,
+                    },
+                }
+            }
+
+            fn enum_bool_from(e: b::EnumBoolType) -> ir::EnumBoolType {
+                ir::EnumBoolType {
+                    values: e
+                        .values
+                        .into_iter()
+                        .map(|v| ir::EnumBoolValue { value: v.value })
+                        .collect(),
+                }
+            }
+
+            fn enum_bool_to(e: ir::EnumBoolType) -> b::EnumBoolType {
+                b::EnumBoolType {
+                    values: e
+                        .values
+                        .into_iter()
+                        .map(|v| b::EnumBoolValue { value: v.value })
+                        .collect(),
+                }
+            }
+
+            fn enum_number_from(e: b::EnumNumberType) -> ir::EnumNumberType {
+                ir::EnumNumberType {
+                    values: e
+                        .values
+                        .into_iter()
+                        .map(|v| ir::EnumNumberValue { value: v.value })
+                        .collect(),
+                    kind: match e.kind {
+                        b::NumberKind::Float => ir::NumberKind::Float,
+                        b::NumberKind::Double => ir::NumberKind::Double,
+                    },
+                }
+            }
+
+            fn enum_number_to(e: ir::EnumNumberType) -> b::EnumNumberType {
+                b::EnumNumberType {
+                    values: e
+                        .values
+                        .into_iter()
+                        .map(|v| b::EnumNumberValue { value: v.value })
+                        .collect(),
+                    kind: match e.kind {
+                        ir::NumberKind::Float => b::NumberKind::Float,
+                        ir::NumberKind::Double => b::NumberKind::Double,
                     },
                 }
             }
