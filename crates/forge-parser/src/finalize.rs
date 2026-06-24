@@ -65,6 +65,8 @@ fn refs_of(t: &NamedType) -> Vec<TypeRef> {
         TypeDef::Primitive(_)
         | TypeDef::EnumString(_)
         | TypeDef::EnumInt(_)
+        | TypeDef::EnumBool(_)
+        | TypeDef::EnumNumber(_)
         | TypeDef::Null
         | TypeDef::Any => {}
         TypeDef::Object(o) => {

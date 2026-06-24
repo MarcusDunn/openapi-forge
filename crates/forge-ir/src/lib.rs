@@ -33,9 +33,10 @@ pub use security::{
     SecurityScheme, SecuritySchemeKind,
 };
 pub use types::{
-    AdditionalProperties, ArrayConstraints, ArrayType, EnumIntType, EnumIntValue, EnumStringType,
-    EnumStringValue, IntKind, NamedType, ObjectConstraints, ObjectType, PatternProperty,
-    PrimitiveConstraints, PrimitiveKind, PrimitiveType, Property, TypeDef, TypeRef, NULL_ID,
+    AdditionalProperties, ArrayConstraints, ArrayType, EnumBoolType, EnumBoolValue, EnumIntType,
+    EnumIntValue, EnumNumberType, EnumNumberValue, EnumStringType, EnumStringValue, IntKind,
+    NamedType, NumberKind, ObjectConstraints, ObjectType, PatternProperty, PrimitiveConstraints,
+    PrimitiveKind, PrimitiveType, Property, TypeDef, TypeRef, NULL_ID,
 };
 pub use types::{Discriminator, UnionKind, UnionType, UnionVariant};
 pub use value::{Value, ValueRef};
