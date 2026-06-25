@@ -673,7 +673,7 @@ fn run_one_pipeline(
         out.diagnostics.len(),
     );
 
-    run_post_generate_hooks(p.hooks, &out_dir)?;
+    run_post_generate_hooks(p.hooks, &out_dir, project)?;
     Ok(())
 }
 
@@ -725,9 +725,25 @@ impl HookCmd {
 /// Run `[hooks] post_generate` commands in order, once generated files
 /// are on disk. Each command runs with the output directory as its
 /// working directory and inherits stdio, so a formatter's output reaches
-/// the user. `FORGE_OUT_DIR` is exported for commands that need the path
-/// explicitly. The first command to exit non-zero aborts the run.
-fn run_post_generate_hooks(hooks: &HooksSection, out_dir: &Path) -> Result<(), CliError> {
+/// the user.
+///
+/// Two absolute paths are exported for commands that need to anchor
+/// arguments: `FORGE_OUT_DIR` (where files were written) and
+/// `FORGE_MANIFEST_DIR` (the directory containing `forge.toml`). Both are
+/// made absolute so hooks can build paths regardless of their working
+/// directory — relative values would be near-useless once the hook runs
+/// with `out_dir` as its cwd. The first command to exit non-zero aborts
+/// the run.
+fn run_post_generate_hooks(
+    hooks: &HooksSection,
+    out_dir: &Path,
+    manifest_dir: &Path,
+) -> Result<(), CliError> {
+    // Absolutize without touching the filesystem (no symlink resolution),
+    // falling back to the original path if the cwd can't be read.
+    let abs = |p: &Path| std::path::absolute(p).unwrap_or_else(|_| p.to_path_buf());
+    let abs_out = abs(out_dir);
+    let abs_manifest = abs(manifest_dir);
     for hook in &hooks.post_generate {
         let label = hook.cmd().label();
         // An empty exec array is malformed config, not a runtime failure;
@@ -741,8 +757,9 @@ fn run_post_generate_hooks(hooks: &HooksSection, out_dir: &Path) -> Result<(), C
             })?;
         println!("running post_generate hook: {label}");
         let outcome = command
-            .current_dir(out_dir)
-            .env("FORGE_OUT_DIR", out_dir)
+            .current_dir(&abs_out)
+            .env("FORGE_OUT_DIR", &abs_out)
+            .env("FORGE_MANIFEST_DIR", &abs_manifest)
             .status();
         match outcome {
             Ok(status) if status.success() => {}

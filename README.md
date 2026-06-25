@@ -276,9 +276,18 @@ wraps a command (`cmd = <string|array>`) with per-hook options:
   instead of aborting. Use it for optional or best-effort hooks.
 
 Commands run in order, only after every generated file is written, with
-the **output directory as their working directory** (the `FORGE_OUT_DIR`
-env var holds its path too). stdout/stderr are inherited so formatter
-output is visible.
+the **output directory as their working directory**. Two **absolute**
+paths are exported so a hook can anchor arguments regardless of its cwd:
+
+- `FORGE_OUT_DIR` — the directory the generated files were written to.
+- `FORGE_MANIFEST_DIR` — the directory containing `forge.toml`.
+
+stdout/stderr are inherited so formatter output is visible. For example, a
+hook can point a formatter at a config kept next to the manifest:
+
+```toml
+post_generate = ['oxfmt -c "$FORGE_MANIFEST_DIR/.oxfmtrc.json" "$FORGE_OUT_DIR/client.ts"']
+```
 
 A hook that fails (and isn't marked `continue_on_error`) aborts the run
 and `forge` exits **3** — distinct from the exit **2** used for forge's

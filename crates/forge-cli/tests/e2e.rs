@@ -647,3 +647,78 @@ dir = "out"
         "missing updateNoteSavedView: {out}"
     );
 }
+
+/// `post_generate` hooks receive `FORGE_OUT_DIR` and `FORGE_MANIFEST_DIR`
+/// as absolute paths, even when the project is addressed by a relative
+/// path. The hook runs with the output dir as its cwd, so relative anchors
+/// would be near-useless; this pins the absolute-path contract both vars
+/// promise.
+#[test]
+fn post_generate_hook_gets_absolute_env_paths() {
+    let dir = tempfile::tempdir().unwrap();
+    let project = dir.path();
+
+    std::fs::write(project.join("ir.json"), SAMPLE_IR).unwrap();
+
+    let xform_wasm = plugin_artifact("transformer_noop");
+    let gen_wasm = plugin_artifact("generator_debug_dump");
+
+    // The hook writes both env vars to a file in its cwd (the output dir).
+    // Exec form keeps the argv portable across shells.
+    let toml = format!(
+        r#"
+[input]
+ir = "ir.json"
+
+[[transformers]]
+wasm = "{xform}"
+
+[generator]
+wasm = "{gen}"
+
+[output]
+dir = "out"
+
+[hooks]
+post_generate = [{{ cmd = ["sh", "-c", "printf '%s\n%s\n' \"$FORGE_OUT_DIR\" \"$FORGE_MANIFEST_DIR\" > env.txt"] }}]
+"#,
+        xform = xform_wasm.display(),
+        gen = gen_wasm.display(),
+    );
+    std::fs::write(project.join("forge.toml"), toml).unwrap();
+
+    // Invoke with the project addressed relatively (`.` is the default
+    // positional) from inside the project dir, so the env vars would be
+    // relative unless the CLI absolutizes them.
+    Command::cargo_bin("forge")
+        .unwrap()
+        .current_dir(project)
+        .arg("generate")
+        .assert()
+        .success();
+
+    let env_dump = std::fs::read_to_string(project.join("out/env.txt")).expect("hook env file");
+    let mut lines = env_dump.lines();
+    let out_dir = Path::new(lines.next().expect("FORGE_OUT_DIR line"));
+    let manifest_dir = Path::new(lines.next().expect("FORGE_MANIFEST_DIR line"));
+
+    assert!(
+        out_dir.is_absolute(),
+        "FORGE_OUT_DIR not absolute: {}",
+        out_dir.display()
+    );
+    assert!(
+        manifest_dir.is_absolute(),
+        "FORGE_MANIFEST_DIR not absolute: {}",
+        manifest_dir.display()
+    );
+    // Resolve symlinks (e.g. macOS /var -> /private/var) before comparing.
+    assert_eq!(
+        out_dir.canonicalize().unwrap(),
+        project.join("out").canonicalize().unwrap()
+    );
+    assert_eq!(
+        manifest_dir.canonicalize().unwrap(),
+        project.canonicalize().unwrap()
+    );
+}
