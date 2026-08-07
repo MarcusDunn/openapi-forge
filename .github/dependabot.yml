@@ -18,12 +18,25 @@ updates:
     open-pull-requests-limit: 10
     groups:
       # wasmtime and wasmtime-wasi are released in lockstep and must share a
-      # major version. Group them across all update-types (listed before
-      # cargo-minor-patch so this rule wins) so a major bump arrives as one
-      # mergeable PR instead of separate, individually-uncompilable ones.
+      # major version; wit-bindgen and wit-bindgen-rt likewise. Each pair has
+      # to arrive as a single PR to be mergeable — split in two, neither half
+      # compiles on its own.
+      #
+      # Keep these groups patterns-only. They previously also carried
+      # `update-types: [major, minor, patch]`, which enumerates every value and
+      # so restricts nothing, but the group never actually fired: wasmtime and
+      # wasmtime-wasi still arrived as separate PRs (#98, #99) months after the
+      # group was added, and no "bump the wasmtime group" PR was ever opened.
+      # The groups that do work here use exactly one of the two keys — the
+      # `actions` group is patterns-only, `cargo-minor-patch` is
+      # update-types-only — so combining them is the thing to avoid. Upstream
+      # has open bugs on that interaction: dependabot-core#13919 (removing
+      # `patterns` restored grouping) and #14202 (pattern-matched dependencies
+      # are marked handled regardless of update-types).
       wasmtime:
         patterns: ["wasmtime*"]
-        update-types: [major, minor, patch]
+      wit-bindgen:
+        patterns: ["wit-bindgen*"]
       cargo-minor-patch:
         update-types: [minor, patch]
 
@@ -46,9 +59,10 @@ updates:
     groups:
       # Keep wasmtime* together here too (transitive via the root crates) so a
       # major bump doesn't land as a standalone, uncompilable /fuzz PR.
+      # Patterns-only, for the reason spelled out on the root cargo config
+      # above.
       wasmtime:
         patterns: ["wasmtime*"]
-        update-types: [major, minor, patch]
       cargo-minor-patch:
         update-types: [minor, patch]
 
