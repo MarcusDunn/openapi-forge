@@ -112,21 +112,40 @@ config = { packageName = "petstore-client" }
 dir = "out"
 ```
 
-Pulls are anonymous by default. For private `ghcr.io` packages, log in
-with the [GitHub CLI](https://cli.github.com/) and `forge` reuses that
-token automatically — no separate configuration. GHCR package reads need
-the `read:packages` scope, which the default login does not grant:
+Pulls are anonymous by default. For private packages, `forge` reads
+credentials from two sources:
+
+**Any registry** (Amazon ECR, Docker Hub, self-hosted, …): the Docker
+credential store — the same `~/.docker/config.json` that `docker login`
+writes, including `credsStore`/`credHelpers` credential helpers. If
+`docker pull` works, `forge` works. For ECR either log in with the AWS
+CLI:
+
+```sh
+aws ecr get-login-password --region us-east-1 | \
+  docker login --username AWS --password-stdin 123456789012.dkr.ecr.us-east-1.amazonaws.com
+```
+
+or configure [`docker-credential-ecr-login`](https://github.com/awslabs/amazon-ecr-credential-helper)
+once and forget about token expiry — `forge` invokes the helper on each
+pull, just like Docker does.
+
+**`ghcr.io`**: additionally, log in with the
+[GitHub CLI](https://cli.github.com/) and `forge` reuses that token
+automatically — no separate configuration. GHCR package reads need the
+`read:packages` scope, which the default login does not grant:
 
 ```sh
 gh auth refresh -h github.com -s read:packages
 ```
 
-If a private pull is denied, `forge` prints this exact command.
+If a private pull is denied, `forge` prints the exact login command for
+the registry involved.
 
 **In CI**, where `gh` may not be installed, set `GH_TOKEN` (or
 `GITHUB_TOKEN`) instead — `forge` reads it directly, no `gh` required.
 Tokens are checked in the order `GH_TOKEN`, `GITHUB_TOKEN`, then
-`gh auth token`.
+`gh auth token`, then the Docker credential store.
 
 ```yaml
 # GitHub Actions
