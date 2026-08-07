@@ -16,6 +16,15 @@
 //!
 //! [helper]: https://github.com/awslabs/amazon-ecr-credential-helper
 //!
+//! Both live in `$DOCKER_CONFIG/config.json` (default
+//! `~/.docker/config.json`). We also read the containers-ecosystem
+//! `auth.json` — `$REGISTRY_AUTH_FILE`, `$XDG_RUNTIME_DIR/containers/`,
+//! `~/.config/containers/` — because on the many distros that ship
+//! `podman-docker`, `docker` *is* podman: `docker login` succeeds and
+//! writes there, so reading only Docker's own config breaks the promise
+//! above in the one case it most needs to hold. Same `auths` schema, so
+//! the same parser covers it. See [`config_paths`] for the order.
+//!
 //! This is deliberately *not* a general Docker-config implementation.
 //! We read what those two paths produce and nothing more; notably the
 //! `identitytoken` field and the `Username: "<token>"` helper convention
@@ -79,27 +88,99 @@ pub(crate) enum DockerAuthError {
 /// Credentials for `registry` (a bare host, e.g. `ghcr.io` or
 /// `123456789012.dkr.ecr.us-east-1.amazonaws.com`), or `None` when the
 /// user has nothing configured for it.
+///
+/// Walks [`config_paths`] in order and returns the first credential
+/// found. A file that is absent, or present but has no entry for this
+/// registry, is skipped — otherwise a stray empty `~/.docker/config.json`
+/// would mask a real podman login in `containers/auth.json`.
+///
+/// Errors do not abort the walk, since a broken Docker config should not
+/// hide a working podman one. The first error is held back and returned
+/// only if no later file yields a credential, so a genuine
+/// misconfiguration still surfaces instead of silently pulling anonymous.
 pub(crate) fn credential(registry: &str) -> Result<Option<Credential>, DockerAuthError> {
-    let Some(path) = config_path() else {
-        return Ok(None);
-    };
-    let raw = match std::fs::read_to_string(&path) {
+    let mut first_error = None;
+    for path in config_paths() {
+        match credential_from_path(&path, registry) {
+            Ok(Some(credential)) => return Ok(Some(credential)),
+            Ok(None) => {}
+            Err(e) => {
+                first_error.get_or_insert(e);
+            }
+        }
+    }
+    match first_error {
+        Some(e) => Err(e),
+        None => Ok(None),
+    }
+}
+
+/// Read one credential file. `Ok(None)` if it does not exist or holds
+/// nothing for `registry`.
+fn credential_from_path(
+    path: &Path,
+    registry: &str,
+) -> Result<Option<Credential>, DockerAuthError> {
+    let raw = match std::fs::read_to_string(path) {
         Ok(raw) => raw,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
-        Err(source) => return Err(DockerAuthError::Read { path, source }),
+        Err(source) => {
+            return Err(DockerAuthError::Read {
+                path: path.to_path_buf(),
+                source,
+            })
+        }
     };
     let config: DockerConfig =
-        serde_json::from_str(&raw).map_err(|source| DockerAuthError::Parse { path, source })?;
+        serde_json::from_str(&raw).map_err(|source| DockerAuthError::Parse {
+            path: path.to_path_buf(),
+            source,
+        })?;
     credential_from_config(&config, registry, run_helper)
 }
 
-/// `$DOCKER_CONFIG/config.json`, else `~/.docker/config.json`. `None`
-/// only when there is no home directory to fall back on.
-fn config_path() -> Option<PathBuf> {
+/// Credential files to consult, most specific first:
+///
+/// 1. `$DOCKER_CONFIG/config.json`, else `~/.docker/config.json` — what
+///    real Docker writes.
+/// 2. `$REGISTRY_AUTH_FILE` — the containers-ecosystem override, a file
+///    path (not a directory, unlike `DOCKER_CONFIG`).
+/// 3. `$XDG_RUNTIME_DIR/containers/auth.json` — where podman puts a
+///    non-persistent login on Linux.
+/// 4. `~/.config/containers/auth.json` — podman's persistent location,
+///    and the usual one on macOS where `XDG_RUNTIME_DIR` is unset.
+///
+/// (2)–(4) exist because on machines where `docker` *is* podman
+/// (`podman-docker` on NixOS, Debian, Fedora) a plain `docker login`
+/// succeeds but writes `containers/auth.json`. Reading only Docker's own
+/// config there means `docker pull` works while forge 401s — exactly the
+/// "if `docker pull` works, `forge` works" promise this module exists to
+/// keep. See issue #121.
+///
+/// Docker stays first so an explicit `DOCKER_CONFIG` or a real Docker
+/// login keeps winning, unchanged from before podman support.
+fn config_paths() -> Vec<PathBuf> {
+    let mut paths = Vec::new();
+
     if let Some(dir) = std::env::var_os("DOCKER_CONFIG") {
-        return Some(Path::new(&dir).join("config.json"));
+        paths.push(Path::new(&dir).join("config.json"));
+    } else if let Some(home) = dirs::home_dir() {
+        paths.push(home.join(".docker").join("config.json"));
     }
-    Some(dirs::home_dir()?.join(".docker").join("config.json"))
+
+    if let Some(file) = std::env::var_os("REGISTRY_AUTH_FILE") {
+        paths.push(PathBuf::from(file));
+    }
+
+    if let Some(dir) = std::env::var_os("XDG_RUNTIME_DIR") {
+        paths.push(Path::new(&dir).join("containers").join("auth.json"));
+    }
+
+    if let Some(home) = dirs::home_dir() {
+        paths.push(home.join(".config").join("containers").join("auth.json"));
+    }
+
+    paths
 }
 
 /// The subset of `config.json` we understand.
@@ -314,7 +395,7 @@ struct HelperReply {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
 
     fn config(json: &str) -> DockerConfig {
@@ -506,34 +587,196 @@ mod tests {
         assert!(matches!(err, DockerAuthError::HelperSpawn { .. }));
     }
 
+    /// base64("AWS:<secret>") for the tests below, built without pulling
+    /// base64 into dev-deps just to construct fixtures.
+    fn aws_auth(secret: &str) -> String {
+        use base64::Engine as _;
+        base64::engine::general_purpose::STANDARD.encode(format!("AWS:{secret}"))
+    }
+
+    /// A one-registry credential file, in the `auths` schema shared by
+    /// Docker's `config.json` and the containers `auth.json`.
+    fn auth_file(registry: &str, secret: &str) -> String {
+        format!(
+            r#"{{"auths": {{"{registry}": {{"auth": "{}"}}}}}}"#,
+            aws_auth(secret)
+        )
+    }
+
+    /// Every env var that can point [`config_paths`] at a credential
+    /// file. Tests must pin all of them: now that lookup falls through
+    /// Docker's config into the podman locations, a test that pinned only
+    /// `DOCKER_CONFIG` would go on to read the developer's real
+    /// `~/.config/containers/auth.json` and pass or fail by accident.
+    const CREDENTIAL_ENV: [&str; 4] = [
+        "DOCKER_CONFIG",
+        "REGISTRY_AUTH_FILE",
+        "XDG_RUNTIME_DIR",
+        "HOME",
+    ];
+
+    /// Holds `ENV_LOCK` and points every entry of [`CREDENTIAL_ENV`]
+    /// inside one temp dir, restoring the real environment on drop.
+    /// Layout, relative to the temp root:
+    ///
+    /// ```text
+    /// config.json                    ← $DOCKER_CONFIG/config.json
+    /// registry-auth.json             ← $REGISTRY_AUTH_FILE
+    /// containers/auth.json           ← $XDG_RUNTIME_DIR/containers/auth.json
+    /// .config/containers/auth.json   ← ~/.config/containers/auth.json
+    /// ```
+    pub(crate) struct EnvSandbox {
+        _lock: std::sync::MutexGuard<'static, ()>,
+        saved: Vec<(&'static str, Option<std::ffi::OsString>)>,
+        dir: tempfile::TempDir,
+    }
+
+    impl EnvSandbox {
+        pub(crate) fn new() -> Self {
+            let lock = crate::oci::tests::ENV_LOCK
+                .lock()
+                .unwrap_or_else(|p| p.into_inner());
+            let saved = CREDENTIAL_ENV
+                .iter()
+                .map(|k| (*k, std::env::var_os(k)))
+                .collect();
+            let dir = tempfile::tempdir().unwrap();
+            let root = dir.path();
+            std::env::set_var("DOCKER_CONFIG", root);
+            std::env::set_var("REGISTRY_AUTH_FILE", root.join("registry-auth.json"));
+            std::env::set_var("XDG_RUNTIME_DIR", root);
+            std::env::set_var("HOME", root);
+            Self {
+                _lock: lock,
+                saved,
+                dir,
+            }
+        }
+
+        /// Write a credential file at `rel` under the sandbox root,
+        /// creating parent directories.
+        pub(crate) fn write(&self, rel: &str, contents: &str) {
+            let path = self.dir.path().join(rel);
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(path, contents).unwrap();
+        }
+    }
+
+    impl Drop for EnvSandbox {
+        fn drop(&mut self) {
+            for (key, value) in &self.saved {
+                match value {
+                    Some(value) => std::env::set_var(key, value),
+                    None => std::env::remove_var(key),
+                }
+            }
+        }
+    }
+
     #[test]
     fn missing_config_file_is_a_miss() {
-        let tmp = tempfile::tempdir().unwrap();
-        let _env = crate::oci::tests::ENV_LOCK
-            .lock()
-            .unwrap_or_else(|p| p.into_inner());
-        std::env::set_var("DOCKER_CONFIG", tmp.path());
-        let got = credential(ECR);
-        std::env::remove_var("DOCKER_CONFIG");
-        assert_eq!(got.unwrap(), None);
+        let _env = EnvSandbox::new();
+        assert_eq!(credential(ECR).unwrap(), None);
     }
 
     #[test]
     fn reads_config_from_docker_config_env() {
-        let tmp = tempfile::tempdir().unwrap();
-        std::fs::write(
-            tmp.path().join("config.json"),
-            format!(r#"{{"auths": {{"{ECR}": {{"auth": "QVdTOmVjci10b2tlbg=="}}}}}}"#),
-        )
-        .unwrap();
+        let env = EnvSandbox::new();
+        env.write("config.json", &auth_file(ECR, "ecr-token"));
+        assert_eq!(credential(ECR).unwrap().unwrap().secret, "ecr-token");
+    }
 
-        let _env = crate::oci::tests::ENV_LOCK
-            .lock()
-            .unwrap_or_else(|p| p.into_inner());
-        std::env::set_var("DOCKER_CONFIG", tmp.path());
-        let got = credential(ECR);
-        std::env::remove_var("DOCKER_CONFIG");
-        assert_eq!(got.unwrap().unwrap().secret, "ecr-token");
+    // ── podman / containers auth.json (issue #121) ───────────────────────
+
+    #[test]
+    fn reads_podman_auth_json_from_registry_auth_file() {
+        let env = EnvSandbox::new();
+        env.write("registry-auth.json", &auth_file(ECR, "from-authfile"));
+        assert_eq!(credential(ECR).unwrap().unwrap().secret, "from-authfile");
+    }
+
+    #[test]
+    fn reads_podman_auth_json_from_xdg_runtime_dir() {
+        let env = EnvSandbox::new();
+        env.write("containers/auth.json", &auth_file(ECR, "from-xdg"));
+        assert_eq!(credential(ECR).unwrap().unwrap().secret, "from-xdg");
+    }
+
+    #[test]
+    fn reads_podman_auth_json_from_home_config() {
+        let env = EnvSandbox::new();
+        env.write(".config/containers/auth.json", &auth_file(ECR, "from-home"));
+        assert_eq!(credential(ECR).unwrap().unwrap().secret, "from-home");
+    }
+
+    /// Docker's own config keeps winning, so adding podman support can't
+    /// change what an existing Docker user resolves to.
+    #[test]
+    fn docker_config_takes_precedence_over_podman() {
+        let env = EnvSandbox::new();
+        env.write("config.json", &auth_file(ECR, "from-docker"));
+        env.write("registry-auth.json", &auth_file(ECR, "from-authfile"));
+        env.write("containers/auth.json", &auth_file(ECR, "from-xdg"));
+        env.write(".config/containers/auth.json", &auth_file(ECR, "from-home"));
+        assert_eq!(credential(ECR).unwrap().unwrap().secret, "from-docker");
+    }
+
+    #[test]
+    fn podman_sources_are_ordered_authfile_then_xdg_then_home() {
+        let env = EnvSandbox::new();
+        env.write("registry-auth.json", &auth_file(ECR, "from-authfile"));
+        env.write("containers/auth.json", &auth_file(ECR, "from-xdg"));
+        env.write(".config/containers/auth.json", &auth_file(ECR, "from-home"));
+        assert_eq!(credential(ECR).unwrap().unwrap().secret, "from-authfile");
+
+        std::env::set_var("REGISTRY_AUTH_FILE", env.dir.path().join("gone.json"));
+        assert_eq!(credential(ECR).unwrap().unwrap().secret, "from-xdg");
+
+        std::env::set_var("XDG_RUNTIME_DIR", env.dir.path().join("gone"));
+        assert_eq!(credential(ECR).unwrap().unwrap().secret, "from-home");
+    }
+
+    /// The exact shape reported in issue #121: on a `podman-docker` box a
+    /// stray or logged-out `~/.docker/config.json` must not mask the
+    /// podman login that `docker login` actually wrote.
+    #[test]
+    fn empty_docker_config_does_not_mask_podman_credential() {
+        let env = EnvSandbox::new();
+        env.write("config.json", r#"{"auths": {}}"#);
+        env.write("containers/auth.json", &auth_file(ECR, "from-podman"));
+        assert_eq!(credential(ECR).unwrap().unwrap().secret, "from-podman");
+    }
+
+    /// A Docker config for a *different* registry must not shadow podman
+    /// either — the walk is per-registry, not per-file.
+    #[test]
+    fn docker_config_for_other_registry_falls_through() {
+        let env = EnvSandbox::new();
+        env.write("config.json", &auth_file("ghcr.io", "ghcr-token"));
+        env.write("containers/auth.json", &auth_file(ECR, "from-podman"));
+        assert_eq!(credential(ECR).unwrap().unwrap().secret, "from-podman");
+    }
+
+    /// A broken Docker config must not hide a working podman one; the
+    /// error is held back in case nothing later matches.
+    #[test]
+    fn broken_docker_config_does_not_hide_podman_credential() {
+        let env = EnvSandbox::new();
+        env.write("config.json", "{not json");
+        env.write("containers/auth.json", &auth_file(ECR, "from-podman"));
+        assert_eq!(credential(ECR).unwrap().unwrap().secret, "from-podman");
+    }
+
+    /// ...but when nothing else yields a credential, that held-back error
+    /// surfaces rather than silently degrading to an anonymous pull.
+    #[test]
+    fn broken_config_surfaces_when_nothing_else_matches() {
+        let env = EnvSandbox::new();
+        env.write("config.json", "{not json");
+        assert!(matches!(
+            credential(ECR),
+            Err(DockerAuthError::Parse { .. })
+        ));
     }
 
     /// End-to-end over the real subprocess protocol, using a shell script

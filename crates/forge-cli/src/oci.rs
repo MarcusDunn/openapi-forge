@@ -48,9 +48,9 @@
 //!   `$DOCKER_CONFIG/config.json` (default `~/.docker/config.json`)
 //!   that `docker login` writes, including `credsStore`/`credHelpers`
 //!   credential helpers such as `docker-credential-ecr-login` for
-//!   Amazon ECR. See [`crate::docker_auth`]. For `ghcr.io` this is a
-//!   fallback behind the GitHub token sources above; everywhere else it
-//!   is the only source.
+//!   Amazon ECR, plus podman's `containers/auth.json`. See
+//!   [`crate::docker_auth`]. For `ghcr.io` this is a fallback behind the
+//!   GitHub token sources above; everywhere else it is the only source.
 //!
 //! If no source yields a credential, the pull degrades silently to
 //! anonymous — public plugins keep working with no login. See ADR-0010.
@@ -809,33 +809,41 @@ pub(crate) mod tests {
     /// "QVdTOmVjci10b2tlbg==" is base64("AWS:ecr-token").
     #[test]
     fn docker_config_auths_entry_resolves_to_basic() {
-        let tmp = tempfile::tempdir().unwrap();
-        std::fs::write(
-            tmp.path().join("config.json"),
+        let env = crate::docker_auth::tests::EnvSandbox::new();
+        env.write(
+            "config.json",
             r#"{"auths": {"123456789012.dkr.ecr.us-east-1.amazonaws.com": {"auth": "QVdTOmVjci10b2tlbg=="}}}"#,
-        )
-        .unwrap();
-
-        let _env = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
-        std::env::set_var("DOCKER_CONFIG", tmp.path());
-        let auth = resolve_auth("123456789012.dkr.ecr.us-east-1.amazonaws.com");
-        std::env::remove_var("DOCKER_CONFIG");
+        );
         assert_eq!(
-            auth,
+            resolve_auth("123456789012.dkr.ecr.us-east-1.amazonaws.com"),
+            RegistryAuth::Basic("AWS".to_owned(), "ecr-token".to_owned())
+        );
+    }
+
+    /// A podman-written `containers/auth.json` resolves the same way, so
+    /// `podman-docker` machines authenticate without forge-specific
+    /// setup. See issue #121.
+    #[test]
+    fn podman_auth_json_resolves_to_basic() {
+        let env = crate::docker_auth::tests::EnvSandbox::new();
+        env.write(
+            "containers/auth.json",
+            r#"{"auths": {"123456789012.dkr.ecr.us-east-1.amazonaws.com": {"auth": "QVdTOmVjci10b2tlbg=="}}}"#,
+        );
+        assert_eq!(
+            resolve_auth("123456789012.dkr.ecr.us-east-1.amazonaws.com"),
             RegistryAuth::Basic("AWS".to_owned(), "ecr-token".to_owned())
         );
     }
 
     #[test]
     fn docker_config_without_entry_is_anonymous() {
-        let tmp = tempfile::tempdir().unwrap();
-        std::fs::write(tmp.path().join("config.json"), r#"{"auths": {}}"#).unwrap();
-
-        let _env = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
-        std::env::set_var("DOCKER_CONFIG", tmp.path());
-        let auth = docker_config_auth("registry.example.com");
-        std::env::remove_var("DOCKER_CONFIG");
-        assert_eq!(auth, RegistryAuth::Anonymous);
+        let env = crate::docker_auth::tests::EnvSandbox::new();
+        env.write("config.json", r#"{"auths": {}}"#);
+        assert_eq!(
+            docker_config_auth("registry.example.com"),
+            RegistryAuth::Anonymous
+        );
     }
 
     /// A broken credential store must not fail the pull outright — it
@@ -843,14 +851,12 @@ pub(crate) mod tests {
     /// working on a machine with a misconfigured Docker setup.
     #[test]
     fn unreadable_docker_config_degrades_to_anonymous() {
-        let tmp = tempfile::tempdir().unwrap();
-        std::fs::write(tmp.path().join("config.json"), "{not json").unwrap();
-
-        let _env = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
-        std::env::set_var("DOCKER_CONFIG", tmp.path());
-        let auth = docker_config_auth("registry.example.com");
-        std::env::remove_var("DOCKER_CONFIG");
-        assert_eq!(auth, RegistryAuth::Anonymous);
+        let env = crate::docker_auth::tests::EnvSandbox::new();
+        env.write("config.json", "{not json");
+        assert_eq!(
+            docker_config_auth("registry.example.com"),
+            RegistryAuth::Anonymous
+        );
     }
 
     /// A GitHub token must win over a stored Docker credential for
@@ -858,19 +864,14 @@ pub(crate) mod tests {
     /// far more often than a `docker login` against ghcr.
     #[test]
     fn ghcr_prefers_github_token_over_docker_config() {
-        let tmp = tempfile::tempdir().unwrap();
-        std::fs::write(
-            tmp.path().join("config.json"),
+        let env = crate::docker_auth::tests::EnvSandbox::new();
+        env.write(
+            "config.json",
             r#"{"auths": {"ghcr.io": {"auth": "dTpkb2NrZXI="}}}"#,
-        )
-        .unwrap();
-
-        let _env = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
-        std::env::set_var("DOCKER_CONFIG", tmp.path());
+        );
         std::env::set_var("GH_TOKEN", "ghp_from_env");
         let auth = resolve_auth("ghcr.io");
         std::env::remove_var("GH_TOKEN");
-        std::env::remove_var("DOCKER_CONFIG");
         assert_eq!(
             auth,
             RegistryAuth::Basic(GHCR_TOKEN_USERNAME.to_owned(), "ghp_from_env".to_owned())
@@ -1103,11 +1104,12 @@ pub(crate) mod tests {
         let cache_path = cache.path().to_path_buf();
         let reference2 = reference.clone();
         let bytes = tokio::task::spawn_blocking(move || {
-            let _env = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+            // Takes ENV_LOCK and points every credential-file env var at
+            // an empty temp dir, so the developer's real Docker/podman
+            // logins can't reach this test.
+            let _env = crate::docker_auth::tests::EnvSandbox::new();
             std::env::set_var("FORGE_CACHE_DIR", &cache_path);
             std::env::set_var("FORGE_OCI_INSECURE_HOSTS", &host);
-            // Keep the host's real Docker config out of the test.
-            std::env::set_var("DOCKER_CONFIG", &cache_path);
             fetch_to_bytes(&reference2)
         })
         .await
@@ -1134,9 +1136,8 @@ pub(crate) mod tests {
         drop(server);
         let cache_path = cache.path().to_path_buf();
         let bytes2 = tokio::task::spawn_blocking(move || {
-            let _env = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+            let _env = crate::docker_auth::tests::EnvSandbox::new();
             std::env::set_var("FORGE_CACHE_DIR", &cache_path);
-            std::env::set_var("DOCKER_CONFIG", &cache_path);
             fetch_to_bytes(&reference)
         })
         .await
@@ -1251,10 +1252,9 @@ pub(crate) mod tests {
         let host2 = host.clone();
         let reference2 = reference.clone();
         let bytes = tokio::task::spawn_blocking(move || {
-            let _env = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+            let _env = crate::docker_auth::tests::EnvSandbox::new();
             std::env::set_var("FORGE_CACHE_DIR", &cache_path);
             std::env::set_var("FORGE_OCI_INSECURE_HOSTS", &host2);
-            std::env::set_var("DOCKER_CONFIG", &cache_path);
             fetch_to_bytes(&reference2)
         })
         .await

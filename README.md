@@ -130,6 +130,23 @@ or configure [`docker-credential-ecr-login`](https://github.com/awslabs/amazon-e
 once and forget about token expiry — `forge` invokes the helper on each
 pull, just like Docker does.
 
+**Using podman?** If `docker` on your machine is really podman (the
+`podman-docker` package on NixOS, Debian and Fedora), `docker login`
+writes `containers/auth.json` rather than `~/.docker/config.json`.
+`forge` reads that too, so the plain login above just works. Files are
+consulted in this order, first match winning:
+
+| # | Path |
+|---|------|
+| 1 | `$DOCKER_CONFIG/config.json` (default `~/.docker/config.json`) |
+| 2 | `$REGISTRY_AUTH_FILE` |
+| 3 | `$XDG_RUNTIME_DIR/containers/auth.json` |
+| 4 | `~/.config/containers/auth.json` |
+
+A file with no entry for the registry is skipped rather than ending the
+search, so a leftover empty `~/.docker/config.json` will not mask a
+working podman login.
+
 **`ghcr.io`**: additionally, log in with the
 [GitHub CLI](https://cli.github.com/) and `forge` reuses that token
 automatically — no separate configuration. GHCR package reads need the
