@@ -101,8 +101,22 @@ token per pull), both of which users already have for Docker itself.
 The credential goes over HTTP Basic, which the registry exchanges for a
 bearer token per the distribution spec.
 
+The same lookup also covers the containers-ecosystem `auth.json`
+(`$REGISTRY_AUTH_FILE`, then `$XDG_RUNTIME_DIR/containers/auth.json`,
+then `~/.config/containers/auth.json`), consulted after Docker's own
+config. On the distros that ship `podman-docker` — NixOS, Debian,
+Fedora — `docker` *is* podman, so `docker login` succeeds and writes
+there; reading only `~/.docker/config.json` would break the "if
+`docker pull` works, `forge` works" contract in precisely the
+environment that most needs it. The schema is the same `auths` map, so
+one parser serves both. Lookup walks the list and skips a file that has
+no entry for the registry rather than stopping at the first file that
+exists, so a leftover or logged-out `~/.docker/config.json` cannot mask a
+working podman login. Docker's config stays first, so this is additive:
+an existing Docker user resolves exactly what they did before.
+
 This reader is hand-rolled (`crates/forge-cli/src/docker_auth.rs`,
-~200 lines) rather than taken from the `docker_credential` crate, and
+~250 lines) rather than taken from the `docker_credential` crate, and
 covers only the two ECR paths above. Notably the `identitytoken` field
 and the `Username: "<token>"` helper convention — bearer-token
 registries such as Azure ACR — are deliberately unimplemented: such a
