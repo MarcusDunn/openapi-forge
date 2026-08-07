@@ -25,6 +25,7 @@ use forge_host::{Engine, Plugin};
 use forge_pipeline::{run as run_pipeline, PipelineConfig, PipelineError};
 use serde::Deserialize;
 
+mod docker_auth;
 mod oci;
 
 #[derive(Debug, Parser)]

@@ -318,9 +318,15 @@ Pin by digest for reproducible builds:
 oci = "ghcr.io/<you>/my-generator@sha256:abc123…"
 ```
 
+Private registries work through the Docker credential store: if
+`docker pull` from your registry works (`docker login`, or a credential
+helper such as `docker-credential-ecr-login` for Amazon ECR), so does
+`forge`. Private `ghcr.io` packages additionally resolve via a `gh` CLI
+login or `GH_TOKEN`/`GITHUB_TOKEN`.
+
 Pulled artifacts are cached under
 `$XDG_CACHE_HOME/openapi-forge/plugins/`. See ADR-0010 for the cache
-layout and v1 limitations (anonymous registries only).
+layout and auth details.
 
 ## Determinism
 

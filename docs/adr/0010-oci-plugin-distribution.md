@@ -86,8 +86,39 @@ keep working without a GitHub login. A `DENIED`/
 `UNAUTHORIZED` response on a `ghcr.io` ref is rewritten into an
 actionable error pointing at `gh auth refresh -h github.com -s
 read:packages` — the `read:packages` scope GHCR requires is not part of
-the default `gh auth login` token. Other registries and
-`~/.docker/config.json` reading remain deferred to a follow-up.
+the default `gh auth login` token.
+
+For every other registry — and for `ghcr.io` when no GitHub token is
+found — the CLI reads the Docker credential store: the
+`$DOCKER_CONFIG/config.json` (default `~/.docker/config.json`) that
+`docker login` writes, including `credsStore`/`credHelpers` credential
+helpers. The contract is "if `docker pull` works, `forge` works." This
+is what makes Amazon ECR — the motivating private-registry case —
+resolve with zero forge-specific configuration: either
+`aws ecr get-login-password | docker login` (a base64 `auths` entry) or
+the `docker-credential-ecr-login` helper (a subprocess minting a fresh
+token per pull), both of which users already have for Docker itself.
+The credential goes over HTTP Basic, which the registry exchanges for a
+bearer token per the distribution spec.
+
+This reader is hand-rolled (`crates/forge-cli/src/docker_auth.rs`,
+~200 lines) rather than taken from the `docker_credential` crate, and
+covers only the two ECR paths above. Notably the `identitytoken` field
+and the `Username: "<token>"` helper convention — bearer-token
+registries such as Azure ACR — are deliberately unimplemented: such a
+registry degrades to an anonymous pull plus the login hint below, rather
+than being silently mis-authenticated. Add them when someone needs them;
+the shape of the module makes that a small change.
+
+Access denials on non-GHCR registries get the same actionable-error
+treatment as GHCR, with an ECR-aware hint
+(`aws ecr get-login-password --region <region> …`, region parsed from
+the registry host) and a generic `docker login <registry>` hint
+elsewhere.
+
+> An earlier revision of this ADR deferred non-GHCR auth and
+> `~/.docker/config.json` reading to a follow-up; that follow-up is the
+> paragraph above.
 
 **Accepted layer media types:**
 1. `application/vnd.bytecodealliance.wasm.component.layer.v0+wasm`
@@ -117,6 +148,10 @@ fail loudly on non-wasm bytes anyway.
 - One new network surface in `forge-cli`. It is the only network surface
   in the host workspace (the parser does file I/O, plugins do nothing).
   CVE/audit scope grows by `oci-client` + `reqwest` + `rustls`.
+- Reading the Docker credential store means forge may execute a
+  credential-helper binary (`docker-credential-*`) found on `PATH`, but
+  only one the user's own Docker config names. `base64` is the single
+  new direct dependency, and it was already in the tree transitively.
 - Plugin authors need a publish workflow. `oras push <ref> <plugin>.wasm:application/vnd.bytecodealliance.wasm.component.layer.v0+wasm`
   is the canonical incantation; `wkg publish` works too.
 - The cache can grow without bound. We do not garbage-collect in v1;

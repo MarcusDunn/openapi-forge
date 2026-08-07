@@ -36,15 +36,24 @@
 //!
 //! ## Auth
 //!
-//! Pulls are anonymous by default. For `ghcr.io` refs we look for a
-//! GitHub token in precedence order — `GH_TOKEN`, `GITHUB_TOKEN`, then
-//! `gh auth token` — and, if one is found, authenticate over HTTP Basic
-//! so private GitHub packages resolve. The env vars let CI authenticate
-//! without `gh` installed; the `gh` fallback gives local shells the
-//! "just be logged in" experience. If no source yields a token (env
-//! unset, `gh` missing or not logged in), the pull degrades silently to
-//! anonymous — public plugins keep working with no GitHub login. See
-//! ADR-0010.
+//! Pulls are anonymous by default. Credentials, when needed, come from
+//! two sources:
+//!
+//! - **`ghcr.io`**: a GitHub token in precedence order — `GH_TOKEN`,
+//!   `GITHUB_TOKEN`, then `gh auth token` — authenticated over HTTP
+//!   Basic so private GitHub packages resolve. The env vars let CI
+//!   authenticate without `gh` installed; the `gh` fallback gives local
+//!   shells the "just be logged in" experience.
+//! - **Any registry**: the Docker credential store — the same
+//!   `$DOCKER_CONFIG/config.json` (default `~/.docker/config.json`)
+//!   that `docker login` writes, including `credsStore`/`credHelpers`
+//!   credential helpers such as `docker-credential-ecr-login` for
+//!   Amazon ECR. See [`crate::docker_auth`]. For `ghcr.io` this is a
+//!   fallback behind the GitHub token sources above; everywhere else it
+//!   is the only source.
+//!
+//! If no source yields a credential, the pull degrades silently to
+//! anonymous — public plugins keep working with no login. See ADR-0010.
 
 use std::path::{Path, PathBuf};
 
@@ -96,16 +105,15 @@ pub enum OciError {
     },
     #[error("registry pull: {0}")]
     Registry(#[from] oci_client::errors::OciDistributionError),
-    #[error(
-        "access denied by ghcr.io. If this is a private package, log in with the \
-         GitHub CLI and ensure your token carries the `read:packages` scope:\n    \
-         gh auth refresh -h github.com -s read:packages\n  \
-         (or `gh auth login` if you have not authenticated yet)"
-    )]
-    GhcrAccessDenied {
+    #[error("access denied pulling {reference}. {hint}")]
+    AccessDenied {
         reference: String,
+        /// Registry-specific login hint, see [`access_denied_hint`].
+        hint: String,
+        // Boxed to keep the enum (and every Result that carries it)
+        // under clippy's result_large_err threshold.
         #[source]
-        source: oci_client::errors::OciDistributionError,
+        source: Box<oci_client::errors::OciDistributionError>,
     },
     #[error(
         "no acceptable wasm layer in {reference}: \
@@ -144,8 +152,9 @@ pub fn fetch_to_bytes(reference: &str) -> Result<Vec<u8>, OciError> {
         }
     }
 
-    // Resolve auth synchronously (it may shell out to `gh`) before
-    // entering the async runtime, keeping the subprocess off the executor.
+    // Resolve auth synchronously (it may shell out to `gh` or a Docker
+    // credential helper) before entering the async runtime, keeping the
+    // subprocess off the executor.
     let auth = resolve_auth(parsed.registry());
 
     let runtime = tokio::runtime::Builder::new_current_thread()
@@ -310,23 +319,79 @@ fn new_client() -> Client {
     })
 }
 
-/// Map a raw registry error into [`OciError`], upgrading a `ghcr.io`
-/// access-denial into the actionable `read:packages` hint. Private GitHub
-/// packages need a `gh` token carrying that scope, which the default
-/// `gh auth login` token lacks; an opaque 403 otherwise leaves the user
-/// chasing the wrong thing.
+/// Map a raw registry error into [`OciError`], upgrading an
+/// access-denial into an actionable, registry-specific login hint. An
+/// opaque 401/403 otherwise leaves the user chasing the wrong thing.
 fn map_registry_error(
     reference: &Reference,
     e: oci_client::errors::OciDistributionError,
 ) -> OciError {
-    if reference.registry() == GHCR_REGISTRY && is_access_denied(&e) {
-        OciError::GhcrAccessDenied {
+    if is_access_denied(&e) {
+        OciError::AccessDenied {
             reference: reference.to_string(),
-            source: e,
+            hint: access_denied_hint(reference.registry()),
+            source: Box::new(e),
         }
     } else {
         e.into()
     }
+}
+
+/// The login instruction appended to an access-denied error, specialised
+/// per registry so the user is pointed at the credential source forge
+/// actually reads:
+/// - `ghcr.io`: the `gh` CLI needs the `read:packages` scope, which the
+///   default `gh auth login` token lacks.
+/// - Amazon ECR (private or public): a `docker login` fed by the AWS CLI
+///   (or the `ecr-login` credential helper).
+/// - anything else: plain `docker login`, since forge reads the Docker
+///   credential store.
+fn access_denied_hint(registry: &str) -> String {
+    if registry == GHCR_REGISTRY {
+        return "If this is a private package, log in with the GitHub CLI and \
+                ensure your token carries the `read:packages` scope:\n    \
+                gh auth refresh -h github.com -s read:packages\n  \
+                (or `gh auth login` if you have not authenticated yet)"
+            .to_owned();
+    }
+    if let Some(region) = ecr_region(registry) {
+        return format!(
+            "If this is a private repository, log in with the AWS CLI:\n    \
+             aws ecr get-login-password --region {region} | \
+             docker login --username AWS --password-stdin {registry}\n  \
+             (or configure the `ecr-login` credential helper in your Docker \
+             config; forge reads credentials from `~/.docker/config.json`)"
+        );
+    }
+    if registry == "public.ecr.aws" {
+        return format!(
+            "Log in with the AWS CLI:\n    \
+             aws ecr-public get-login-password --region us-east-1 | \
+             docker login --username AWS --password-stdin {registry}\n  \
+             (forge reads credentials from `~/.docker/config.json`)"
+        );
+    }
+    format!(
+        "If this registry requires authentication, log in with:\n    \
+         docker login {registry}\n  \
+         forge reads credentials from your Docker config \
+         (`~/.docker/config.json`), including credential helpers."
+    )
+}
+
+/// Region of a private Amazon ECR registry host —
+/// `<account>.dkr.ecr.<region>.amazonaws.com` (also `ecr-fips` and the
+/// `.com.cn` China partition). `None` for anything that doesn't match,
+/// including ECR Public (`public.ecr.aws`).
+fn ecr_region(registry: &str) -> Option<&str> {
+    let rest = registry
+        .split_once(".dkr.ecr.")
+        .or_else(|| registry.split_once(".dkr.ecr-fips."))
+        .map(|(_, rest)| rest)?;
+    let region = rest
+        .strip_suffix(".amazonaws.com")
+        .or_else(|| rest.strip_suffix(".amazonaws.com.cn"))?;
+    (!region.is_empty() && !region.contains('.')).then_some(region)
 }
 
 /// Honours `FORGE_OCI_INSECURE_HOSTS` (comma-separated `host[:port]`
@@ -343,11 +408,51 @@ fn configured_protocol() -> ClientProtocol {
     }
 }
 
-/// Pick the registry credentials for `registry`. Anonymous for
-/// everything except `ghcr.io`, where we try the `gh` CLI so private
-/// GitHub packages resolve without the user wiring up a separate token.
+/// Pick the registry credentials for `registry`. For `ghcr.io` a GitHub
+/// token (env or `gh` CLI) takes precedence so private GitHub packages
+/// resolve without the user wiring up a separate token; for every
+/// registry — ECR, Docker Hub, self-hosted, and `ghcr.io` when no GitHub
+/// token is found — we fall through to the Docker credential store, the
+/// same source `docker pull` uses.
 fn resolve_auth(registry: &str) -> RegistryAuth {
-    auth_from_token(registry, ghcr_token(registry))
+    match auth_from_token(registry, ghcr_token(registry)) {
+        RegistryAuth::Anonymous => docker_config_auth(registry),
+        auth => auth,
+    }
+}
+
+/// Credentials from the Docker credential store — see
+/// [`crate::docker_auth`] for what is read and why. The pair goes over
+/// HTTP Basic, which the registry exchanges for a bearer token per the
+/// distribution spec (for ECR the pair is literally `AWS` / a token).
+///
+/// Nothing configured for this registry is the common case and degrades
+/// silently to an anonymous pull. A *failure* — an unreadable config, a
+/// credential helper that errored — is warned about rather than
+/// propagated: the pull may still succeed anonymously if the plugin is
+/// public, and if it doesn't, the access-denied hint tells the user how
+/// to log in. Staying quiet here would leave them debugging a 401 with
+/// no idea their `ecr-login` helper was failing.
+fn docker_config_auth(registry: &str) -> RegistryAuth {
+    match crate::docker_auth::credential(registry) {
+        Ok(Some(credential)) => RegistryAuth::Basic(credential.username, credential.secret),
+        Ok(None) => {
+            tracing::debug!(
+                target: "forge::oci",
+                registry,
+                "no Docker credential configured; pulling anonymously",
+            );
+            RegistryAuth::Anonymous
+        }
+        Err(e) => {
+            tracing::warn!(
+                target: "forge::oci",
+                registry, error = %e,
+                "could not obtain a Docker credential; pulling anonymously",
+            );
+            RegistryAuth::Anonymous
+        }
+    }
 }
 
 /// Pure mapping from `(registry, token)` to a `RegistryAuth`, factored
@@ -608,20 +713,24 @@ fn digests_equal(a: &str, b: &str) -> bool {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use oci_client::manifest::{OciDescriptor, OciImageManifest};
     use serde_json::json;
     use wiremock::matchers::{method, path};
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
-    /// Serialises the integration tests that mutate process-global env
-    /// (`FORGE_CACHE_DIR`, `FORGE_OCI_INSECURE_HOSTS`). Each mock server
-    /// binds a random port, so the insecure-hosts override differs per
-    /// test; without this lock the parallel test runner lets one test's
-    /// `set_var` clobber the other's mid-fetch. Held only inside the
-    /// `spawn_blocking` critical sections (never across `.await`).
-    static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    /// Serialises the tests that mutate process-global env
+    /// (`FORGE_CACHE_DIR`, `FORGE_OCI_INSECURE_HOSTS`, `DOCKER_CONFIG`,
+    /// `PATH`). Each mock server binds a random port, so the
+    /// insecure-hosts override differs per test; without this lock the
+    /// parallel test runner lets one test's `set_var` clobber the
+    /// other's mid-fetch. Held only inside the `spawn_blocking` critical
+    /// sections (never across `.await`). Shared with
+    /// [`crate::docker_auth`]'s tests, which set `DOCKER_CONFIG` and
+    /// `PATH` — one lock across both modules, since the env they race on
+    /// is the same process-global.
+    pub(crate) static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
     #[test]
     fn parses_typical_ref() {
@@ -686,12 +795,120 @@ mod tests {
 
     #[test]
     fn non_ghcr_registry_is_anonymous_even_with_token() {
-        // We only ever surface a token for ghcr.io, but guard the policy
-        // anyway: a token must never leak to a different registry.
+        // We only ever surface a GitHub token for ghcr.io, but guard the
+        // policy anyway: a token must never leak to a different registry.
         assert_eq!(
             auth_from_token("docker.io", Some("ghp_secret".to_owned())),
             RegistryAuth::Anonymous
         );
+    }
+
+    /// The ECR shape end-to-end: a `config.json` holding base64
+    /// `AWS:<token>` (what `aws ecr get-login-password | docker login`
+    /// leaves behind) must reach the registry as HTTP Basic.
+    /// "QVdTOmVjci10b2tlbg==" is base64("AWS:ecr-token").
+    #[test]
+    fn docker_config_auths_entry_resolves_to_basic() {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::write(
+            tmp.path().join("config.json"),
+            r#"{"auths": {"123456789012.dkr.ecr.us-east-1.amazonaws.com": {"auth": "QVdTOmVjci10b2tlbg=="}}}"#,
+        )
+        .unwrap();
+
+        let _env = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        std::env::set_var("DOCKER_CONFIG", tmp.path());
+        let auth = resolve_auth("123456789012.dkr.ecr.us-east-1.amazonaws.com");
+        std::env::remove_var("DOCKER_CONFIG");
+        assert_eq!(
+            auth,
+            RegistryAuth::Basic("AWS".to_owned(), "ecr-token".to_owned())
+        );
+    }
+
+    #[test]
+    fn docker_config_without_entry_is_anonymous() {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::write(tmp.path().join("config.json"), r#"{"auths": {}}"#).unwrap();
+
+        let _env = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        std::env::set_var("DOCKER_CONFIG", tmp.path());
+        let auth = docker_config_auth("registry.example.com");
+        std::env::remove_var("DOCKER_CONFIG");
+        assert_eq!(auth, RegistryAuth::Anonymous);
+    }
+
+    /// A broken credential store must not fail the pull outright — it
+    /// degrades to anonymous (with a warning), so public plugins keep
+    /// working on a machine with a misconfigured Docker setup.
+    #[test]
+    fn unreadable_docker_config_degrades_to_anonymous() {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::write(tmp.path().join("config.json"), "{not json").unwrap();
+
+        let _env = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        std::env::set_var("DOCKER_CONFIG", tmp.path());
+        let auth = docker_config_auth("registry.example.com");
+        std::env::remove_var("DOCKER_CONFIG");
+        assert_eq!(auth, RegistryAuth::Anonymous);
+    }
+
+    /// A GitHub token must win over a stored Docker credential for
+    /// ghcr.io — the `gh` login is the documented path and is refreshed
+    /// far more often than a `docker login` against ghcr.
+    #[test]
+    fn ghcr_prefers_github_token_over_docker_config() {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::write(
+            tmp.path().join("config.json"),
+            r#"{"auths": {"ghcr.io": {"auth": "dTpkb2NrZXI="}}}"#,
+        )
+        .unwrap();
+
+        let _env = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        std::env::set_var("DOCKER_CONFIG", tmp.path());
+        std::env::set_var("GH_TOKEN", "ghp_from_env");
+        let auth = resolve_auth("ghcr.io");
+        std::env::remove_var("GH_TOKEN");
+        std::env::remove_var("DOCKER_CONFIG");
+        assert_eq!(
+            auth,
+            RegistryAuth::Basic(GHCR_TOKEN_USERNAME.to_owned(), "ghp_from_env".to_owned())
+        );
+    }
+
+    #[test]
+    fn ecr_region_parses_private_ecr_hosts() {
+        assert_eq!(
+            ecr_region("123456789012.dkr.ecr.us-east-1.amazonaws.com"),
+            Some("us-east-1")
+        );
+        assert_eq!(
+            ecr_region("123456789012.dkr.ecr-fips.us-gov-west-1.amazonaws.com"),
+            Some("us-gov-west-1")
+        );
+        assert_eq!(
+            ecr_region("123456789012.dkr.ecr.cn-north-1.amazonaws.com.cn"),
+            Some("cn-north-1")
+        );
+        assert_eq!(ecr_region("public.ecr.aws"), None);
+        assert_eq!(ecr_region("ghcr.io"), None);
+        assert_eq!(
+            ecr_region("evil.dkr.ecr.us-east-1.amazonaws.com.example"),
+            None
+        );
+    }
+
+    #[test]
+    fn access_denied_hint_is_registry_specific() {
+        assert!(access_denied_hint("ghcr.io").contains("read:packages"));
+        assert!(
+            access_denied_hint("123456789012.dkr.ecr.eu-west-2.amazonaws.com")
+                .contains("aws ecr get-login-password --region eu-west-2")
+        );
+        assert!(access_denied_hint("public.ecr.aws").contains("aws ecr-public get-login-password"));
+        assert!(access_denied_hint("registry.example.com")
+            .contains("docker login registry.example.com"));
     }
 
     #[test]
@@ -889,6 +1106,8 @@ mod tests {
             let _env = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
             std::env::set_var("FORGE_CACHE_DIR", &cache_path);
             std::env::set_var("FORGE_OCI_INSECURE_HOSTS", &host);
+            // Keep the host's real Docker config out of the test.
+            std::env::set_var("DOCKER_CONFIG", &cache_path);
             fetch_to_bytes(&reference2)
         })
         .await
@@ -917,6 +1136,7 @@ mod tests {
         let bytes2 = tokio::task::spawn_blocking(move || {
             let _env = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
             std::env::set_var("FORGE_CACHE_DIR", &cache_path);
+            std::env::set_var("DOCKER_CONFIG", &cache_path);
             fetch_to_bytes(&reference)
         })
         .await
@@ -1034,6 +1254,7 @@ mod tests {
             let _env = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
             std::env::set_var("FORGE_CACHE_DIR", &cache_path);
             std::env::set_var("FORGE_OCI_INSECURE_HOSTS", &host2);
+            std::env::set_var("DOCKER_CONFIG", &cache_path);
             fetch_to_bytes(&reference2)
         })
         .await

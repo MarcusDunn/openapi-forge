@@ -2367,6 +2367,7 @@ name = "openapi-forge-cli"
 version = "0.1.26"
 dependencies = [
  "assert_cmd",
+ "base64",
  "clap",
  "dirs",
  "figment",
