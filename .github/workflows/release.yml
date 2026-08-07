@@ -375,7 +375,7 @@ jobs:
           cargo build --release --target wasm32-wasip2 \
             --manifest-path plugins/${{ matrix.plugin }}/Cargo.toml
 
-      - uses: oras-project/setup-oras@38de303aac69abb66f3e6255b7198bff35f323e3 # v2.0.0
+      - uses: oras-project/setup-oras@1d808f7d7f6995cc68b7bf507bfe5c5446e1dc9d # v2.0.1
 
       - name: Login to GHCR
         env:
@@ -455,7 +455,7 @@ jobs:
       # cargo-edit, which would fail because cargo-edit's deps require
       # rust >=1.88 and rust-toolchain.toml pins this repo to 1.87.
       - name: Install cargo-edit
-        uses: taiki-e/install-action@16b05812d776ae1dfaabc8277e421fb6d2506419 # v2.82.7
+        uses: taiki-e/install-action@67729d5c413db75907f0ad1e39bb04b9c868ff60 # v2.85.7
         with:
           tool: cargo-edit
 
