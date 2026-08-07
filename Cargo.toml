@@ -67,7 +67,7 @@ jsonptr = "0.8"
 
 # JSON Schema validation (used by forge-cli to validate plugin config blocks
 # against each plugin's `config_schema()` before invoking the stage).
-jsonschema = { version = "0.47", default-features = false }
+jsonschema = { version = "0.49", default-features = false }
 
 # WASM toolchain
 wasmtime = { version = "45", default-features = false, features = ["component-model", "cranelift", "runtime", "std", "addr2line", "demangle", "parallel-compilation", "cache"] }
