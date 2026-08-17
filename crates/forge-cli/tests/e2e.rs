@@ -585,12 +585,14 @@ feul = 100
 
 #[test]
 fn ir_version_subcommand() {
+    // The subcommand prints the crate version. Compare against the same
+    // value, so a version bump does not break this test.
     Command::cargo_bin("forge")
         .unwrap()
         .arg("ir-version")
         .assert()
         .success()
-        .stdout(predicates::str::starts_with("0."));
+        .stdout(format!("{}\n", env!("CARGO_PKG_VERSION")));
 }
 
 /// Regression: the CLI previously read the spec into memory and called
