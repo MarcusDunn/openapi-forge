@@ -471,8 +471,10 @@ jobs:
 
       # cargo-edit's coverage of `[workspace.dependencies]` and external
       # workspaces varies by version. Belt-and-suspenders: re-pin every
-      # `forge-* { ..., version = "..." }` reference in both Cargo.toml files
-      # to whatever the workspace just landed on.
+      # `forge-* { ..., version = "..." }` reference in all three Cargo.toml
+      # files to whatever the workspace just landed on. `plugins/Cargo.toml`
+      # is easy to forget: a caret pin there stays valid across patch bumps,
+      # so a stale value only breaks the build on a major bump.
       - name: Sync internal forge-* version pins
         run: |
           set -euo pipefail
@@ -483,6 +485,7 @@ jobs:
           targets = [
               pathlib.Path("Cargo.toml"),
               pathlib.Path("crates/forge-plugin-sdk/Cargo.toml"),
+              pathlib.Path("plugins/Cargo.toml"),
           ]
           # Match: forge-<name> = { ... version = "<old>" ... }
           pattern = re.compile(
@@ -529,10 +532,14 @@ jobs:
       # refresh it after bumping forge-ir, the next `cargo package` will
       # detect a dirty lockfile and abort. (Found this the painful way on
       # the v0.1.1 cut.)
-      - name: Refresh Cargo.lock (root + SDK)
+      # `plugins` is a third workspace. Only the forge-* entries are updated
+      # there, to keep the bump PR free of unrelated dependency churn.
+      - name: Refresh Cargo.lock (root + SDK + plugins)
         run: |
           cargo update --workspace
           cargo update --manifest-path crates/forge-plugin-sdk/Cargo.toml
+          cargo update --manifest-path plugins/Cargo.toml \
+            -p forge-ir -p forge-plugin-sdk
 
       - name: Compute new version for branch / title
         id: next
