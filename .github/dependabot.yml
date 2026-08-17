@@ -75,13 +75,3 @@ updates:
     groups:
       gomod-minor-patch:
         update-types: [minor, patch]
-
-  # TypeScript reference plugin (jco + componentize-js + esbuild + tsc).
-  - package-ecosystem: npm
-    directory: /plugins/generator-typescript-cli
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
-    groups:
-      npm-minor-patch:
-        update-types: [minor, patch]
