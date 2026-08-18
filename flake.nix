@@ -98,9 +98,10 @@
             # wit-bindgen-go (installed via `go install` in build.sh).
             pkgs.go
             pkgs.tinygo
-            # TypeScript plugin toolchain (plugins/generator-typescript-cli).
-            # jco + componentize-js + esbuild + typescript installed via
-            # plugin-local `npm ci` (see plugins/generator-typescript-cli/build.sh).
+            # Node + npm for the real-world itests. They type-check the
+            # output of generator-typescript-fetch with `tsc`, and skip
+            # that check when `tsc` is off PATH. Get it with
+            # `npm install -g typescript`, as the CI job does.
             pkgs.nodejs_22
           ];
 

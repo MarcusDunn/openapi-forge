@@ -8,6 +8,18 @@ Pre-1.0, the IR is unstable. Every release that touches the IR carries an
 
 ## [Unreleased]
 
+### Removed — the `generator-typescript-cli` reference plugin
+
+`plugins/generator-typescript-cli/` and its integration test are gone.
+The plugin built through jco + componentize-js + esbuild, and its CI job
+took about 35 minutes — more than every other job together. Nothing in
+the product depended on it; it was a cross-language reference only, and
+`plugins/generator-go-server/` still fills that role at a fraction of
+the cost.
+
+`generator-typescript-fetch` is unaffected. It is a Rust plugin and it
+remains the supported TypeScript generator.
+
 ## [1.0.1] - 2026-08-17
 
 ## [0.1.27] - 2026-08-07
