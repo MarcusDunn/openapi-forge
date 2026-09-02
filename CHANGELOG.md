@@ -8,6 +8,38 @@ Pre-1.0, the IR is unstable. Every release that touches the IR carries an
 
 ## [Unreleased]
 
+### Fixed — exclusive numeric bounds keep their own IR slots (#145) [BREAKING]
+
+`exclusiveMinimum` / `exclusiveMaximum` were folded into `minimum` /
+`maximum`, with the `exclusive_*` slots holding a `Bool(true)` marker.
+The exclusivity was therefore gone by the time a plugin read the IR: a
+schema that says `> 0` produced a check that admits `0`, and the parser
+said nothing about it.
+
+The two keyword families are now independent, as JSON Schema 2020-12
+defines them:
+
+- `minimum` / `maximum` hold the **inclusive** bound (`>=` / `<=`) only.
+- `exclusive_minimum` / `exclusive_maximum` hold the **exclusive** bound
+  itself (`>` / `<`), as a number — no longer a boolean marker.
+- The OAS 3.0 spelling (`minimum: N` plus a boolean
+  `exclusiveMinimum: true`) lowers into `exclusive_minimum`, leaving
+  `minimum` empty. Both source versions read the same in the IR.
+- A schema that states both keywords on one axis keeps both.
+
+**New diagnostic:** `parser/W-EXCLUSIVE-BOUND-DROPPED` — an
+`exclusiveMinimum` / `exclusiveMaximum` the parser cannot place (the 3.0
+flag with no companion bound, or a value that is neither a number nor a
+boolean). The keyword is dropped, but no longer in silence.
+
+**Migration:** a generator that emits `>=` from `minimum` now emits it
+only for a genuinely inclusive bound. To emit the strict comparison,
+read `exclusive_minimum` / `exclusive_maximum` as the bound value.
+A generator that tested `exclusive_minimum.is_some()` as a flag beside
+`minimum` must read the bound from the exclusive slot instead.
+
+Two new conformance fixtures, one regenerated, two new unit tests.
+
 ### Removed — the `generator-typescript-cli` reference plugin
 
 `plugins/generator-typescript-cli/` and its integration test are gone.

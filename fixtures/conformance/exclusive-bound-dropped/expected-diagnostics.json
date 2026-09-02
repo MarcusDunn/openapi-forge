@@ -1,0 +1,20 @@
+[
+  {
+    "severity": "warning",
+    "code": "parser/W-EXCLUSIVE-BOUND-DROPPED",
+    "message": "`exclusiveMinimum: true` has no companion `minimum`; the keyword is dropped",
+    "location": {
+      "pointer": "/components/schemas/Lonely",
+      "file": "spec.json"
+    }
+  },
+  {
+    "severity": "warning",
+    "code": "parser/W-EXCLUSIVE-BOUND-DROPPED",
+    "message": "`exclusiveMaximum` must be a number (3.1) or a boolean (3.0), got `\"10\"`; the keyword is dropped",
+    "location": {
+      "pointer": "/components/schemas/Malformed",
+      "file": "spec.json"
+    }
+  }
+]

@@ -3822,4 +3822,79 @@ mod tests {
         );
         assert_eq!(prim("Flag"), (PrimitiveKind::Bool, None));
     }
+
+    /// #145: an exclusive bound must stay distinguishable from an
+    /// inclusive one. Both OAS spellings lower to the same IR shape —
+    /// the bound sits in the `exclusive_*` slot, never in `minimum` /
+    /// `maximum`.
+    #[test]
+    fn exclusive_bounds_keep_their_own_slots() {
+        use forge_ir::{TypeDef, Value};
+        let src = r#"{
+            "openapi":"3.1.0",
+            "info":{"title":"t","version":"1"},
+            "paths":{},
+            "components":{"schemas":{
+                "Numeric":   {"type":"number","exclusiveMinimum":0,"exclusiveMaximum":100},
+                "Inclusive": {"type":"number","minimum":0,"maximum":100},
+                "Flagged":   {"type":"number","minimum":0,"exclusiveMinimum":true},
+                "Unflagged": {"type":"number","minimum":0,"exclusiveMinimum":false},
+                "Both":      {"type":"number","minimum":0,"exclusiveMinimum":-1}
+            }}
+        }"#;
+        let ir = parse_str(src).unwrap().spec.unwrap();
+        let int_at = |r: Option<forge_ir::ValueRef>| -> Option<i64> {
+            match &ir.values[r? as usize] {
+                Value::Int { value } => Some(*value),
+                other => panic!("expected an int bound, got {other:?}"),
+            }
+        };
+        let bounds = |id: &str| -> (Option<i64>, Option<i64>, Option<i64>, Option<i64>) {
+            let nt = ir.types.iter().find(|t| t.id == id).unwrap();
+            let TypeDef::Primitive(p) = &nt.definition else {
+                panic!("{id} not primitive");
+            };
+            let c = &p.constraints;
+            (
+                int_at(c.minimum),
+                int_at(c.maximum),
+                int_at(c.exclusive_minimum),
+                int_at(c.exclusive_maximum),
+            )
+        };
+
+        // 3.1 numeric form: the bound belongs to the exclusive slot.
+        assert_eq!(bounds("Numeric"), (None, None, Some(0), Some(100)));
+        // The inclusive spelling of the same numbers is distinct.
+        assert_eq!(bounds("Inclusive"), (Some(0), Some(100), None, None));
+        // 3.0 boolean form: the flag moves `minimum` to the exclusive slot.
+        assert_eq!(bounds("Flagged"), (None, None, Some(0), None));
+        // `exclusiveMinimum: false` leaves the inclusive bound alone.
+        assert_eq!(bounds("Unflagged"), (Some(0), None, None, None));
+        // The two keywords are independent; both survive.
+        assert_eq!(bounds("Both"), (Some(0), None, Some(-1), None));
+    }
+
+    /// A `exclusiveMinimum` the parser cannot place warns instead of
+    /// vanishing: the 3.0 flag with no companion bound, and a value of
+    /// the wrong shape.
+    #[test]
+    fn unplaceable_exclusive_bound_warns() {
+        let src = r#"{
+            "openapi":"3.0.3",
+            "info":{"title":"t","version":"1"},
+            "paths":{},
+            "components":{"schemas":{
+                "Lonely":    {"type":"integer","exclusiveMinimum":true},
+                "Malformed": {"type":"integer","minimum":1,"exclusiveMaximum":"10"}
+            }}
+        }"#;
+        let out = parse_str(src).unwrap();
+        let warns: Vec<_> = out
+            .diagnostics
+            .iter()
+            .filter(|d| d.code == diag::W_EXCLUSIVE_BOUND_DROPPED)
+            .collect();
+        assert_eq!(warns.len(), 2, "diagnostics: {:?}", out.diagnostics);
+    }
 }

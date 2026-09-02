@@ -172,7 +172,9 @@ YAML input is **not** supported. Specs must be JSON.
 - **OpenAPI 3.1**: `type` arrays for nullability (`["string", "null"]`)
   and multi-type unions (`["string", "integer"]` desugars to an untagged
   union over primitives). Numeric `exclusiveMinimum` / `exclusiveMaximum`
-  normalize to the 3.0 shape so the IR stays uniform. Top-level
+  land on `exclusive_minimum` / `exclusive_maximum`; the 3.0 boolean
+  spelling (`minimum: N` + `exclusiveMinimum: true`) lowers to the same
+  slots, so the IR stays uniform. Top-level
   `webhooks` walk through `parse_path_item` and land on `Ir.webhooks`.
   `info.summary` / `info.license.identifier` / `const` keyword.
 - **`info.contact`, `info.license` (name + url), `info.termsOfService`**:
@@ -297,6 +299,7 @@ Warnings:
 | Conflicting `allOf` property type       | `parser/W-ALLOF-CONFLICT`                      |
 | Discriminator mapping target missing    | `parser/W-DISCRIMINATOR-MAPPING-DANGLING`      |
 | Enum value of the wrong shape           | `parser/W-ENUM-VALUE-DROPPED`                  |
+| Unplaceable `exclusiveMinimum` / `exclusiveMaximum` | `parser/W-EXCLUSIVE-BOUND-DROPPED` |
 | Unknown security scheme type / http scheme | `parser/W-UNKNOWN-SECURITY-SCHEME`          |
 | Unrecognized parameter `style`          | `parser/W-PARAM-STYLE-UNSUPPORTED`             |
 | Recursive type group emitted (info)     | `parser/W-RECURSIVE-TYPE`                      |

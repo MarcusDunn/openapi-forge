@@ -8,6 +8,13 @@
         "type": "integer",
         "exclusiveMinimum": 0,
         "exclusiveMaximum": 100
+      },
+      "Both": {
+        "type": "number",
+        "minimum": 0,
+        "exclusiveMinimum": -1,
+        "maximum": 10,
+        "exclusiveMaximum": 11
       }
     }
   }

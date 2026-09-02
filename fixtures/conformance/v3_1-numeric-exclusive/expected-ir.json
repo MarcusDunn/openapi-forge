@@ -6,16 +6,32 @@
   "operations": [],
   "types": [
     {
+      "id": "Both",
+      "original_name": "Both",
+      "definition": {
+        "def": "primitive",
+        "kind": "number",
+        "constraints": {
+          "minimum": 1,
+          "maximum": 3,
+          "exclusive_minimum": 0,
+          "exclusive_maximum": 2
+        }
+      },
+      "location": {
+        "pointer": "/components/schemas/Both",
+        "file": "spec.json"
+      }
+    },
+    {
       "id": "Score",
       "original_name": "Score",
       "definition": {
         "def": "primitive",
         "kind": "integer",
         "constraints": {
-          "minimum": 0,
-          "maximum": 2,
           "exclusive_minimum": 1,
-          "exclusive_maximum": 1
+          "exclusive_maximum": 4
         }
       },
       "location": {
@@ -29,11 +45,19 @@
   "values": [
     {
       "kind": "int",
+      "value": -1
+    },
+    {
+      "kind": "int",
       "value": 0
     },
     {
-      "kind": "bool",
-      "value": true
+      "kind": "int",
+      "value": 11
+    },
+    {
+      "kind": "int",
+      "value": 10
     },
     {
       "kind": "int",

@@ -54,6 +54,12 @@ pub const W_DYNAMIC_ANCHOR_DROPPED: &str = "parser/W-DYNAMIC-ANCHOR-DROPPED";
 pub const W_ALLOF_CONFLICT: &str = "parser/W-ALLOF-CONFLICT";
 pub const W_DISCRIMINATOR_MAPPING_DANGLING: &str = "parser/W-DISCRIMINATOR-MAPPING-DANGLING";
 pub const W_ENUM_VALUE_DROPPED: &str = "parser/W-ENUM-VALUE-DROPPED";
+/// An `exclusiveMinimum` / `exclusiveMaximum` keyword the parser cannot
+/// place in the IR: the OAS 3.0 boolean form with no companion
+/// `minimum` / `maximum`, or a value that is neither a number nor a
+/// boolean. The keyword is dropped, and the warning says so instead of
+/// letting it vanish (#145).
+pub const W_EXCLUSIVE_BOUND_DROPPED: &str = "parser/W-EXCLUSIVE-BOUND-DROPPED";
 pub const W_UNKNOWN_SECURITY_SCHEME: &str = "parser/W-UNKNOWN-SECURITY-SCHEME";
 pub const W_PARAM_STYLE_UNSUPPORTED: &str = "parser/W-PARAM-STYLE-UNSUPPORTED";
 /// `allowEmptyValue: true` set on a non-`query` parameter. OAS only
