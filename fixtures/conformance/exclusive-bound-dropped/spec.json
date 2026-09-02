@@ -1,0 +1,23 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "exclusive-bound-dropped", "version": "1" },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "Lonely": {
+        "type": "integer",
+        "exclusiveMinimum": true
+      },
+      "Malformed": {
+        "type": "integer",
+        "minimum": 1,
+        "exclusiveMaximum": "10"
+      },
+      "NumericIn30": {
+        "type": "integer",
+        "minimum": 1,
+        "exclusiveMinimum": 0
+      }
+    }
+  }
+}

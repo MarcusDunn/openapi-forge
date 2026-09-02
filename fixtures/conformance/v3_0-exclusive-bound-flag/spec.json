@@ -1,0 +1,16 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "v3_0-exclusive-bound-flag", "version": "1" },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "Rate": {
+        "type": "number",
+        "minimum": 0,
+        "exclusiveMinimum": true,
+        "maximum": 1,
+        "exclusiveMaximum": false
+      }
+    }
+  }
+}
