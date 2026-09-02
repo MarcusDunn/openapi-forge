@@ -32,6 +32,21 @@
         "pointer": "/components/schemas/Malformed",
         "file": "spec.json"
       }
+    },
+    {
+      "id": "NumericIn30",
+      "original_name": "NumericIn30",
+      "definition": {
+        "def": "primitive",
+        "kind": "integer",
+        "constraints": {
+          "minimum": 0
+        }
+      },
+      "location": {
+        "pointer": "/components/schemas/NumericIn30",
+        "file": "spec.json"
+      }
     }
   ],
   "security_schemes": [],

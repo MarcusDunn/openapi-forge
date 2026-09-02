@@ -12,6 +12,11 @@
         "type": "integer",
         "minimum": 1,
         "exclusiveMaximum": "10"
+      },
+      "NumericIn30": {
+        "type": "integer",
+        "minimum": 1,
+        "exclusiveMinimum": 0
       }
     }
   }

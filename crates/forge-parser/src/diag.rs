@@ -56,7 +56,8 @@ pub const W_DISCRIMINATOR_MAPPING_DANGLING: &str = "parser/W-DISCRIMINATOR-MAPPI
 pub const W_ENUM_VALUE_DROPPED: &str = "parser/W-ENUM-VALUE-DROPPED";
 /// An `exclusiveMinimum` / `exclusiveMaximum` keyword the parser cannot
 /// place in the IR: the OAS 3.0 boolean form with no companion
-/// `minimum` / `maximum`, or a value that is neither a number nor a
+/// `minimum` / `maximum`, the numeric form in a 3.0 document (where the
+/// keyword is a boolean), or a value that is neither a number nor a
 /// boolean. The keyword is dropped, and the warning says so instead of
 /// letting it vanish (#145).
 pub const W_EXCLUSIVE_BOUND_DROPPED: &str = "parser/W-EXCLUSIVE-BOUND-DROPPED";

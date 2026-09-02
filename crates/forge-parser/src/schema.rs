@@ -827,6 +827,11 @@ fn primitive_constraints(
 /// exclusivity off the field named for it, so `> 0` and `>= 0` stay
 /// distinct all the way to the generator (#145).
 ///
+/// The numeric spelling is 3.1+ only. OAS 3.0 defines the keyword as a
+/// boolean, so a number in a 3.0 document is malformed and drops with a
+/// warning. The boolean spelling stays accepted in 3.1+ documents,
+/// where it is a common 3.0 leftover with an unambiguous meaning.
+///
 /// Returns `(inclusive_bound, exclusive_bound)`, each interned into the
 /// value pool. A keyword the parser cannot place is dropped with a
 /// `parser/W-EXCLUSIVE-BOUND-DROPPED` warning.
@@ -842,9 +847,22 @@ fn split_bound(
     match map.get(exclusive_key) {
         // 3.1 form: the keyword carries the bound. `minimum` beside it
         // is a second, independent constraint — both slots fill.
-        Some(num @ J::Number(_)) => {
+        Some(num @ J::Number(_)) if !ctx.is_oas_3_0 => {
             let exclusive_ref = ctx.values.intern_json(num);
             (intern(ctx, inclusive), Some(exclusive_ref))
+        }
+        // The numeric form in a 3.0 document. OAS 3.0 defines the
+        // keyword as a boolean, so the number is malformed there; we do
+        // not guess which shape the author meant.
+        Some(J::Number(_)) => {
+            ctx.push_diag(diag::warn(
+                diag::W_EXCLUSIVE_BOUND_DROPPED,
+                format!(
+                    "`{exclusive_key}` must be a boolean in OAS 3.0; the numeric form arrived in 3.1. The keyword is dropped"
+                ),
+                ptr.loc(ctx.file),
+            ));
+            (intern(ctx, inclusive), None)
         }
         // 3.0 form: the flag makes the companion bound exclusive, so
         // the bound moves out of the inclusive slot.
@@ -868,10 +886,15 @@ fn split_bound(
         // Anything else (string, object, ...) is malformed. Keep the
         // inclusive bound and say what was dropped.
         Some(other) => {
+            let expected = if ctx.is_oas_3_0 {
+                "a boolean in OAS 3.0"
+            } else {
+                "a number in OAS 3.1+"
+            };
             ctx.push_diag(diag::warn(
                 diag::W_EXCLUSIVE_BOUND_DROPPED,
                 format!(
-                    "`{exclusive_key}` must be a number (3.1) or a boolean (3.0), got `{}`; the keyword is dropped",
+                    "`{exclusive_key}` must be {expected}, got `{}`; the keyword is dropped",
                     short_json(other)
                 ),
                 ptr.loc(ctx.file),

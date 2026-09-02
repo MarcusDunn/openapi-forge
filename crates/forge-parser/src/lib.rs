@@ -3875,6 +3875,42 @@ mod tests {
         assert_eq!(bounds("Both"), (Some(0), None, Some(-1), None));
     }
 
+    /// The numeric spelling is 3.1+ only. In a 3.0 document, where the
+    /// keyword is a boolean, the number is malformed: it drops with a
+    /// warning and the companion `minimum` stays where it is.
+    #[test]
+    fn numeric_exclusive_bound_in_3_0_drops() {
+        use forge_ir::TypeDef;
+        let src = r#"{
+            "openapi":"3.0.3",
+            "info":{"title":"t","version":"1"},
+            "paths":{},
+            "components":{"schemas":{
+                "Score":{"type":"integer","minimum":1,"exclusiveMinimum":0}
+            }}
+        }"#;
+        let out = parse_str(src).unwrap();
+        let ir = out.spec.clone().unwrap();
+        let nt = ir.types.iter().find(|t| t.id == "Score").unwrap();
+        let TypeDef::Primitive(p) = &nt.definition else {
+            panic!("not primitive");
+        };
+        assert!(p.constraints.minimum.is_some(), "inclusive bound kept");
+        assert!(
+            p.constraints.exclusive_minimum.is_none(),
+            "numeric form dropped"
+        );
+        assert_eq!(
+            out.diagnostics
+                .iter()
+                .filter(|d| d.code == diag::W_EXCLUSIVE_BOUND_DROPPED)
+                .count(),
+            1,
+            "diagnostics: {:?}",
+            out.diagnostics
+        );
+    }
+
     /// A `exclusiveMinimum` the parser cannot place warns instead of
     /// vanishing: the 3.0 flag with no companion bound, and a value of
     /// the wrong shape.

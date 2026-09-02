@@ -174,7 +174,9 @@ YAML input is **not** supported. Specs must be JSON.
   union over primitives). Numeric `exclusiveMinimum` / `exclusiveMaximum`
   land on `exclusive_minimum` / `exclusive_maximum`; the 3.0 boolean
   spelling (`minimum: N` + `exclusiveMinimum: true`) lowers to the same
-  slots, so the IR stays uniform. Top-level
+  slots, so the IR stays uniform. The numeric spelling is 3.1+ only — in
+  a 3.0 document it drops with `parser/W-EXCLUSIVE-BOUND-DROPPED`.
+  Top-level
   `webhooks` walk through `parse_path_item` and land on `Ir.webhooks`.
   `info.summary` / `info.license.identifier` / `const` keyword.
 - **`info.contact`, `info.license` (name + url), `info.termsOfService`**:
