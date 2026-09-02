@@ -28,9 +28,12 @@ defines them:
 - A schema that states both keywords on one axis keeps both.
 
 **New diagnostic:** `parser/W-EXCLUSIVE-BOUND-DROPPED` — an
-`exclusiveMinimum` / `exclusiveMaximum` the parser cannot place (the 3.0
-flag with no companion bound, or a value that is neither a number nor a
-boolean). The keyword is dropped, but no longer in silence.
+`exclusiveMinimum` / `exclusiveMaximum` the parser cannot place: the 3.0
+flag with no companion bound, the numeric form in a 3.0 document (where
+OAS defines the keyword as a boolean), or a value that is neither a
+number nor a boolean. The keyword is dropped, but no longer in silence.
+The boolean form stays accepted in 3.1+ documents, where it is a common
+3.0 leftover with an unambiguous meaning.
 
 **Migration:** a generator that emits `>=` from `minimum` now emits it
 only for a genuinely inclusive bound. To emit the strict comparison,
@@ -38,7 +41,7 @@ read `exclusive_minimum` / `exclusive_maximum` as the bound value.
 A generator that tested `exclusive_minimum.is_some()` as a flag beside
 `minimum` must read the bound from the exclusive slot instead.
 
-Two new conformance fixtures, one regenerated, two new unit tests.
+Two new conformance fixtures, one regenerated, three new unit tests.
 
 ### Removed — the `generator-typescript-cli` reference plugin
 
