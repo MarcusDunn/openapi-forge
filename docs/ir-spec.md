@@ -109,6 +109,15 @@ don't can ignore them.
 Numeric constraints (`minimum`, `maximum`, ...) use the structured `Value`
 type, not `f64`. `int64` minima and decimal multiples roundtrip cleanly.
 
+`minimum` / `maximum` are the **inclusive** bounds (`>=` / `<=`).
+`exclusive_minimum` / `exclusive_maximum` are the **exclusive** ones
+(`>` / `<`) and hold the bound itself, not a flag. The parser lowers the
+OAS 3.0 spelling (`minimum: N` plus a boolean `exclusiveMinimum: true`)
+into `exclusive_minimum`, so a generator reads one shape for either
+source version and a strict comparison never weakens to a loose one. A
+schema may state both keywords on the same axis; they are independent,
+so both slots fill.
+
 `pattern` is an ECMA-262 regex per JSON Schema. Generators that target
 languages with non-ECMA regex engines (Python's `re`, Rust's `regex`) are
 responsible for translation or for emitting a diagnostic.

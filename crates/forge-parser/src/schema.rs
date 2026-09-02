@@ -705,7 +705,7 @@ fn parse_primitive(
 ) -> Option<TypeRef> {
     let format = map.get("format").and_then(J::as_str);
     let (kind, format_extension) = primitive_kind(ctx, ptr, ty, format)?;
-    let mut constraints = primitive_constraints(ctx, map);
+    let mut constraints = primitive_constraints(ctx, map, ptr);
     constraints.format_extension = format_extension;
 
     // Allocate the owning id up-front so `contentSchema`'s name hint
@@ -785,11 +785,13 @@ fn primitive_kind(
     Some(result)
 }
 
-fn primitive_constraints(ctx: &mut Ctx, map: &serde_json::Map<String, J>) -> PrimitiveConstraints {
-    let (minimum, exclusive_minimum) =
-        normalise_exclusive_bound(ctx, map.get("minimum"), map.get("exclusiveMinimum"));
-    let (maximum, exclusive_maximum) =
-        normalise_exclusive_bound(ctx, map.get("maximum"), map.get("exclusiveMaximum"));
+fn primitive_constraints(
+    ctx: &mut Ctx,
+    map: &serde_json::Map<String, J>,
+    ptr: &mut Ptr,
+) -> PrimitiveConstraints {
+    let (minimum, exclusive_minimum) = split_bound(ctx, map, ptr, "minimum", "exclusiveMinimum");
+    let (maximum, exclusive_maximum) = split_bound(ctx, map, ptr, "maximum", "exclusiveMaximum");
     PrimitiveConstraints {
         minimum,
         maximum,
@@ -815,33 +817,67 @@ fn primitive_constraints(ctx: &mut Ctx, map: &serde_json::Map<String, J>) -> Pri
     }
 }
 
-/// Reconcile the OAS 3.0 form (`minimum: N` + `exclusiveMinimum: bool`)
-/// and the OAS 3.1 form (`exclusiveMinimum: N`) into a single IR shape:
-/// `(bound_ref, exclusive_flag_ref)` where `exclusive_flag_ref` points
-/// at `Bool(true)` for an exclusive bound and `None` otherwise.
-fn normalise_exclusive_bound(
+/// Split the two spellings of a numeric bound into the two IR slots.
+///
+/// OAS 3.0 spells an exclusive bound as `minimum: N` plus a boolean
+/// `exclusiveMinimum: true`. OAS 3.1 (JSON Schema 2020-12) spells it as
+/// a numeric `exclusiveMinimum: N`, a keyword independent of `minimum`.
+/// Both lower to the 3.1 shape: `minimum` keeps the inclusive bound and
+/// `exclusive_minimum` keeps the exclusive bound. A plugin reads the
+/// exclusivity off the field named for it, so `> 0` and `>= 0` stay
+/// distinct all the way to the generator (#145).
+///
+/// Returns `(inclusive_bound, exclusive_bound)`, each interned into the
+/// value pool. A keyword the parser cannot place is dropped with a
+/// `parser/W-EXCLUSIVE-BOUND-DROPPED` warning.
+fn split_bound(
     ctx: &mut Ctx,
-    inclusive: Option<&J>,
-    exclusive: Option<&J>,
+    map: &serde_json::Map<String, J>,
+    ptr: &mut Ptr,
+    inclusive_key: &str,
+    exclusive_key: &str,
 ) -> (Option<forge_ir::ValueRef>, Option<forge_ir::ValueRef>) {
-    let inclusive_ref = inclusive.map(|v| ctx.values.intern_json(v));
-    match exclusive {
-        // 3.0 form: a boolean flag accompanying `minimum` / `maximum`.
-        Some(J::Bool(true)) => {
-            let flag = ctx.values.intern(forge_ir::Value::Bool { value: true });
-            (inclusive_ref, Some(flag))
-        }
-        Some(J::Bool(false)) | None => (inclusive_ref, None),
-        // 3.1 form: the bound itself. Promote it to the inclusive slot
-        // and flag the constraint as exclusive.
+    let inclusive = map.get(inclusive_key);
+    let intern = |ctx: &mut Ctx, v: Option<&J>| v.map(|v| ctx.values.intern_json(v));
+    match map.get(exclusive_key) {
+        // 3.1 form: the keyword carries the bound. `minimum` beside it
+        // is a second, independent constraint — both slots fill.
         Some(num @ J::Number(_)) => {
-            let promoted = ctx.values.intern_json(num);
-            let inclusive = inclusive_ref.or(Some(promoted));
-            let flag = ctx.values.intern(forge_ir::Value::Bool { value: true });
-            (inclusive, Some(flag))
+            let exclusive_ref = ctx.values.intern_json(num);
+            (intern(ctx, inclusive), Some(exclusive_ref))
         }
-        // Anything else (string, object, ...) ignored — the spec is malformed.
-        Some(_) => (inclusive_ref, None),
+        // 3.0 form: the flag makes the companion bound exclusive, so
+        // the bound moves out of the inclusive slot.
+        Some(J::Bool(true)) => match inclusive {
+            Some(v) => {
+                let bound = ctx.values.intern_json(v);
+                (None, Some(bound))
+            }
+            None => {
+                ctx.push_diag(diag::warn(
+                    diag::W_EXCLUSIVE_BOUND_DROPPED,
+                    format!(
+                        "`{exclusive_key}: true` has no companion `{inclusive_key}`; the keyword is dropped"
+                    ),
+                    ptr.loc(ctx.file),
+                ));
+                (None, None)
+            }
+        },
+        Some(J::Bool(false)) | None => (intern(ctx, inclusive), None),
+        // Anything else (string, object, ...) is malformed. Keep the
+        // inclusive bound and say what was dropped.
+        Some(other) => {
+            ctx.push_diag(diag::warn(
+                diag::W_EXCLUSIVE_BOUND_DROPPED,
+                format!(
+                    "`{exclusive_key}` must be a number (3.1) or a boolean (3.0), got `{}`; the keyword is dropped",
+                    short_json(other)
+                ),
+                ptr.loc(ctx.file),
+            ));
+            (intern(ctx, inclusive), None)
+        }
     }
 }
 

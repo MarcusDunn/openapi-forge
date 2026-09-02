@@ -130,12 +130,24 @@ pub enum PrimitiveKind {
 
 #[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 pub struct PrimitiveConstraints {
+    /// JSON Schema `minimum` — the **inclusive** lower bound (`>=`).
+    /// Empty when the schema states an exclusive bound only.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub minimum: Option<ValueRef>,
+    /// JSON Schema `maximum` — the **inclusive** upper bound (`<=`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub maximum: Option<ValueRef>,
+    /// JSON Schema `exclusiveMinimum` — the **exclusive** lower bound
+    /// (`>`), as a number. The parser lowers the OAS 3.0 spelling
+    /// (`minimum: N` plus `exclusiveMinimum: true`) to this field, so a
+    /// generator reads the same shape for either source version. A
+    /// schema may set this and [`Self::minimum`] together; they are
+    /// independent keywords.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub exclusive_minimum: Option<ValueRef>,
+    /// JSON Schema `exclusiveMaximum` — the **exclusive** upper bound
+    /// (`<`), as a number. Same lowering as
+    /// [`Self::exclusive_minimum`].
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub exclusive_maximum: Option<ValueRef>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
