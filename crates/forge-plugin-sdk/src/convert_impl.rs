@@ -1187,6 +1187,9 @@ macro_rules! __impl_world_shared {
                     ir::SecuritySchemeKind::HttpBearer { bearer_format } => {
                         b::SecuritySchemeKind::HttpBearer(bearer_format)
                     }
+                    ir::SecuritySchemeKind::HttpOther { scheme } => {
+                        b::SecuritySchemeKind::HttpOther(scheme)
+                    }
                     ir::SecuritySchemeKind::MutualTls => b::SecuritySchemeKind::MutualTls,
                     ir::SecuritySchemeKind::Oauth2(o) => {
                         b::SecuritySchemeKind::Oauth2(b::Oauth2Scheme {
@@ -1220,6 +1223,9 @@ macro_rules! __impl_world_shared {
                     b::SecuritySchemeKind::HttpBasic => ir::SecuritySchemeKind::HttpBasic,
                     b::SecuritySchemeKind::HttpBearer(f) => {
                         ir::SecuritySchemeKind::HttpBearer { bearer_format: f }
+                    }
+                    b::SecuritySchemeKind::HttpOther(scheme) => {
+                        ir::SecuritySchemeKind::HttpOther { scheme }
                     }
                     b::SecuritySchemeKind::MutualTls => ir::SecuritySchemeKind::MutualTls,
                     b::SecuritySchemeKind::Oauth2(o) => {

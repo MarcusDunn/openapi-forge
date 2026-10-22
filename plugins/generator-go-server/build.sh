@@ -31,11 +31,12 @@ if command -v flock >/dev/null; then
     flock $LOCK_FD
 fi
 
-# Skip the rebuild if plugin.wasm is newer than every input file. After the
+# Skip the rebuild if plugin.wasm is newer than every input file, the shared
+# ../../wit included (it is copied in below). After the
 # lock is held, this lets N parallel test processes share a single build:
 # the first does the work, the rest see a fresh artifact and exit.
 if [ -f plugin.wasm ] && [ -z "${FORGE_FORCE_REBUILD:-}" ]; then
-    newest_input=$(find main.go emit wit-source go.mod build.sh -type f -printf '%T@\n' 2>/dev/null | sort -nr | head -1)
+    newest_input=$(find main.go emit wit-source ../../wit go.mod build.sh -type f -printf '%T@\n' 2>/dev/null | sort -nr | head -1)
     wasm_mtime=$(stat -c '%Y' plugin.wasm 2>/dev/null || stat -f '%m' plugin.wasm)
     if [ -n "$newest_input" ] && awk -v a="$wasm_mtime" -v b="$newest_input" 'BEGIN{exit !(a >= b)}'; then
         echo "build.sh: plugin.wasm is up to date; skipping (set FORGE_FORCE_REBUILD=1 to override)"

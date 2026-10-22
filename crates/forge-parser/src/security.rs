@@ -158,17 +158,11 @@ fn parse_http(
             Some(SecuritySchemeKind::HttpBearer { bearer_format })
         }
         "basic" => Some(SecuritySchemeKind::HttpBasic),
-        other => {
-            ctx.push_diag(diag::warn(
-                diag::W_UNKNOWN_SECURITY_SCHEME,
-                format!(
-                    "http security scheme `{other}` is not yet supported; only `basic` and \
-                     `bearer` are recognised. Skipping."
-                ),
-                ptr.loc(ctx.file),
-            ));
-            None
-        }
+        // Any other registered scheme (`DPoP`, `Digest`, ...) reaches the
+        // IR with its name as written, so a generator can see it (#170).
+        _ => Some(SecuritySchemeKind::HttpOther {
+            scheme: scheme.to_string(),
+        }),
     }
 }
 

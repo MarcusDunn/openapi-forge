@@ -30,6 +30,14 @@ pub enum SecuritySchemeKind {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         bearer_format: Option<String>,
     },
+    /// An `http` scheme other than `basic` or `bearer`, for example
+    /// `DPoP` (RFC 9449) or `Digest`. `scheme` keeps the name as the
+    /// document spells it. HTTP scheme names are case-insensitive
+    /// (RFC 9110 §11.1), so compare with `eq_ignore_ascii_case`. The
+    /// generator decides how to supply the credentials.
+    HttpOther {
+        scheme: String,
+    },
     /// OAS 3.0+ `mutualTLS` — client-cert auth (mTLS). The IR carries
     /// the declaration; certificate provisioning is out of scope and
     /// left to the consumer's transport configuration.

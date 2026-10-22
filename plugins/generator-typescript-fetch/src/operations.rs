@@ -79,9 +79,11 @@ fn render_auth_config_type(spec: &ir::Ir) -> String {
             // No in-tree generator holds login logic.
             // mTLS auth happens at the transport layer; consumers wire
             // up client certificates against fetch / Node tls themselves.
+            // Other http schemes (`DPoP`, ...): the caller sends them.
             ir::SecuritySchemeKind::Oauth2(_)
             | ir::SecuritySchemeKind::OpenIdConnect { .. }
-            | ir::SecuritySchemeKind::MutualTls => {}
+            | ir::SecuritySchemeKind::MutualTls
+            | ir::SecuritySchemeKind::HttpOther { .. } => {}
         }
     }
     if variants.is_empty() {
@@ -256,9 +258,11 @@ fn render_auth_block(spec: &ir::Ir, op: &ir::Operation) -> String {
             // openIdConnect) or wires up client certificates at the
             // transport layer (mTLS) and the bearer arm carries any
             // resulting token.
+            // Other http schemes (`DPoP`, ...): the caller sends them.
             ir::SecuritySchemeKind::Oauth2(_)
             | ir::SecuritySchemeKind::OpenIdConnect { .. }
-            | ir::SecuritySchemeKind::MutualTls => None,
+            | ir::SecuritySchemeKind::MutualTls
+            | ir::SecuritySchemeKind::HttpOther { .. } => None,
         };
         if let Some((kind, body)) = body {
             branches.push(Branch {

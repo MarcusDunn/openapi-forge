@@ -1317,6 +1317,9 @@ macro_rules! define_world_conversions {
                         b::SecuritySchemeKind::HttpBearer(f) => {
                             ir::SecuritySchemeKind::HttpBearer { bearer_format: f }
                         }
+                        b::SecuritySchemeKind::HttpOther(scheme) => {
+                            ir::SecuritySchemeKind::HttpOther { scheme }
+                        }
                         b::SecuritySchemeKind::MutualTls => ir::SecuritySchemeKind::MutualTls,
                         b::SecuritySchemeKind::Oauth2(o) => {
                             ir::SecuritySchemeKind::Oauth2(ir::OAuth2Scheme {
@@ -1350,6 +1353,9 @@ macro_rules! define_world_conversions {
                         ir::SecuritySchemeKind::HttpBasic => b::SecuritySchemeKind::HttpBasic,
                         ir::SecuritySchemeKind::HttpBearer { bearer_format } => {
                             b::SecuritySchemeKind::HttpBearer(bearer_format)
+                        }
+                        ir::SecuritySchemeKind::HttpOther { scheme } => {
+                            b::SecuritySchemeKind::HttpOther(scheme)
                         }
                         ir::SecuritySchemeKind::MutualTls => b::SecuritySchemeKind::MutualTls,
                         ir::SecuritySchemeKind::Oauth2(o) => {

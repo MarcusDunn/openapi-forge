@@ -468,6 +468,7 @@ interface types {
         api-key(api-key-scheme),
         http-basic,
         http-bearer(option<string>),         // bearer-format hint
+        http-other(string),                  // any other http scheme (e.g. `DPoP`), as written
         mutual-tls,                          // OAS 3.0+ mTLS (cert provisioning is consumer's responsibility)
         oauth2(oauth2-scheme),
         open-id-connect(string),             // discovery URL
