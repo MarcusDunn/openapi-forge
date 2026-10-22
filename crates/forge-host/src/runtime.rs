@@ -572,8 +572,8 @@ impl Plugin {
             .map_err(|e| StageError::PluginBug(format!("link: {e}")))?;
         let mut store = make_store(&self.engine, limits);
         let inst =
-            bindings::transformer::IrTransformer::instantiate(&mut store, &self.component, &linker)
-                .map_err(|e| StageError::PluginBug(format!("instantiate: {e}")))?;
+            bindings::transformer::IrTransformer::instantiate(&mut store, &self.component, &linker);
+        let inst = map_instantiate_error(inst, &store)?;
         let wit_ir = convert::transformer::ir_to_wit(spec);
         let result = inst.forge_plugin_transformer_api().call_transform(
             store.as_context_mut(),
@@ -615,8 +615,8 @@ impl Plugin {
             .map_err(|e| StageError::PluginBug(format!("link: {e}")))?;
         let mut store = make_store(&self.engine, limits);
         let inst =
-            bindings::generator::CodeGenerator::instantiate(&mut store, &self.component, &linker)
-                .map_err(|e| StageError::PluginBug(format!("instantiate: {e}")))?;
+            bindings::generator::CodeGenerator::instantiate(&mut store, &self.component, &linker);
+        let inst = map_instantiate_error(inst, &store)?;
         let wit_ir = convert::generator::ir_to_wit(spec);
         let result = inst.forge_plugin_generator_api().call_generate(
             store.as_context_mut(),
@@ -732,6 +732,19 @@ fn make_store(engine: &Engine, limits: Limits) -> Store<HostState> {
     store.epoch_deadline_trap();
     store.limiter(|s| &mut s.store_limits);
     store
+}
+
+/// Translate the instantiation result. Instantiation runs plugin start-up
+/// code, which uses fuel and time, so a resource trap can occur here before
+/// any export is called. Classify it the same way as a call trap.
+fn map_instantiate_error<T>(
+    res: wasmtime::Result<T>,
+    store: &Store<HostState>,
+) -> Result<T, StageError> {
+    map_call_error(res, store).map_err(|e| match e {
+        StageError::PluginBug(msg) => StageError::PluginBug(format!("instantiate: {msg}")),
+        other => other,
+    })
 }
 
 /// Translate the wasmtime call result. The `Result` we're handed already
