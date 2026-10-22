@@ -85,6 +85,10 @@ YAML input is **not** supported. Specs must be JSON.
   - `http` `scheme: bearer` (with optional `bearerFormat`) — produces
     `SecuritySchemeKind::HttpBearer`.
   - `http` `scheme: basic` — produces `SecuritySchemeKind::HttpBasic`.
+  - `http` with any other `scheme` (for example `DPoP`, RFC 9449, or
+    `Digest`) — produces `SecuritySchemeKind::HttpOther`, which keeps the
+    scheme name as written. The generator decides how to send the
+    credentials.
   - `oauth2` with any of the four flow kinds (`implicit`, `password`,
     `clientCredentials`, `authorizationCode`) — produces
     `SecuritySchemeKind::Oauth2` carrying `OAuth2Flow` records.
@@ -302,7 +306,7 @@ Warnings:
 | Discriminator mapping target missing    | `parser/W-DISCRIMINATOR-MAPPING-DANGLING`      |
 | Enum value of the wrong shape           | `parser/W-ENUM-VALUE-DROPPED`                  |
 | Unplaceable `exclusiveMinimum` / `exclusiveMaximum` | `parser/W-EXCLUSIVE-BOUND-DROPPED` |
-| Unknown security scheme type / http scheme | `parser/W-UNKNOWN-SECURITY-SCHEME`          |
+| Unknown security scheme type            | `parser/W-UNKNOWN-SECURITY-SCHEME`             |
 | Unrecognized parameter `style`          | `parser/W-PARAM-STYLE-UNSUPPORTED`             |
 | Recursive type group emitted (info)     | `parser/W-RECURSIVE-TYPE`                      |
 | 3.1+ `dependentRequired` (dropped)      | `parser/W-DEPENDENT-REQUIRED-DROPPED`          |

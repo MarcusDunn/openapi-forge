@@ -1,0 +1,35 @@
+{
+  "openapi": "3.2.0",
+  "info": { "title": "security-http-dpop", "version": "1" },
+  "servers": [{ "url": "https://api.example.com" }],
+  "security": [{ "dpop": [] }],
+  "paths": {
+    "/me": {
+      "get": {
+        "operationId": "getMe",
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["id"],
+                  "properties": { "id": { "type": "string" } }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "dpop": {
+        "type": "http",
+        "scheme": "DPoP"
+      }
+    }
+  }
+}

@@ -43,6 +43,22 @@ A generator that tested `exclusive_minimum.is_some()` as a flag beside
 
 Two new conformance fixtures, one regenerated, three new unit tests.
 
+### Fixed — the parser keeps `http` schemes other than `basic` and `bearer` (#170)
+
+The parser skipped an `http` security scheme such as `scheme: DPoP`
+(RFC 9449) with `parser/W-UNKNOWN-SECURITY-SCHEME`. The scheme did not
+reach the IR, so no generator could see that an operation needs it. Now
+it lowers to the new `HttpOther` kind with the scheme name as written.
+
+`generator-rust-reqwest` and `generator-typescript-fetch` add no auth
+for `HttpOther`. The caller supplies those credentials.
+
+#### IR
+
+- `SecuritySchemeKind` gains `HttpOther { scheme: String }`
+  (WIT: `http-other(string)`). Plugins that match the kind exhaustively
+  must add an arm. Compare `scheme` case-insensitively (RFC 9110 §11.1).
+
 ### Removed — the `generator-typescript-cli` reference plugin
 
 `plugins/generator-typescript-cli/` and its integration test are gone.

@@ -112,9 +112,12 @@ fn render_auth_config(spec: &ir::Ir) -> String {
             // oauth2 + openIdConnect run externally; mTLS is configured
             // on the underlying reqwest::Client (identity / native-tls /
             // rustls). Bearer flows still use the Bearer arm.
+            // Other http schemes (`DPoP`, `Digest`, ...) need per-request
+            // proofs or challenges; the caller sends them.
             ir::SecuritySchemeKind::Oauth2(_)
             | ir::SecuritySchemeKind::OpenIdConnect { .. }
-            | ir::SecuritySchemeKind::MutualTls => {}
+            | ir::SecuritySchemeKind::MutualTls
+            | ir::SecuritySchemeKind::HttpOther { .. } => {}
         }
     }
     if variants.is_empty() {
@@ -314,9 +317,11 @@ fn render_auth_application(spec: &ir::Ir) -> String {
             // oauth2 / openIdConnect / mutualTLS: no auth-application
             // arm. Consumers pass the resulting bearer token via
             // AuthConfig::Bearer; mTLS lives on the reqwest::Client.
+            // Other http schemes (`DPoP`, ...): the caller sends them.
             ir::SecuritySchemeKind::Oauth2(_)
             | ir::SecuritySchemeKind::OpenIdConnect { .. }
-            | ir::SecuritySchemeKind::MutualTls => {}
+            | ir::SecuritySchemeKind::MutualTls
+            | ir::SecuritySchemeKind::HttpOther { .. } => {}
             // Already-handled variants that re-appear (e.g. two http-bearer
             // schemes with different bearerFormat hints) — keep the first.
             _ => {}
