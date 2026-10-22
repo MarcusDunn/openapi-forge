@@ -24,7 +24,7 @@ exclude = ["crates/forge-plugin-sdk", "plugins", "fuzz"]
 [workspace.package]
 version = "1.0.2"
 edition = "2021"
-rust-version = "1.93"
+rust-version = "1.96"
 license = "Apache-2.0 OR MIT"
 repository = "https://github.com/marcusdunn/openapi-forge"
 authors = ["OpenAPI Forge contributors"]
@@ -67,11 +67,11 @@ jsonptr = "0.8"
 
 # JSON Schema validation (used by forge-cli to validate plugin config blocks
 # against each plugin's `config_schema()` before invoking the stage).
-jsonschema = { version = "0.51", default-features = false }
+jsonschema = { version = "0.52.1", default-features = false }
 
 # WASM toolchain
-wasmtime = { version = "46", default-features = false, features = ["component-model", "cranelift", "runtime", "std", "addr2line", "demangle", "parallel-compilation", "cache"] }
-wasmtime-wasi = "45"
+wasmtime = { version = "49", default-features = false, features = ["component-model", "cranelift", "runtime", "std", "addr2line", "demangle", "parallel-compilation", "cache"] }
+wasmtime-wasi = "49"
 wit-bindgen = "0.36"
 wit-bindgen-rt = "0.36"
 
