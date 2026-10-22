@@ -1,0 +1,60 @@
+{
+  "info": {
+    "title": "exclusive-bound-dropped",
+    "version": "1"
+  },
+  "operations": [],
+  "types": [
+    {
+      "id": "Lonely",
+      "original_name": "Lonely",
+      "definition": {
+        "def": "primitive",
+        "kind": "integer",
+        "constraints": {}
+      },
+      "location": {
+        "pointer": "/components/schemas/Lonely",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "Malformed",
+      "original_name": "Malformed",
+      "definition": {
+        "def": "primitive",
+        "kind": "integer",
+        "constraints": {
+          "minimum": 0
+        }
+      },
+      "location": {
+        "pointer": "/components/schemas/Malformed",
+        "file": "spec.json"
+      }
+    },
+    {
+      "id": "NumericIn30",
+      "original_name": "NumericIn30",
+      "definition": {
+        "def": "primitive",
+        "kind": "integer",
+        "constraints": {
+          "minimum": 0
+        }
+      },
+      "location": {
+        "pointer": "/components/schemas/NumericIn30",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": [],
+  "values": [
+    {
+      "kind": "int",
+      "value": 1
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "info": {
+    "title": "v3_0-exclusive-bound-flag",
+    "version": "1"
+  },
+  "operations": [],
+  "types": [
+    {
+      "id": "Rate",
+      "original_name": "Rate",
+      "definition": {
+        "def": "primitive",
+        "kind": "number",
+        "constraints": {
+          "maximum": 1,
+          "exclusive_minimum": 0
+        }
+      },
+      "location": {
+        "pointer": "/components/schemas/Rate",
+        "file": "spec.json"
+      }
+    }
+  ],
+  "security_schemes": [],
+  "servers": [],
+  "values": [
+    {
+      "kind": "int",
+      "value": 0
+    },
+    {
+      "kind": "int",
+      "value": 1
+    }
+  ]
+}

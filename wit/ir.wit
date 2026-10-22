@@ -193,7 +193,12 @@ interface types {
     }
 
     record primitive-constraints {
-        // numeric — pool indices
+        // numeric — pool indices. `minimum` / `maximum` are the
+        // inclusive bounds (`>=` / `<=`); `exclusive-minimum` /
+        // `exclusive-maximum` are the exclusive ones (`>` / `<`) and
+        // hold the bound itself, not a flag. The OAS 3.0 spelling
+        // (`minimum: N` + boolean `exclusiveMinimum: true`) lowers to
+        // the exclusive slot, so both source versions read the same.
         minimum: option<value-ref>,
         maximum: option<value-ref>,
         exclusive-minimum: option<value-ref>,
