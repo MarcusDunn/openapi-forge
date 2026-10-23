@@ -8,6 +8,8 @@ Pre-1.0, the IR is unstable. Every release that touches the IR carries an
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-10-23
+
 ### Fixed — exclusive numeric bounds keep their own IR slots (#145) [BREAKING]
 
 `exclusiveMinimum` / `exclusiveMaximum` were folded into `minimum` /
