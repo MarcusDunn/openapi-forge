@@ -8,6 +8,28 @@ Pre-1.0, the IR is unstable. Every release that touches the IR carries an
 
 ## [Unreleased]
 
+### Added — a `content` parameter keeps its media type
+
+A parameter may declare `content: { <media type>: { schema } }` instead of
+`schema`, and it is then sent as that media type: a JSON array query
+parameter is one `ids=[1,2]`, not `ids=1&ids=2`. The parser read the schema
+and dropped the media type, and gave the parameter the location's default
+`style` / `explode`. A plugin could not tell it from a `style: form` array,
+so a generated client sent it one pair per item, and a server that reads
+JSON refused it.
+
+`Parameter.content_media_type` (WIT `content-media-type`) is the declared
+media type, or `None` for a `schema` parameter. `style` and `explode` are
+unchanged.
+
+New conformance fixture `param-content-json`; one new unit test.
+
+#### IR
+
+- `Parameter` gains `content_media_type: Option<String>` (WIT:
+  `content-media-type: option<string>`). A plugin that builds a
+  `Parameter` literal must set it.
+
 ## [1.0.2] - 2026-10-23
 
 ### Fixed — exclusive numeric bounds keep their own IR slots (#145) [BREAKING]

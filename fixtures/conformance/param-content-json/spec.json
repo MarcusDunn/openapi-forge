@@ -1,0 +1,33 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "param-content-json", "version": "1" },
+  "paths": {
+    "/transcripts": {
+      "get": {
+        "operationId": "getTranscripts",
+        "parameters": [
+          {
+            "name": "ids",
+            "in": "query",
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "type": "integer" } }
+              }
+            }
+          },
+          {
+            "name": "tags",
+            "in": "query",
+            "style": "form",
+            "explode": true,
+            "schema": { "type": "array", "items": { "type": "string" } }
+          }
+        ],
+        "responses": {
+          "204": { "description": "found" }
+        }
+      }
+    }
+  }
+}

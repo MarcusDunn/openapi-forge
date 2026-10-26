@@ -464,16 +464,18 @@ fn build_parameter(
         .unwrap_or(false);
     // OAS allows `schema` *or* `content.<media>.schema` (mutually
     // exclusive). The latter is for complex / non-trivial parameter
-    // values. Try the inline form first, then fall back to content.
-    let schema = match param_map.get("schema") {
-        Some(s) => s,
+    // values. Try the inline form first, then fall back to content, and
+    // keep the content's media type: a JSON parameter is sent as its JSON
+    // text, which `style` / `explode` cannot say.
+    let (schema, content_media_type) = match param_map.get("schema") {
+        Some(s) => (s, None),
         None => match param_map
             .get("content")
             .and_then(|c| c.as_object())
-            .and_then(|m| m.values().next())
-            .and_then(|first| first.get("schema"))
+            .and_then(|m| m.iter().next())
+            .and_then(|(media, first)| first.get("schema").map(|s| (s, Some(media.clone()))))
         {
-            Some(s) => s,
+            Some(found) => found,
             None => {
                 ctx.push_diag(diag::err(
                     diag::E_MISSING_FIELD,
@@ -531,6 +533,7 @@ fn build_parameter(
         explode,
         allow_empty_value,
         allow_reserved,
+        content_media_type,
         extensions,
         location: Some(ptr.loc(ctx.file)),
     })
