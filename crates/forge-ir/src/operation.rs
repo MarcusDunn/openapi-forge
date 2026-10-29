@@ -139,6 +139,12 @@ pub struct Parameter {
     /// rendered query string. Defaults to `false`.
     #[serde(default)]
     pub allow_reserved: bool,
+    /// OAS §4.12 `content`: the one media type a parameter declared instead
+    /// of `schema`, such as `application/json`. When set, the value is sent
+    /// as that media type (a JSON parameter as its JSON text), and `style`
+    /// and `explode` do not apply. `None` for a `schema` parameter.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub content_media_type: Option<String>,
     /// `x-*` extensions declared on the parameter. Compound extensions
     /// drop with `parser/W-EXTENSION-DROPPED`.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
