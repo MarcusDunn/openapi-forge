@@ -54,10 +54,15 @@ by sha256 digest, with a small pointer file per tag:
 ```text
 by-digest/sha256/<hex>.wasm        ← canonical, content-addressed
 by-tag/<reg>/<repo>/<tag>.digest   ← pointer "sha256:..."
+by-manifest/sha256/<hex>.digest    ← manifest digest → layer digest
 ```
 
-Refs pinned by `@sha256:...` are immutable and skip the network entirely
-on cache hit. Tag-pinned refs are *mutable* (registries like GHCR do not
+A ref pinned by `@sha256:...` names the **manifest** digest, as in the
+OCI Distribution Spec's by-digest pull (#31, #182). `oci-client` checks
+the manifest bytes against the pin and the layer bytes against the layer
+digest that the manifest declares. A `by-manifest` pointer maps the pin
+to the cached layer. These refs are immutable and skip the network
+entirely on cache hit. Tag-pinned refs are *mutable* (registries like GHCR do not
 enforce tag immutability), so they are revalidated against the registry on
 every run: forge re-resolves the tag to its wasm-layer digest with a cheap
 manifest request, then serves the content-addressed blob when the digest

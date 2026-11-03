@@ -318,6 +318,9 @@ Pin by digest for reproducible builds:
 oci = "ghcr.io/<you>/my-generator@sha256:abc123…"
 ```
 
+The digest is the **manifest** digest, not the digest of the wasm layer.
+Get it with `oras manifest fetch --descriptor ghcr.io/<you>/my-generator:<tag>`.
+
 Private registries work through the Docker credential store: if
 `docker pull` from your registry works (`docker login`, or a credential
 helper such as `docker-credential-ecr-login` for Amazon ECR), so does
