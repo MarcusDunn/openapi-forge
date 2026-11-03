@@ -8,6 +8,17 @@ Pre-1.0, the IR is unstable. Every release that touches the IR carries an
 
 ## [Unreleased]
 
+### Fixed — digest-pinned OCI refs pull again (#182)
+
+A ref `name@sha256:<d>` could not succeed. The fetch selected the
+manifest by `<d>`, and then forge compared `<d>` with the digest of the
+layer bytes. Now `<d>` is the manifest digest, as in the OCI
+Distribution Spec. `oci-client` checks the manifest bytes against `<d>`
+and the layer bytes against the layer digest that the manifest declares.
+A pin of the layer digest fails with a message that tells you to pin the
+manifest digest. Get the manifest digest with
+`oras manifest fetch --descriptor <registry>/<repo>:<tag>`.
+
 ## [1.0.2] - 2026-10-23
 
 ### Fixed — exclusive numeric bounds keep their own IR slots (#145) [BREAKING]

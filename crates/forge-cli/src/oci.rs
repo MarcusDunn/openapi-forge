@@ -19,10 +19,17 @@
 //!     <hex>.wasm                    ← canonical, content-addressed
 //! by-tag/
 //!   <registry>/<repo>/<tag>.digest  ← tiny pointer file with "sha256:..."
+//! by-manifest/
+//!   sha256/
+//!     <hex>.digest                  ← manifest digest → layer digest
 //! ```
 //!
-//! Refs pinned by `@sha256:...` are immutable and skip the network
-//! entirely on cache hit. Tag-pinned refs are *mutable* — `:latest` (and
+//! A ref pinned by `@sha256:...` names the *manifest* digest, as in the
+//! OCI Distribution Spec's by-digest pull (`oras manifest fetch`, `docker
+//! pull`). The blob store is keyed by the *layer* digest, so a
+//! `by-manifest` pointer maps the one to the other. Manifest digests are
+//! immutable, so a digest-pinned ref skips the network entirely on cache
+//! hit. Tag-pinned refs are *mutable* — `:latest` (and
 //! any other tag, since registries like GHCR do not enforce tag
 //! immutability) can be re-pushed to a new digest at any time — so on
 //! every run we re-resolve the tag against the registry with a cheap
@@ -121,11 +128,17 @@ pub enum OciError {
         ACCEPTED_MEDIA_TYPES.join(", ")
     )]
     NoWasmLayer { reference: String, got: String },
-    #[error("digest mismatch for {reference}: expected {expected}, got {actual}")]
-    DigestMismatch {
+    #[error(
+        "no manifest with digest {digest} in {reference}. A `@sha256:...` ref \
+         must name the manifest digest, not a layer digest. Get the manifest \
+         digest with:\n    \
+         oras manifest fetch --descriptor <registry>/<repo>:<tag>"
+    )]
+    PinnedManifestNotFound {
         reference: String,
-        expected: String,
-        actual: String,
+        digest: String,
+        #[source]
+        source: Box<oci_client::errors::OciDistributionError>,
     },
     #[error("unsupported digest algorithm in {0}: only sha256 is supported")]
     UnsupportedDigestAlgo(String),
@@ -143,12 +156,14 @@ pub fn fetch_to_bytes(reference: &str) -> Result<Vec<u8>, OciError> {
 
     let cache_root = cache_root()?;
 
-    // Fast path: digest-pinned refs are immutable, so a cached blob is
-    // authoritative — skip the network entirely on a hit.
-    if let Some(digest) = parsed.digest() {
-        if let Some(bytes) = read_blob_by_digest(&cache_root, digest)? {
-            tracing::debug!(target: "forge::oci", %reference, "cache hit (digest-pinned)");
-            return Ok(bytes);
+    // Fast path: a manifest digest is immutable, so the layer it was last
+    // seen to declare is authoritative — skip the network entirely on a hit.
+    if let Some(manifest_digest) = parsed.digest() {
+        if let Some(layer_digest) = read_manifest_pointer(&cache_root, manifest_digest)? {
+            if let Some(bytes) = read_blob_by_digest(&cache_root, &layer_digest)? {
+                tracing::debug!(target: "forge::oci", %reference, "cache hit (digest-pinned)");
+                return Ok(bytes);
+            }
         }
     }
 
@@ -223,23 +238,18 @@ pub fn fetch_to_bytes(reference: &str) -> Result<Vec<u8>, OciError> {
 
     // Cache miss (tag moved, never cached, or a bare ref with no tag):
     // pull the layer bytes from the registry.
+    //
+    // No extra digest check is necessary here. For a digest-pinned ref,
+    // `oci-client` selects the manifest by that digest and rejects
+    // manifest bytes that do not hash to it. It also rejects layer bytes
+    // that do not hash to the digest the manifest declares. Thus the
+    // pin covers the layer bytes through the manifest.
     let pulled = runtime.block_on(pull(&parsed, &auth))?;
 
-    // If the caller pinned by digest, validate it before trusting the
-    // bytes. The OCI client validates layer digests against the manifest,
-    // but we want to validate against the *user-supplied* digest too.
-    if let Some(expected) = parsed.digest() {
-        let actual = layer_digest(&pulled.bytes);
-        if !digests_equal(expected, &actual) {
-            return Err(OciError::DigestMismatch {
-                reference: reference.to_owned(),
-                expected: expected.to_owned(),
-                actual,
-            });
-        }
-    }
-
     write_blob(&cache_root, &pulled.layer_digest, &pulled.bytes)?;
+    if let Some(manifest_digest) = parsed.digest() {
+        write_manifest_pointer(&cache_root, manifest_digest, &pulled.layer_digest)?;
+    }
     if let Some(tag) = parsed.tag() {
         write_tag_pointer(
             &cache_root,
@@ -327,13 +337,44 @@ fn map_registry_error(
     e: oci_client::errors::OciDistributionError,
 ) -> OciError {
     if is_access_denied(&e) {
-        OciError::AccessDenied {
+        return OciError::AccessDenied {
             reference: reference.to_string(),
             hint: access_denied_hint(reference.registry()),
             source: Box::new(e),
+        };
+    }
+    // A by-digest pull that finds no manifest most often means the user
+    // pinned the layer digest (the one `oras push` prints) instead of the
+    // manifest digest. Say so, instead of a bare "not found".
+    if let Some(digest) = reference.digest() {
+        if is_manifest_not_found(&e) {
+            return OciError::PinnedManifestNotFound {
+                reference: reference.to_string(),
+                digest: digest.to_owned(),
+                source: Box::new(e),
+            };
         }
-    } else {
-        e.into()
+    }
+    e.into()
+}
+
+/// Is this the registry's "no such manifest" reply to a manifest
+/// request? Only errors on a `/manifests/` URL qualify, so a missing
+/// blob keeps its own error.
+fn is_manifest_not_found(err: &oci_client::errors::OciDistributionError) -> bool {
+    use oci_client::errors::{OciDistributionError as E, OciErrorCode};
+    match err {
+        E::RegistryError { envelope, url } => {
+            url.contains("/manifests/")
+                && envelope.errors.iter().any(|e| {
+                    matches!(
+                        e.code,
+                        OciErrorCode::ManifestUnknown | OciErrorCode::NotFound
+                    )
+                })
+        }
+        E::ServerError { code: 404, url, .. } => url.contains("/manifests/"),
+        _ => false,
     }
 }
 
@@ -698,18 +739,52 @@ fn write_tag_pointer(
     })
 }
 
+/// Path of the pointer from a manifest digest to the layer digest that the
+/// manifest declares. Same `algo/hex` layout as [`blob_path`].
+fn manifest_pointer_path(cache_root: &Path, manifest_digest: &str) -> Result<PathBuf, OciError> {
+    let blob = blob_path(cache_root, manifest_digest)?;
+    let hex = blob.file_stem().expect("blob_path always has a file name");
+    Ok(cache_root
+        .join("by-manifest")
+        .join("sha256")
+        .join(hex)
+        .with_extension("digest"))
+}
+
+fn read_manifest_pointer(
+    cache_root: &Path,
+    manifest_digest: &str,
+) -> Result<Option<String>, OciError> {
+    let path = manifest_pointer_path(cache_root, manifest_digest)?;
+    match std::fs::read_to_string(&path) {
+        Ok(s) => Ok(Some(s.trim().to_owned())),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(source) => Err(OciError::CacheIo { path, source }),
+    }
+}
+
+fn write_manifest_pointer(
+    cache_root: &Path,
+    manifest_digest: &str,
+    layer_digest: &str,
+) -> Result<(), OciError> {
+    let path = manifest_pointer_path(cache_root, manifest_digest)?;
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|source| OciError::CacheIo {
+            path: parent.to_path_buf(),
+            source,
+        })?;
+    }
+    std::fs::write(&path, layer_digest).map_err(|source| OciError::CacheIo {
+        path: path.clone(),
+        source,
+    })
+}
+
 fn layer_digest(bytes: &[u8]) -> String {
     let mut h = Sha256::new();
     h.update(bytes);
     format!("sha256:{}", hex::encode(h.finalize()))
-}
-
-fn digests_equal(a: &str, b: &str) -> bool {
-    // Normalise: both should be `algo:hex`. Compare case-insensitively
-    // on the hex portion to be lenient about uppercase digests.
-    let (a_algo, a_hex) = a.split_once(':').unwrap_or(("", a));
-    let (b_algo, b_hex) = b.split_once(':').unwrap_or(("", b));
-    a_algo == b_algo && a_hex.eq_ignore_ascii_case(b_hex)
 }
 
 #[cfg(test)]
@@ -973,9 +1048,51 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn digests_equal_normalises_case() {
-        assert!(digests_equal("sha256:ABCDEF", "sha256:abcdef"));
-        assert!(!digests_equal("sha256:abc", "sha512:abc"));
+    fn manifest_not_found_needs_a_manifest_url() {
+        use oci_client::errors::{OciDistributionError, OciEnvelope, OciError, OciErrorCode};
+        let unknown = |url: &str| OciDistributionError::RegistryError {
+            envelope: OciEnvelope {
+                errors: vec![OciError {
+                    code: OciErrorCode::ManifestUnknown,
+                    message: "Requested image not found".to_owned(),
+                    detail: serde_json::Value::Null,
+                }],
+            },
+            url: url.to_owned(),
+        };
+        assert!(is_manifest_not_found(&unknown(
+            "https://r.example/v2/o/r/manifests/sha256:abc"
+        )));
+        assert!(!is_manifest_not_found(&unknown(
+            "https://r.example/v2/o/r/blobs/sha256:abc"
+        )));
+        let bare_404 = OciDistributionError::ServerError {
+            code: 404,
+            url: "https://r.example/v2/o/r/manifests/sha256:abc".to_owned(),
+            message: String::new(),
+        };
+        assert!(is_manifest_not_found(&bare_404));
+    }
+
+    #[test]
+    fn round_trip_manifest_pointer() {
+        let tmp = tempfile::tempdir().unwrap();
+        let root = tmp.path().to_path_buf();
+        let manifest = layer_digest(b"manifest");
+        let layer = layer_digest(b"layer");
+        assert!(read_manifest_pointer(&root, &manifest).unwrap().is_none());
+        write_manifest_pointer(&root, &manifest, &layer).unwrap();
+        assert_eq!(
+            read_manifest_pointer(&root, &manifest).unwrap().as_deref(),
+            Some(layer.as_str())
+        );
+        let hex = manifest.strip_prefix("sha256:").unwrap();
+        assert_eq!(
+            manifest_pointer_path(&root, &manifest).unwrap(),
+            root.join("by-manifest")
+                .join("sha256")
+                .join(format!("{hex}.digest"))
+        );
     }
 
     #[test]
@@ -1270,5 +1387,199 @@ pub(crate) mod tests {
         // The tag pointer should now track the new digest.
         let ptr = read_tag_pointer(&cache_plugins, &host, "test/repo", "latest").unwrap();
         assert_eq!(ptr.as_deref(), Some(layer_dig.as_str()));
+    }
+
+    /// A one-layer plugin image served by a mock registry that answers
+    /// manifest requests only by digest, like a by-digest pull sees it.
+    struct DigestFixture {
+        server: MockServer,
+        payload: Vec<u8>,
+        layer_digest: String,
+        manifest_digest: String,
+    }
+
+    impl DigestFixture {
+        /// `served_manifest` replaces the manifest body that the registry
+        /// returns for `manifest_digest`, to simulate a registry that
+        /// serves bytes which do not match the pinned digest.
+        async fn start(served_manifest: Option<String>) -> Self {
+            let payload = b"\0asm\x01\x00\x00\x00 digest-pinned-payload".to_vec();
+            let layer_dig = layer_digest(&payload);
+            let config_blob = json!({}).to_string().into_bytes();
+            let config_digest = layer_digest(&config_blob);
+            let manifest = OciImageManifest {
+                schema_version: 2,
+                media_type: Some("application/vnd.oci.image.manifest.v1+json".to_string()),
+                config: OciDescriptor {
+                    media_type: "application/vnd.oci.image.config.v1+json".to_string(),
+                    digest: config_digest.clone(),
+                    size: config_blob.len() as i64,
+                    urls: None,
+                    annotations: None,
+                    artifact_type: None,
+                },
+                layers: vec![OciDescriptor {
+                    media_type: "application/vnd.bytecodealliance.wasm.component.layer.v0+wasm"
+                        .to_string(),
+                    digest: layer_dig.clone(),
+                    size: payload.len() as i64,
+                    urls: None,
+                    annotations: None,
+                    artifact_type: None,
+                }],
+                subject: None,
+                artifact_type: None,
+                annotations: None,
+            };
+            let manifest_json = serde_json::to_string(&manifest).unwrap();
+            let manifest_digest = layer_digest(manifest_json.as_bytes());
+            let body = served_manifest.unwrap_or(manifest_json);
+
+            let server = MockServer::start().await;
+            Mock::given(method("GET"))
+                .and(path("/v2/"))
+                .respond_with(ResponseTemplate::new(200))
+                .mount(&server)
+                .await;
+            Mock::given(method("GET"))
+                .and(path(format!("/v2/test/repo/manifests/{manifest_digest}")))
+                .respond_with(
+                    ResponseTemplate::new(200)
+                        .set_body_raw(body, "application/vnd.oci.image.manifest.v1+json"),
+                )
+                .mount(&server)
+                .await;
+            // Any other manifest digest (for example the layer digest) is
+            // unknown, as a real registry would answer.
+            Mock::given(method("GET"))
+                .and(wiremock::matchers::path_regex("^/v2/test/repo/manifests/"))
+                .respond_with(ResponseTemplate::new(404).set_body_json(json!({
+                    "errors": [{
+                        "code": "MANIFEST_UNKNOWN",
+                        "message": "Requested image not found",
+                    }]
+                })))
+                .mount(&server)
+                .await;
+            Mock::given(method("GET"))
+                .and(path(format!("/v2/test/repo/blobs/{config_digest}")))
+                .respond_with(
+                    ResponseTemplate::new(200)
+                        .set_body_raw(config_blob, "application/vnd.oci.image.config.v1+json"),
+                )
+                .mount(&server)
+                .await;
+            Mock::given(method("GET"))
+                .and(path(format!("/v2/test/repo/blobs/{layer_dig}")))
+                .respond_with(
+                    ResponseTemplate::new(200).set_body_raw(payload.clone(), "application/wasm"),
+                )
+                .mount(&server)
+                .await;
+            Self {
+                server,
+                payload,
+                layer_digest: layer_dig,
+                manifest_digest,
+            }
+        }
+
+        fn reference(&self, digest: &str) -> String {
+            format!("{}/test/repo@{digest}", self.server.address())
+        }
+    }
+
+    /// Run [`fetch_to_bytes`] off the async runtime with a sandboxed env.
+    /// `insecure_host` is `None` to leave the registry unreachable.
+    async fn fetch_blocking(
+        cache: &Path,
+        insecure_host: Option<String>,
+        reference: String,
+    ) -> Result<Vec<u8>, OciError> {
+        let cache = cache.to_path_buf();
+        tokio::task::spawn_blocking(move || {
+            let _env = crate::docker_auth::tests::EnvSandbox::new();
+            std::env::set_var("FORGE_CACHE_DIR", &cache);
+            match insecure_host {
+                Some(host) => std::env::set_var("FORGE_OCI_INSECURE_HOSTS", host),
+                None => std::env::remove_var("FORGE_OCI_INSECURE_HOSTS"),
+            }
+            fetch_to_bytes(&reference)
+        })
+        .await
+        .unwrap()
+    }
+
+    /// Regression test for #31 and #182: a ref pinned by the manifest
+    /// digest pulls the layer that the manifest declares. Then, with the
+    /// registry gone, the same pin is served from the cache.
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn manifest_digest_pin_pulls_then_serves_from_cache() {
+        let fx = DigestFixture::start(None).await;
+        let cache = tempfile::tempdir().unwrap();
+        let host = fx.server.address().to_string();
+        let reference = fx.reference(&fx.manifest_digest);
+
+        let bytes = fetch_blocking(cache.path(), Some(host), reference.clone())
+            .await
+            .expect("a manifest-digest pin must pull");
+        assert_eq!(bytes, fx.payload);
+
+        let plugins = cache.path().join("openapi-forge").join("plugins");
+        assert_eq!(
+            read_manifest_pointer(&plugins, &fx.manifest_digest)
+                .unwrap()
+                .as_deref(),
+            Some(fx.layer_digest.as_str()),
+        );
+
+        let payload = fx.payload.clone();
+        drop(fx);
+        let bytes = fetch_blocking(cache.path(), None, reference)
+            .await
+            .expect("a cached manifest-digest pin must not touch the network");
+        assert_eq!(bytes, payload);
+    }
+
+    /// A ref pinned by the layer digest fails with an error that tells
+    /// the user to pin the manifest digest.
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn layer_digest_pin_says_to_pin_the_manifest() {
+        let fx = DigestFixture::start(None).await;
+        let cache = tempfile::tempdir().unwrap();
+        let host = fx.server.address().to_string();
+
+        let err = fetch_blocking(cache.path(), Some(host), fx.reference(&fx.layer_digest))
+            .await
+            .expect_err("a layer-digest pin must fail");
+        assert!(
+            matches!(&err, OciError::PinnedManifestNotFound { digest, .. } if *digest == fx.layer_digest),
+            "unexpected error: {err}"
+        );
+        assert!(err.to_string().contains("must name the manifest digest"));
+    }
+
+    /// The pin protects the bytes: a registry that serves a manifest
+    /// which does not hash to the pinned digest is rejected.
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn manifest_that_does_not_match_the_pin_is_rejected() {
+        let fx = DigestFixture::start(Some(r#"{"schemaVersion":2,"layers":[]}"#.to_owned())).await;
+        let cache = tempfile::tempdir().unwrap();
+        let host = fx.server.address().to_string();
+
+        let err = fetch_blocking(cache.path(), Some(host), fx.reference(&fx.manifest_digest))
+            .await
+            .expect_err("a manifest that does not match the pin must fail");
+        assert!(
+            matches!(
+                &err,
+                OciError::Registry(oci_client::errors::OciDistributionError::DigestError(_))
+            ),
+            "unexpected error: {err}"
+        );
+        let plugins = cache.path().join("openapi-forge").join("plugins");
+        assert!(read_manifest_pointer(&plugins, &fx.manifest_digest)
+            .unwrap()
+            .is_none());
     }
 }
