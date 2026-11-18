@@ -8,6 +8,8 @@ Pre-1.0, the IR is unstable. Every release that touches the IR carries an
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-11-04
+
 ### Fixed — digest-pinned OCI refs pull again (#182)
 
 A ref `name@sha256:<d>` could not succeed. The fetch selected the
