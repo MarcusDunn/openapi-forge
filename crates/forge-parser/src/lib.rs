@@ -2640,6 +2640,37 @@ mod tests {
     }
 
     #[test]
+    fn content_parameter_keeps_its_media_type() {
+        // A `content` parameter is sent as its media type (a JSON array as
+        // one `ids=[1,2]`), which `style` / `explode` cannot say, so the IR
+        // keeps the media type. A `schema` parameter has none.
+        let src = r#"{
+            "openapi":"3.0.3",
+            "info":{"title":"t","version":"1"},
+            "paths":{"/x":{"get":{
+                "operationId":"x",
+                "parameters":[
+                    {"name":"ids","in":"query","required":true,
+                     "content":{"application/json":{"schema":{
+                        "type":"array","items":{"type":"integer"}}}}},
+                    {"name":"tags","in":"query",
+                     "schema":{"type":"array","items":{"type":"string"}}}
+                ],
+                "responses":{"204":{"description":"ok"}}
+            }}}
+        }"#;
+        let ir = parse_str(src).unwrap().spec.unwrap();
+        let params = &ir.operations[0].query_params;
+        assert_eq!(params[0].name, "ids");
+        assert_eq!(
+            params[0].content_media_type.as_deref(),
+            Some("application/json")
+        );
+        assert_eq!(params[1].name, "tags");
+        assert_eq!(params[1].content_media_type, None);
+    }
+
+    #[test]
     fn parameter_querystring_3_2_routes_to_new_bucket() {
         // OAS 3.2 added `in: querystring`. Should land on the new
         // `Operation.querystring_params` slot, not the regular

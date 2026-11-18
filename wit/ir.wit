@@ -382,6 +382,7 @@ interface types {
         explode: bool,
         allow-empty-value: bool,             // query-only; warn elsewhere
         allow-reserved: bool,                // raw RFC 3986 reserved chars
+        content-media-type: option<string>,  // set for a `content` parameter
         extensions: list<tuple<string, value-ref>>,
         location: option<spec-location>,
     }

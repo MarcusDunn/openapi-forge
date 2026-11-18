@@ -170,7 +170,10 @@ the amendment in ADR-0007.
 - `original_id` — the spec's raw `operationId` if it was provided
 - `method`, `path_template` — `GET /pets/{petId}`
 - Parameters split by location: `path_params`, `query_params`, `header_params`,
-  `cookie_params`
+  `cookie_params`. A parameter declared with `content` instead of `schema`
+  carries that media type in `content_media_type` (`None` for a `schema`
+  parameter); it is sent as that media type, a JSON one as its JSON text,
+  and its `style` / `explode` do not apply.
 - `request_body` — at most one, with one or more `content` entries (one per
   media type)
 - `responses` — by status: `Explicit { code }`, `Default`, or
