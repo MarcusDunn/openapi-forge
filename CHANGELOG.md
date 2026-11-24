@@ -8,6 +8,8 @@ Pre-1.0, the IR is unstable. Every release that touches the IR carries an
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-11-24
+
 ### Added — a `content` parameter or header keeps its media type (#174) [BREAKING]
 
 A parameter may declare `content: { <media type>: { schema } }` instead of
