@@ -5,7 +5,9 @@
 mod common;
 
 use common::runner_for;
-use forge_ir::{ApiInfo, HttpMethod, Ir, Operation};
+use forge_ir::{
+    ApiInfo, Header, HttpMethod, Ir, Operation, Parameter, ParameterStyle, Response, ResponseStatus,
+};
 
 fn sample_ir() -> Ir {
     Ir {
@@ -27,12 +29,51 @@ fn sample_ir() -> Ir {
             method: HttpMethod::Get,
             path_template: "/things/{id}".into(),
             path_params: vec![],
-            query_params: vec![],
+            // A `content` parameter and a `content` header, so both
+            // `content-media-type` slots cross the boundary set.
+            query_params: vec![Parameter {
+                name: "ids".into(),
+                r#type: "ids".into(),
+                required: true,
+                description: None,
+                deprecated: false,
+                examples: vec![],
+                style: Some(ParameterStyle::Form),
+                explode: true,
+                allow_empty_value: false,
+                allow_reserved: false,
+                content_media_type: Some("application/json".into()),
+                extensions: vec![],
+                location: None,
+            }],
             header_params: vec![],
             cookie_params: vec![],
             querystring_params: vec![],
             request_body: None,
-            responses: vec![],
+            responses: vec![Response {
+                status: ResponseStatus::Explicit { code: 200 },
+                content: vec![],
+                headers: vec![(
+                    "X-Page".into(),
+                    Header {
+                        r#type: "page".into(),
+                        required: false,
+                        description: None,
+                        deprecated: false,
+                        examples: vec![],
+                        style: None,
+                        explode: false,
+                        allow_reserved: false,
+                        allow_empty_value: false,
+                        content_media_type: Some("application/json".into()),
+                        location: None,
+                    },
+                )],
+                summary: None,
+                description: None,
+                links: vec![],
+                extensions: vec![],
+            }],
             security: vec![],
             tags: vec![],
             summary: None,

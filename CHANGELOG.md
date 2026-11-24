@@ -8,6 +8,55 @@ Pre-1.0, the IR is unstable. Every release that touches the IR carries an
 
 ## [Unreleased]
 
+### Added — a `content` parameter or header keeps its media type (#174) [BREAKING]
+
+A parameter may declare `content: { <media type>: { schema } }` instead of
+`schema`, and it is then sent as that media type: a JSON array query
+parameter is one `ids=[1,2]`, not `ids=1&ids=2`. The parser read the schema
+and dropped the media type, and gave the parameter the location's default
+`style` / `explode`. A plugin could not tell it from a `style: form` array,
+so a generated client sent it one pair per item, and a server that reads
+JSON refused it.
+
+`Parameter.content_media_type` (WIT `content-media-type`) is the declared
+media type, or `None` for a `schema` parameter. `style` and `explode` are
+unchanged. A Header Object takes `content` the same way, and
+`Header.content_media_type` holds its media type.
+
+`generator-rust-reqwest` and `generator-typescript-fetch` do not read
+the field yet: they still pick a parameter's encoding from `style` /
+`explode`.
+
+The `content` entry may be a `$ref` into `components.mediaTypes`
+(OAS 3.2), as under a request or response body. It gave a missing-schema
+error on a parameter and dropped a header in silence; now it resolves.
+
+The schema of a `content` parameter or header is located at
+`<owner>/content/<media type>/schema`, where the document has it. It was
+located at `<owner>/schema`, which is not in the document.
+
+New conformance fixture `param-content-json`; four new unit tests.
+
+**Migration:** both records change shape, in Rust and in WIT.
+
+- Rebuild every plugin against this release's `forge-plugin-sdk`. A
+  plugin built against an older SDK does not load in this `forge`, and a
+  plugin built against this SDK does not load in an older `forge`. Repin
+  OCI plugin refs to the rebuilt artifacts.
+- `forge-plugin-sdk` 1.0.3 and older build `Parameter` and `Header`
+  literals without the field and take `forge-ir` as a caret requirement,
+  so they stop compiling once a 1.0.x `forge-ir` with this change is
+  published and Cargo resolves afresh. Move the SDK and `forge-ir`
+  together.
+
+#### IR
+
+- `Parameter` gains `content_media_type: Option<String>` (WIT:
+  `content-media-type: option<string>`). A plugin that builds a
+  `Parameter` literal must set it.
+- `Header` gains the same `content_media_type: Option<String>` (WIT:
+  `content-media-type: option<string>`).
+
 ## [1.0.3] - 2026-11-04
 
 ### Fixed — digest-pinned OCI refs pull again (#182)

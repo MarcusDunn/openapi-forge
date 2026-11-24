@@ -2640,6 +2640,128 @@ mod tests {
     }
 
     #[test]
+    fn content_parameter_keeps_its_media_type() {
+        // A `content` parameter is sent as its media type (a JSON array as
+        // one `ids=[1,2]`), which `style` / `explode` cannot say, so the IR
+        // keeps the media type. A `schema` parameter has none.
+        let src = r#"{
+            "openapi":"3.0.3",
+            "info":{"title":"t","version":"1"},
+            "paths":{"/x":{"get":{
+                "operationId":"x",
+                "parameters":[
+                    {"name":"ids","in":"query","required":true,
+                     "content":{"application/json":{"schema":{
+                        "type":"array","items":{"type":"integer"}}}}},
+                    {"name":"tags","in":"query",
+                     "schema":{"type":"array","items":{"type":"string"}}}
+                ],
+                "responses":{"204":{"description":"ok"}}
+            }}}
+        }"#;
+        let ir = parse_str(src).unwrap().spec.unwrap();
+        let params = &ir.operations[0].query_params;
+        assert_eq!(params[0].name, "ids");
+        assert_eq!(
+            params[0].content_media_type.as_deref(),
+            Some("application/json")
+        );
+        assert_eq!(params[1].name, "tags");
+        assert_eq!(params[1].content_media_type, None);
+    }
+
+    #[test]
+    fn content_header_keeps_its_media_type() {
+        // A Header Object takes `content` as a Parameter Object does.
+        let src = r#"{
+            "openapi":"3.0.3",
+            "info":{"title":"t","version":"1"},
+            "paths":{"/x":{"get":{
+                "operationId":"x",
+                "responses":{"200":{"description":"ok","headers":{
+                    "X-Limits":{"content":{"application/json":{"schema":{
+                        "type":"object","properties":{"left":{"type":"integer"}}}}}},
+                    "X-Rate":{"schema":{"type":"integer"}}
+                }}}
+            }}}
+        }"#;
+        let ir = parse_str(src).unwrap().spec.unwrap();
+        let headers = &ir.operations[0].responses[0].headers;
+        let media = |name: &str| {
+            let (_, h) = headers.iter().find(|(n, _)| n == name).unwrap();
+            h.content_media_type.clone()
+        };
+        assert_eq!(media("X-Limits").as_deref(), Some("application/json"));
+        assert_eq!(media("X-Rate"), None);
+    }
+
+    #[test]
+    fn content_parameter_and_header_resolve_a_media_type_ref() {
+        // OAS 3.2: a `content` entry MAY be a `$ref` into
+        // `components.mediaTypes`. The media type is the key at the use
+        // site.
+        let src = r##"{
+            "openapi":"3.2.0",
+            "info":{"title":"t","version":"1"},
+            "paths":{"/x":{"get":{
+                "operationId":"x",
+                "parameters":[
+                    {"name":"ids","in":"query",
+                     "content":{"application/json":{"$ref":"#/components/mediaTypes/Ids"}}}
+                ],
+                "responses":{"200":{"description":"ok","headers":{
+                    "X-Ids":{"content":{"application/json":{"$ref":"#/components/mediaTypes/Ids"}}}
+                }}}
+            }}},
+            "components":{"mediaTypes":{"Ids":{"schema":{
+                "type":"array","items":{"type":"integer"}}}}}
+        }"##;
+        let out = parse_str(src).unwrap();
+        assert!(out.diagnostics.is_empty(), "{:?}", out.diagnostics);
+        let ir = out.spec.unwrap();
+        let op = &ir.operations[0];
+        let param = &op.query_params[0];
+        assert_eq!(
+            param.content_media_type.as_deref(),
+            Some("application/json")
+        );
+        let (_, header) = &op.responses[0].headers[0];
+        assert_eq!(
+            header.content_media_type.as_deref(),
+            Some("application/json")
+        );
+        // Both resolve the schema the component declares.
+        for id in [&param.r#type, &header.r#type] {
+            let ty = ir.types.iter().find(|t| &t.id == id).unwrap();
+            assert!(matches!(ty.definition, forge_ir::TypeDef::Array(_)));
+        }
+    }
+
+    #[test]
+    fn content_schema_is_located_under_its_media_type() {
+        let src = r#"{
+            "openapi":"3.0.3",
+            "info":{"title":"t","version":"1"},
+            "paths":{"/x":{"get":{
+                "operationId":"x",
+                "parameters":[
+                    {"name":"ids","in":"query",
+                     "content":{"application/json":{"schema":{
+                        "type":"array","items":{"type":"integer"}}}}}
+                ],
+                "responses":{"204":{"description":"ok"}}
+            }}}
+        }"#;
+        let ir = parse_str(src).unwrap().spec.unwrap();
+        let id = &ir.operations[0].query_params[0].r#type;
+        let ty = ir.types.iter().find(|t| &t.id == id).unwrap();
+        assert_eq!(
+            ty.location.as_ref().unwrap().pointer,
+            "/paths/~1x/get/parameters/0/content/application~1json/schema"
+        );
+    }
+
+    #[test]
     fn parameter_querystring_3_2_routes_to_new_bucket() {
         // OAS 3.2 added `in: querystring`. Should land on the new
         // `Operation.querystring_params` slot, not the regular

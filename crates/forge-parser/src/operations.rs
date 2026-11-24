@@ -462,19 +462,15 @@ fn build_parameter(
         .get("required")
         .and_then(J::as_bool)
         .unwrap_or(false);
-    // OAS allows `schema` *or* `content.<media>.schema` (mutually
-    // exclusive). The latter is for complex / non-trivial parameter
-    // values. Try the inline form first, then fall back to content.
-    let schema = match param_map.get("schema") {
-        Some(s) => s,
-        None => match param_map
-            .get("content")
-            .and_then(|c| c.as_object())
-            .and_then(|m| m.values().next())
-            .and_then(|first| first.get("schema"))
-        {
-            Some(s) => s,
-            None => {
+    let role = format!("param_{loc}_{name}");
+    let role_san = crate::sanitize::ident(&role);
+    let (type_ref, content_media_type) =
+        match parse_value_schema(ctx, param_map, owner_id, &role_san, ptr) {
+            ValueSchema::Parsed {
+                type_ref,
+                content_media_type,
+            } => (type_ref, content_media_type),
+            ValueSchema::Missing => {
                 ctx.push_diag(diag::err(
                     diag::E_MISSING_FIELD,
                     "parameter is missing `schema` or `content.<media>.schema`",
@@ -482,13 +478,8 @@ fn build_parameter(
                 ));
                 return None;
             }
-        },
-    };
-    let role = format!("param_{loc}_{name}");
-    let role_san = crate::sanitize::ident(&role);
-    let type_ref = ptr.with_token("schema", |ptr| {
-        parse_schema(ctx, schema, ptr, NameHint::inline(owner_id, &role_san))
-    })?;
+            ValueSchema::Invalid => return None,
+        };
     let (style, explode) = resolve_param_style(ctx, param_map, loc, ptr);
     let raw_allow_empty_value = param_map
         .get("allowEmptyValue")
@@ -531,6 +522,7 @@ fn build_parameter(
         explode,
         allow_empty_value,
         allow_reserved,
+        content_media_type,
         extensions,
         location: Some(ptr.loc(ctx.file)),
     })
@@ -586,18 +578,15 @@ fn build_header(
         .get("required")
         .and_then(J::as_bool)
         .unwrap_or(false);
-    let schema = header_map.get("schema").or_else(|| {
-        header_map
-            .get("content")
-            .and_then(|c| c.as_object())
-            .and_then(|m| m.values().next())
-            .and_then(|first| first.get("schema"))
-    })?;
     let role = format!("header_{name}");
     let role_san = crate::sanitize::ident(&role);
-    let type_ref = ptr.with_token("schema", |ptr| {
-        parse_schema(ctx, schema, ptr, NameHint::inline(owner_id, &role_san))
-    })?;
+    let ValueSchema::Parsed {
+        type_ref,
+        content_media_type,
+    } = parse_value_schema(ctx, header_map, owner_id, &role_san, ptr)
+    else {
+        return None;
+    };
     // OAS §4.21: Header Object carries description, deprecated,
     // example/examples (same doc fields as Parameter Object).
     let description = crate::schema::description(header_map);
@@ -632,7 +621,76 @@ fn build_header(
         explode,
         allow_reserved,
         allow_empty_value,
+        content_media_type,
         location: Some(ptr.loc(ctx.file)),
+    })
+}
+
+/// The value schema of a Parameter or Header Object.
+enum ValueSchema {
+    Parsed {
+        type_ref: forge_ir::TypeRef,
+        /// The media type of a `content` declaration; `None` for `schema`.
+        content_media_type: Option<String>,
+    },
+    /// Neither `schema` nor `content.<media>.schema` is there.
+    Missing,
+    /// A schema is there and did not parse, or its media type `$ref` did
+    /// not resolve. The diagnostic is already pushed.
+    Invalid,
+}
+
+/// Parse the value schema of a Parameter or Header Object. OAS allows
+/// `schema` *or* `content.<media>.schema` (mutually exclusive); the latter
+/// is for complex / non-trivial values. Try the inline form first, then
+/// fall back to content, and keep the content's media type: a JSON
+/// parameter is sent as its JSON text, which `style` / `explode` cannot
+/// say. Per OAS 3.2 the content entry MAY be a `$ref` into
+/// `components.mediaTypes.<Name>`, as under a request or response body.
+fn parse_value_schema(
+    ctx: &mut Ctx,
+    map: &serde_json::Map<String, J>,
+    owner_id: &str,
+    role_san: &str,
+    ptr: &mut Ptr,
+) -> ValueSchema {
+    let parse = |ctx: &mut Ctx, schema: &J, ptr: &mut Ptr| {
+        ptr.with_token("schema", |ptr| {
+            parse_schema(ctx, schema, ptr, NameHint::inline(owner_id, role_san))
+        })
+    };
+    if let Some(schema) = map.get("schema") {
+        return match parse(ctx, schema, ptr) {
+            Some(type_ref) => ValueSchema::Parsed {
+                type_ref,
+                content_media_type: None,
+            },
+            None => ValueSchema::Invalid,
+        };
+    }
+    let Some((media_type, entry)) = map
+        .get("content")
+        .and_then(J::as_object)
+        .and_then(|m| m.iter().next())
+    else {
+        return ValueSchema::Missing;
+    };
+    ptr.with_token("content", |ptr| {
+        ptr.with_token(media_type, |ptr| {
+            crate::ref_walk::with_resolved_object(ctx, entry, ptr, |ctx, resolved, ptr| {
+                let Some(schema) = resolved.get("schema") else {
+                    return Some(ValueSchema::Missing);
+                };
+                Some(match parse(ctx, schema, ptr) {
+                    Some(type_ref) => ValueSchema::Parsed {
+                        type_ref,
+                        content_media_type: Some(media_type.clone()),
+                    },
+                    None => ValueSchema::Invalid,
+                })
+            })
+            .unwrap_or(ValueSchema::Invalid)
+        })
     })
 }
 
