@@ -822,6 +822,7 @@ macro_rules! __impl_world_shared {
                 explode: h.explode,
                 allow_reserved: h.allow_reserved,
                 allow_empty_value: h.allow_empty_value,
+                content_media_type: h.content_media_type,
                 location: h.location.map(loc_to),
             }
         }
@@ -837,6 +838,7 @@ macro_rules! __impl_world_shared {
                 explode: h.explode,
                 allow_reserved: h.allow_reserved,
                 allow_empty_value: h.allow_empty_value,
+                content_media_type: h.content_media_type,
                 location: h.location.map(loc_from),
             }
         }
@@ -853,6 +855,7 @@ macro_rules! __impl_world_shared {
                 explode: p.explode,
                 allow_empty_value: p.allow_empty_value,
                 allow_reserved: p.allow_reserved,
+                content_media_type: p.content_media_type,
                 extensions: extensions_to(p.extensions),
                 location: p.location.map(loc_to),
             }
@@ -870,6 +873,7 @@ macro_rules! __impl_world_shared {
                 explode: p.explode,
                 allow_empty_value: p.allow_empty_value,
                 allow_reserved: p.allow_reserved,
+                content_media_type: p.content_media_type,
                 extensions: extensions_from(p.extensions),
                 location: p.location.map(loc_from),
             }

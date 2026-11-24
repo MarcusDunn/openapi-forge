@@ -172,7 +172,10 @@ YAML input is **not** supported. Specs must be JSON.
   Rust).
 - **Parameter `content.<media>.schema`** — the OAS form for complex
   parameter values whose schema is media-type-scoped. Falls back from
-  the inline `schema` field automatically.
+  the inline `schema` field automatically, and keeps the media type on
+  `Parameter.content_media_type` (`Header.content_media_type` for a
+  Header Object), so a generator can send the value as that media type.
+  The entry may be a `$ref` into `components.mediaTypes` (3.2).
 - **OpenAPI 3.1**: `type` arrays for nullability (`["string", "null"]`)
   and multi-type unions (`["string", "integer"]` desugars to an untagged
   union over primitives). Numeric `exclusiveMinimum` / `exclusiveMaximum`
