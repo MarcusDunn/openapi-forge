@@ -71,7 +71,7 @@ jsonschema = { version = "0.61.0", default-features = false }
 
 # WASM toolchain
 wasmtime = { version = "50", default-features = false, features = ["component-model", "cranelift", "runtime", "std", "addr2line", "demangle", "parallel-compilation", "cache"] }
-wasmtime-wasi = "50"
+wasmtime-wasi = "51"
 wit-bindgen = "0.36"
 wit-bindgen-rt = "0.36"
 
